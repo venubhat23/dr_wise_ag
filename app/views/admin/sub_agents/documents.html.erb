@@ -6,6 +6,10 @@
       <span class="badge bg-<%= @sub_agent.active? ? 'success' : 'secondary' %> me-2">
         <%= @sub_agent.status.capitalize %>
       </span>
+      <% kyc_badge = { 'pending' => 'secondary', 'submitted' => 'warning', 'approved' => 'success', 'rejected' => 'danger' }[@sub_agent.kyc_status] %>
+      <span class="badge bg-<%= kyc_badge %> me-2">
+        KYC: <%= @sub_agent.kyc_status.capitalize %>
+      </span>
       Manage all documents for this affiliate
     </p>
   </div>
@@ -128,6 +132,77 @@
     </div>
   </div>
 <% end %>
+
+<!-- KYC Review Section -->
+<% kyc_docs = @documents.select { |d| ['Aadhaar Card', 'Pancard'].include?(d.document_type) } %>
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-patch-check me-2 text-warning"></i>
+    <h5 class="mb-0">KYC Review (Aadhaar &amp; PAN)</h5>
+  </div>
+  <div class="card-body">
+    <% if kyc_docs.empty? %>
+      <p class="text-muted mb-0">No Aadhaar/PAN documents submitted yet.</p>
+    <% else %>
+      <div class="row">
+        <% kyc_docs.each do |document| %>
+          <div class="col-md-6 mb-3">
+            <div class="border rounded p-3 h-100">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0"><%= document.document_type %></h6>
+                <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
+                  OCR: <%= document.ocr_status %>
+                </span>
+              </div>
+              <% if document.has_file? %>
+                <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary mb-2" do %>
+                  <i class="bi bi-eye me-1"></i>View Image
+                <% end %>
+              <% end %>
+              <% if document.ocr_extracted_data.present? %>
+                <dl class="row mb-0 small">
+                  <% document.ocr_extracted_data.each do |key, value| %>
+                    <dt class="col-5 text-muted"><%= key.humanize %></dt>
+                    <dd class="col-7"><%= value %></dd>
+                  <% end %>
+                </dl>
+              <% end %>
+              <% if document.ocr_text.present? %>
+                <p class="text-muted small mb-1 mt-2">Full text read off the card:</p>
+                <pre class="small bg-light border rounded p-2 mb-0" style="max-height: 160px; overflow-y: auto; white-space: pre-wrap;"><%= document.ocr_text %></pre>
+              <% end %>
+              <% if document.ocr_status == 'failed' && document.ocr_error.present? %>
+                <p class="text-danger small mb-0 mt-2">OCR error: <%= document.ocr_error %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if @sub_agent.kyc_rejected? && @sub_agent.kyc_rejection_reason.present? %>
+      <div class="alert alert-warning mb-3">
+        <strong>Last rejection reason:</strong> <%= @sub_agent.kyc_rejection_reason %>
+      </div>
+    <% end %>
+
+    <% if @sub_agent.kyc_submitted? || @sub_agent.kyc_rejected? %>
+      <div class="d-flex flex-wrap align-items-center gap-2 pt-2 border-top">
+        <%= button_to "Approve KYC", approve_kyc_admin_sub_agent_path(@sub_agent),
+                      method: :patch, class: "btn btn-success",
+                      form: { data: { turbo_confirm: "Approve this affiliate's KYC and activate their account?" } } %>
+        <%= form_with url: reject_kyc_admin_sub_agent_path(@sub_agent), method: :patch, local: true, class: "d-flex gap-2" do |f| %>
+          <%= f.text_field :reason, placeholder: "Rejection reason", class: "form-control form-control-sm", required: true %>
+          <%= f.submit "Reject KYC", class: "btn btn-danger" %>
+        <% end %>
+      </div>
+    <% elsif @sub_agent.kyc_approved? %>
+      <p class="text-success mb-0"><i class="bi bi-check-circle me-1"></i>KYC approved - affiliate can log in.</p>
+    <% else %>
+      <p class="text-muted mb-0">Waiting for the affiliate to submit both Aadhaar and PAN documents.</p>
+    <% end %>
+  </div>
+</div>
 
 <!-- Additional Documents Section -->
 <% if @documents.any? %>

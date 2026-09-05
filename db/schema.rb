@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_21_094507) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_05_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -1866,6 +1866,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_21_094507) do
     t.string "r2_filename"
     t.string "r2_content_type"
     t.bigint "r2_file_size"
+    t.text "ocr_text"
+    t.jsonb "ocr_extracted_data", default: {}, null: false
+    t.string "ocr_status", default: "pending", null: false
+    t.text "ocr_error"
     t.index ["document_type"], name: "index_sub_agent_documents_on_document_type"
     t.index ["sub_agent_id", "document_type"], name: "index_sub_agent_documents_on_sub_agent_id_and_document_type"
     t.index ["sub_agent_id"], name: "index_sub_agent_documents_on_sub_agent_id"
@@ -1903,9 +1907,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_21_094507) do
     t.boolean "deactivated", default: false
     t.string "city"
     t.string "state"
+    t.integer "kyc_status", default: 0, null: false
+    t.datetime "kyc_submitted_at"
+    t.datetime "kyc_reviewed_at"
+    t.text "kyc_rejection_reason"
+    t.string "aadhaar_no"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
+    t.index ["kyc_status"], name: "index_sub_agents_on_kyc_status"
     t.index ["mobile"], name: "index_sub_agents_on_mobile", unique: true
     t.index ["role_id"], name: "index_sub_agents_on_role_id"
     t.index ["status"], name: "index_sub_agents_on_status"

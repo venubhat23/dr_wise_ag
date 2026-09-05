@@ -72,6 +72,7 @@ class SubAgent < ApplicationRecord
 
   # Enums
   enum :status, { active: 0, inactive: 1 }
+  enum :kyc_status, { pending: 0, submitted: 1, approved: 2, rejected: 3 }, prefix: :kyc
 
   # Scopes
   scope :not_deactivated, -> { where(deactivated: false) }
@@ -148,6 +149,21 @@ class SubAgent < ApplicationRecord
 
   def truly_active?
     active? && !deactivated?
+  end
+
+  def approve_kyc!
+    update!(kyc_status: :approved, status: :active, kyc_reviewed_at: Time.current)
+  end
+
+  def reject_kyc!(reason)
+    update!(kyc_status: :rejected, kyc_rejection_reason: reason, kyc_reviewed_at: Time.current)
+  end
+
+  # A submission only counts as complete once both required documents are present -
+  # used to decide when to flip kyc_status from pending/rejected to submitted.
+  def kyc_documents_complete?
+    doc_types = sub_agent_documents.pluck(:document_type)
+    doc_types.include?('Aadhaar Card') && doc_types.include?('Pancard')
   end
 
   # Note: state and city are now real database columns, so getters/setters are not needed

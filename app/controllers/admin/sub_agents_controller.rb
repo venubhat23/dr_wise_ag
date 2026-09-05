@@ -521,6 +521,27 @@ class Admin::SubAgentsController < Admin::ApplicationController
     end
   end
 
+  # PATCH /admin/sub_agents/1/approve_kyc
+  def approve_kyc
+    @sub_agent = SubAgent.find(params[:id])
+    @sub_agent.approve_kyc!
+    SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'approved')
+    redirect_to admin_sub_agent_documents_path(@sub_agent), notice: 'KYC approved. The affiliate can now log in.'
+  rescue => e
+    redirect_to admin_sub_agent_documents_path(params[:id]), alert: "Failed to approve KYC: #{e.message}"
+  end
+
+  # PATCH /admin/sub_agents/1/reject_kyc
+  def reject_kyc
+    @sub_agent = SubAgent.find(params[:id])
+    reason = params[:reason].presence || 'Documents could not be verified.'
+    @sub_agent.reject_kyc!(reason)
+    SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'rejected')
+    redirect_to admin_sub_agent_documents_path(@sub_agent), notice: 'KYC rejected. The affiliate has been notified.'
+  rescue => e
+    redirect_to admin_sub_agent_documents_path(params[:id]), alert: "Failed to reject KYC: #{e.message}"
+  end
+
   # GET /admin/sub_agents/1/distributor
   def distributor
     @sub_agent = SubAgent.find(params[:id])

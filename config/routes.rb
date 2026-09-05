@@ -261,6 +261,8 @@ Rails.application.routes.draw do
         patch :toggle_status
         patch :deactivate
         patch :activate
+        patch :approve_kyc
+        patch :reject_kyc
         get :distributor
         get :documents
         post :create_missing_payouts
@@ -863,6 +865,10 @@ Rails.application.routes.draw do
         put 'sub_agent/notifications/:id/mark_read', to: 'sub_agent#mark_notification_read'
         put 'sub_agent/notifications/mark_all_read', to: 'sub_agent#mark_all_notifications_read'
         get 'sub_agent/notifications/unread_count', to: 'sub_agent#unread_notifications_count'
+
+        # Sub Agent KYC APIs (self-service affiliate onboarding)
+        get 'kyc/status', to: 'kyc#status'
+        post 'kyc/documents', to: 'kyc#upload_documents'
 
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'

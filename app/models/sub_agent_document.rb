@@ -129,7 +129,35 @@ class SubAgentDocument < ApplicationRecord
     end
   end
 
+  # Runs OCR against the just-uploaded file (must still be in memory/on disk -
+  # call this synchronously in the same request as the upload, not later from
+  # a job, since ActionDispatch::Http::UploadedFile's tempfile doesn't survive
+  # past the request). Never raises - failures are recorded on the record.
+  def run_ocr!(file)
+    text = OcrService.extract_text(file)
+    update!(
+      ocr_text: text,
+      ocr_extracted_data: parse_ocr_fields(text),
+      ocr_status: "success",
+      ocr_error: nil
+    )
+  rescue OcrService::ExtractionError, OcrService::ConfigurationError => e
+    Rails.logger.error "OCR failed for SubAgentDocument #{id}: #{e.message}"
+    update!(ocr_status: "failed", ocr_error: e.message)
+  end
+
   private
+
+  def parse_ocr_fields(text)
+    case document_type
+    when "Aadhaar Card"
+      OcrService::AadhaarParser.parse(text)
+    when "Pancard"
+      OcrService::PanParser.parse(text)
+    else
+      {}
+    end
+  end
 
   def file_presence
     return if has_file?

@@ -221,13 +221,15 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     case role
     when 'customer', 'user'
       register_customer
-    when 'agent', 'sub_agent'
+    when 'agent'
       register_agent
+    when 'sub_agent', 'affiliate'
+      register_sub_agent
     else
       render json: {
         success: false,
-        message: 'Invalid role. Only customer and agent registration are allowed.',
-        valid_roles: ['customer', 'agent']
+        message: 'Invalid role. Only customer, agent, and affiliate registration are allowed.',
+        valid_roles: ['customer', 'agent', 'affiliate']
       }, status: :unprocessable_entity
     end
   end
@@ -532,6 +534,121 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         success: false,
         message: 'Agent registration failed',
         errors: user.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
+  # Self-service affiliate/sub-agent registration. Creates a SubAgent (not a
+  # User, unlike the legacy register_agent above) with status: inactive and
+  # kyc_status: pending - the account stays locked out of login (see
+  # handle_sub_agent_login's status == 'active' check) until an admin
+  # approves the KYC documents uploaded afterwards via
+  # Api::V1::Mobile::KycController#upload_documents.
+  def register_sub_agent
+    sub_agent_params = params.permit(:first_name, :middle_name, :last_name, :email, :mobile,
+                                      :password, :password_confirmation, :pan_no, :address,
+                                      :city, :state, :gender, :birth_date, :company_name)
+
+    if sub_agent_params[:first_name].blank? || sub_agent_params[:last_name].blank? ||
+       sub_agent_params[:email].blank? || sub_agent_params[:mobile].blank? || sub_agent_params[:password].blank?
+      return render json: {
+        success: false,
+        message: 'First name, last name, email, mobile number, and password are required'
+      }, status: :unprocessable_entity
+    end
+
+    if sub_agent_params[:password_confirmation].present? && sub_agent_params[:password] != sub_agent_params[:password_confirmation]
+      return render json: {
+        success: false,
+        message: 'Password confirmation does not match'
+      }, status: :unprocessable_entity
+    end
+
+    unless sub_agent_params[:email].match?(/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)
+      return render json: {
+        success: false,
+        message: 'Please enter a valid email address'
+      }, status: :unprocessable_entity
+    end
+
+    mobile_number = format_mobile_number(sub_agent_params[:mobile])
+    unless mobile_number
+      return render json: {
+        success: false,
+        message: 'Please enter a valid Indian mobile number (10 digits starting with 6-9)'
+      }, status: :unprocessable_entity
+    end
+
+    unless validate_name_fields(sub_agent_params[:first_name]) && validate_name_fields(sub_agent_params[:last_name])
+      return render json: {
+        success: false,
+        message: 'First and last name should contain only alphabetic characters and be 2-50 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    if sub_agent_params[:password].length < 6
+      return render json: {
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    parsed_birth_date = nil
+    if sub_agent_params[:birth_date].present?
+      begin
+        parsed_birth_date = Date.parse(sub_agent_params[:birth_date])
+      rescue ArgumentError
+        return render json: {
+          success: false,
+          message: 'Birth date must be a valid date (YYYY-MM-DD format)'
+        }, status: :unprocessable_entity
+      end
+    end
+
+    affiliate_role = Role.find_or_create_by!(name: 'affiliate') do |r|
+      r.description = 'Self-registered mobile affiliate/sub-agent pending KYC approval'
+      r.status = true
+    end
+
+    sub_agent = SubAgent.new(
+      first_name: sub_agent_params[:first_name],
+      middle_name: sub_agent_params[:middle_name],
+      last_name: sub_agent_params[:last_name],
+      email: sub_agent_params[:email],
+      mobile: mobile_number,
+      password: sub_agent_params[:password],
+      password_confirmation: sub_agent_params[:password_confirmation].presence || sub_agent_params[:password],
+      role_id: affiliate_role.id,
+      pan_no: sub_agent_params[:pan_no],
+      address: sub_agent_params[:address],
+      city: sub_agent_params[:city],
+      state: sub_agent_params[:state],
+      gender: sub_agent_params[:gender],
+      birth_date: parsed_birth_date,
+      company_name: sub_agent_params[:company_name],
+      status: :inactive,
+      kyc_status: :pending
+    )
+
+    if sub_agent.save
+      token = generate_token(sub_agent, 'sub_agent')
+      render json: {
+        success: true,
+        message: 'Registration successful. Please upload your Aadhaar and PAN documents to complete KYC.',
+        data: {
+          token: token,
+          sub_agent_id: sub_agent.id,
+          email: sub_agent.email,
+          mobile: sub_agent.mobile,
+          role: 'sub_agent',
+          kyc_status: sub_agent.kyc_status
+        }
+      }
+    else
+      render json: {
+        success: false,
+        message: 'Affiliate registration failed',
+        errors: sub_agent.errors.full_messages
       }, status: :unprocessable_entity
     end
   end

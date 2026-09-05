@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "3e2795e6-dd3c-4998-ab51-18f386c64854",
     "name": "InsureBook \u2014 Customer Mobile API",
-    "description": "All customer-facing mobile APIs for the InsureBook platform.\n\n**Setup:**\n1. Set `base_url` collection variable to your server (e.g. `https://your-domain.com`)\n2. Call Login and copy the `token` from the response\n3. Set `token` collection variable \u2014 all protected endpoints auto-use it\n\n**Auth header:** `Authorization: Bearer {{token}}`\n\n**Sections:**\n1. Authentication\n2. Customer \u2014 Portfolio & Insurance\n3. Settings\n4. Investments (Mutual Funds, Fixed Deposits, Other)\n5. Taxation (ITR, Tax Planning)\n6. Loans (Personal, Home, Mortgage, Business)\n7. Travel (Domestic, International)\n8. Credit Cards (Rewards, Business, Travel)\n9. Common Error Responses",
+    "description": "All customer-facing mobile APIs for the InsureBook platform.\n\n**Setup:**\n1. Set `base_url` collection variable to your server (e.g. `https://your-domain.com`)\n2. Call Login and copy the `token` from the response\n3. Set `token` collection variable \u2014 all protected endpoints auto-use it\n\n**Auth header:** `Authorization: Bearer {{token}}`\n\n**Sections:**\n1. Authentication\n2. Customer \u2014 Portfolio & Insurance\n3. Settings\n4. Investments (Mutual Funds, Fixed Deposits, Other)\n5. Taxation (ITR, Tax Planning)\n6. Loans (Personal, Home, Mortgage, Business)\n7. Travel (Domestic, International)\n8. Credit Cards (Rewards, Business, Travel)\n9. Common Error Responses\n17. Sub-Agent \u2014 KYC (Affiliate Onboarding)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -47,7 +47,65 @@
                 "auth",
                 "login"
               ]
+            },
+            "description": "Logs in with a password. `login` accepts an email, mobile number, or PAN card number. `role` is optional (`client` or `sub_agent`); omit it for customer/agent/admin/ambassador accounts, which are resolved automatically from the credentials."
+          },
+          "response": [
+            {
+              "name": "200 OK (client)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiY2xpZW50In0.abc123\",\n    \"username\": \"Rahul Sharma\",\n    \"role\": \"client\",\n    \"user_id\": 123,\n    \"customer_id\": 45,\n    \"email\": \"customer@example.com\",\n    \"mobile\": \"+919876543210\",\n    \"password_reset_days\": 180,\n    \"password_reset_required\": false,\n    \"portfolio_summary\": {\n      \"total_policies\": 3,\n      \"upcoming_installments\": 1,\n      \"renewal_policies\": 0\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid username or password\"\n}"
             }
+          ]
+        },
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"customer@example.com\",\n  \"role\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/otp/request",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "auth",
+                "otp",
+                "request"
+              ]
+            },
+            "description": "Sends a one-time login OTP to the account's email or mobile number. `login` accepts either an email address or a mobile number. `role` is optional (`client` or `sub_agent`); omit it for customer/agent/admin/ambassador accounts. A new OTP cannot be requested within 30 seconds of the previous one (429 Too Many Requests)."
           },
           "response": [
             {
@@ -60,12 +118,36 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiY3VzdG9tZXIifQ.abc123\",\n  \"user\": {\n    \"id\": 123,\n    \"name\": \"Rahul Sharma\",\n    \"email\": \"customer@example.com\",\n    \"mobile\": \"+919876543210\",\n    \"role\": \"client\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP sent to your email address\",\n  \"data\": {\n    \"identifier_type\": \"email\",\n    \"expires_in\": 180\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"No account found with the provided email or mobile number\"\n}"
+            },
+            {
+              "name": "429 Too Many Requests",
+              "status": "Too Many Requests",
+              "code": 429,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"An OTP was already sent recently. Please wait before requesting a new one.\",\n  \"retry_after\": \"2026-08-21T09:56:05.197Z\"\n}"
             }
           ]
         },
         {
-          "name": "Register",
+          "name": "Verify OTP",
           "request": {
             "method": "POST",
             "header": [
@@ -76,7 +158,88 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Rahul Sharma\",\n  \"email\": \"rahul@example.com\",\n  \"mobile\": \"9876543210\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+              "raw": "{\n  \"login\": \"customer@example.com\",\n  \"otp\": \"123456\",\n  \"role\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/otp/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            },
+            "description": "Verifies the OTP sent via Request OTP and logs the user in. On success, returns the same response shape as the password Login endpoint (JWT token + role-specific profile data). OTPs are single-use, expire after 3 minutes, and lock out after 5 incorrect attempts."
+          },
+          "response": [
+            {
+              "name": "200 OK (client)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMiLCJyb2xlIjoiY2xpZW50In0.abc123\",\n    \"username\": \"Rahul Sharma\",\n    \"role\": \"client\",\n    \"user_id\": 123,\n    \"customer_id\": 45,\n    \"email\": \"customer@example.com\",\n    \"mobile\": \"+919876543210\",\n    \"password_reset_days\": 180,\n    \"password_reset_required\": false,\n    \"portfolio_summary\": {\n      \"total_policies\": 3,\n      \"upcoming_installments\": 1,\n      \"renewal_policies\": 0\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Invalid OTP",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid OTP\"\n}"
+            },
+            {
+              "name": "401 Expired / Not Found",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"OTP expired or not found. Please request a new OTP.\"\n}"
+            },
+            {
+              "name": "429 Too Many Attempts",
+              "status": "Too Many Requests",
+              "code": 429,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Too many incorrect attempts. Please request a new OTP.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register (Customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"customer\",\n  \"first_name\": \"Rahul\",\n  \"last_name\": \"Sharma\",\n  \"email\": \"rahul@example.com\",\n  \"mobile\": \"9876543210\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"birth_date\": \"1990-05-15\",\n  \"gender\": \"male\",\n  \"address\": \"123 MG Road\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"nominee_name\": \"Priya Sharma\",\n  \"nominee_relation\": \"spouse\",\n  \"nominee_date_of_birth\": \"1992-08-20\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/mobile/auth/register",
@@ -90,20 +253,169 @@
                 "auth",
                 "register"
               ]
-            }
+            },
+            "description": "Registers a new customer (creates both a `Customer` and a `User` record). `role` may be `customer` or `user` (defaults to `customer` if omitted). `first_name`, `last_name`, `email`, `mobile`, `password`, `birth_date`, `nominee_name`, `nominee_relation`, and `nominee_date_of_birth` are required. `nominee_relation` must be one of: father, mother, spouse, son, daughter, brother, sister, other. `gender`, `address`, `city`, `state`, `pincode` are optional."
           },
           "response": [
             {
-              "name": "201 Created",
-              "status": "Created",
-              "code": 201,
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
               "header": [
                 {
                   "key": "Content-Type",
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Registration successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiJ9...\",\n  \"user\": {\n    \"id\": 124,\n    \"name\": \"Rahul Sharma\",\n    \"email\": \"rahul@example.com\"\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Customer registration successful. You can now login with your credentials.\",\n  \"data\": {\n    \"customer_id\": 45,\n    \"user_id\": 124,\n    \"email\": \"rahul@example.com\",\n    \"mobile\": \"9876543210\",\n    \"role\": \"customer\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"An account with this email address already exists. Please use a different email or try logging in.\"\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"First name, last name, email, mobile number, password, birth date, and nominee details are required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register (Agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"agent\",\n  \"first_name\": \"Amit\",\n  \"last_name\": \"Verma\",\n  \"email\": \"amit.verma@example.com\",\n  \"mobile\": \"9876500000\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"pan_no\": \"ABCDE1234F\",\n  \"address\": \"45 Park Street\",\n  \"city\": \"Kolkata\",\n  \"state\": \"West Bengal\",\n  \"gender\": \"male\",\n  \"occupation\": \"Insurance Agent\",\n  \"annual_income\": \"500000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new legacy agent (creates a `User`, not a `SubAgent`). `role` must be `agent`. `first_name`, `last_name`, `email`, `mobile`, and `password` are required; `pan_no`, `address`, `city`, `state`, `gender`, `occupation`, `annual_income` are optional. The account is created inactive and requires admin approval before login.\n\nFor self-service affiliate/sub-agent signup with Aadhaar/PAN KYC, use **Register (Affiliate)** below instead."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Agent registration successful. Your account is pending approval by admin.\",\n  \"data\": {\n    \"user_id\": 125,\n    \"email\": \"amit.verma@example.com\",\n    \"mobile\": \"9876500000\",\n    \"role\": \"agent\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"An account with this email address already exists. Please use a different email or try logging in.\"\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"First name, last name, email, mobile number, and password are required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register (Affiliate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"affiliate\",\n  \"first_name\": \"Priya\",\n  \"last_name\": \"Nair\",\n  \"email\": \"priya.nair@example.com\",\n  \"mobile\": \"9876500099\",\n  \"password\": \"affiliate123\",\n  \"password_confirmation\": \"affiliate123\",\n  \"city\": \"Kochi\",\n  \"state\": \"Kerala\",\n  \"pan_no\": \"ABCDE1234F\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Self-service affiliate/sub-agent registration. `role` may be `sub_agent` or `affiliate`. Creates a `SubAgent` (not a `User`) with `status: inactive` and `kyc_status: pending`. `first_name`, `last_name`, `email`, `mobile`, `password` are required; `middle_name`, `pan_no`, `address`, `city`, `state`, `gender`, `birth_date`, `company_name` are optional.\n\nThe returned `token` works immediately against the KYC endpoints (see section 16) but not against any other sub-agent endpoint until an admin approves the KYC submission."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Registration successful. Please upload your Aadhaar and PAN documents to complete KYC.\",\n  \"data\": {\n    \"token\": \"eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0Miwicm9sZSI6InN1Yl9hZ2VudCJ9.abc123\",\n    \"sub_agent_id\": 42,\n    \"email\": \"priya.nair@example.com\",\n    \"mobile\": \"9876500099\",\n    \"role\": \"sub_agent\",\n    \"kyc_status\": \"pending\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Affiliate registration failed\",\n  \"errors\": [\n    \"Mobile number is already registered with another affiliate\"\n  ]\n}"
             }
           ]
         },
@@ -133,7 +445,8 @@
                 "auth",
                 "forgot_password"
               ]
-            }
+            },
+            "description": "Looks up the account by `email` or `mobile` across users, customers, and sub-agents. Pass either field \u2014 only `email` is shown here."
           },
           "response": [
             {
@@ -146,7 +459,19 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset instructions sent to your email\"\n}"
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset instructions have been sent to your email\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Email address not found\"\n}"
             }
           ]
         }
@@ -3933,7 +4258,2189 @@
       ]
     },
     {
-      "name": "9. Common Error Responses",
+      "name": "9. Agent \u2014 Dashboard & Policies",
+      "description": "Agent/sub-agent dashboard, customer management, and policy creation APIs. Requires `Authorization: Bearer {{token}}` from a JWT with role `agent` or `sub_agent` \u2014 EXCEPT `Insurance Companies` and `Motor Insurance Companies`, which skip auth entirely (public lookup endpoints).",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "dashboard"
+              ]
+            },
+            "description": "Agent/sub-agent dashboard summary: profile info, top-line stats, and recent activity feed."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"agent_info\": {\n      \"name\": \"Rohit Verma\",\n      \"email\": \"rohit.verma@example.com\",\n      \"mobile\": \"9876543210\",\n      \"role\": \"agent\"\n    },\n    \"statistics\": {\n      \"commission_earned\": 45000.0,\n      \"customers_count\": 12,\n      \"policies_count\": 18,\n      \"leads_count\": 5\n    },\n    \"recent_activities\": [\n      {\n        \"type\": \"policy_created\",\n        \"description\": \"Health policy SH-2024-001 created for Rahul Sharma\",\n        \"created_at\": \"2026-08-20 11:15:00\"\n      }\n    ],\n    \"commission_earned\": 45000.0,\n    \"commission_earned_formatted\": \"\u20b945,000.00\",\n    \"customers_count\": 12,\n    \"policies_count\": 18\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers?page=1&per_page=10&filter=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "filter",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Paginated list of customers visible to the agent/sub-agent, with policy counts and premium totals. `filter` accepts `all` (default), `agent_added`, or `system_added`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"customers\": [\n      {\n        \"id\": 45,\n        \"name\": \"Rahul Sharma\",\n        \"mobile\": \"9876543210\",\n        \"email\": \"customer@example.com\",\n        \"password\": \"Temp@1234\",\n        \"customer_type\": \"individual\",\n        \"status\": \"Active\",\n        \"policies_count\": 3,\n        \"total_premium\": \"37,500.00\",\n        \"added_by\": \"agent_mobile_api_7\",\n        \"added_via\": \"agent\",\n        \"created_at\": \"2026-06-10T09:00:00.000Z\",\n        \"profile_image\": null,\n        \"attached_documents\": [],\n        \"policies\": []\n      }\n    ],\n    \"statistics\": {\n      \"total_customers\": 12,\n      \"agent_added\": 8,\n      \"system_added\": 4\n    },\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 10,\n      \"total_customers\": 12,\n      \"total_pages\": 2\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "customers"
+              ]
+            },
+            "description": "Agent-created customer. `first_name`, `mobile`, `email` are required. If `password`/`password_confirmation` are omitted, a secure password is auto-generated and returned in `password_info`. NOTE: unlike most mobile endpoints this responds with a `status` boolean key rather than `success`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Anita\",\n  \"last_name\": \"Rao\",\n  \"email\": \"anita.rao@example.com\",\n  \"mobile\": \"9876500011\",\n  \"customer_type\": \"individual\",\n  \"gender\": \"Female\",\n  \"birth_date\": \"1990-04-12\",\n  \"address\": \"12 MG Road\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"pincode\": \"560001\",\n  \"pan_no\": \"ABCDE1234F\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Customer created successfully\",\n  \"data\": {\n    \"customer_id\": 46,\n    \"name\": \"Anita Rao\",\n    \"email\": \"anita.rao@example.com\",\n    \"mobile\": \"9876500011\",\n    \"customer_type\": \"individual\",\n    \"added_by\": \"agent_mobile_api_7\",\n    \"added_by_agent\": {\n      \"id\": 7,\n      \"name\": \"Rohit Verma\",\n      \"email\": \"rohit.verma@example.com\"\n    },\n    \"password_info\": {\n      \"auto_generated\": true,\n      \"password\": \"aB3$fK9pQz\",\n      \"message\": \"Password was auto-generated since none was provided\"\n    },\n    \"created_at\": \"2026-08-24 10:00:00\"\n  }\n}"
+            },
+            {
+              "name": "409 Duplicate Customer",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": false,\n  \"message\": \"Customer with this email or mobile already exists\",\n  \"error\": \"duplicate_customer\",\n  \"data\": {\n    \"customer_id\": 45,\n    \"name\": \"Rahul Sharma\",\n    \"email\": \"customer@example.com\",\n    \"mobile\": \"9876543210\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    \"Mobile number is required\",\n    \"Invalid phone number format. Must be a valid Indian mobile number\"\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies?page=1&per_page=10&policy_type=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "policy_type",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "All policies (health/life/motor/other) belonging to the agent/sub-agent, merged and sorted by creation date. Omit `page`/`per_page` to get the full unpaginated list. `policy_type` filters to `health`, `life`, `motor`, `other`, or `all`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"policies\": [\n      {\n        \"id\": 1,\n        \"policy_number\": \"SH-2024-001\",\n        \"insurance_type\": \"Health\",\n        \"customer_name\": \"Rahul Sharma\",\n        \"total_premium\": \"\u20b912,500\",\n        \"status\": \"Active\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 10,\n      \"total_policies\": 18,\n      \"total_pages\": 2\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Health Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "health"
+              ]
+            },
+            "description": "Creates a health insurance policy for a customer. `client_id`, `policy_holder`, `insurance_company_id`, `plan_name`, `policy_number`, `net_premium` are required. Accepts nested `family_members` and `documents` arrays. NOTE: responds with `status` boolean key, not `success`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": 45,\n  \"policy_holder\": \"self\",\n  \"insurance_company_id\": 3,\n  \"insurance_company_name\": \"Star Health Insurance\",\n  \"policy_type\": \"individual\",\n  \"insurance_type\": \"health\",\n  \"plan_name\": \"Star Comprehensive\",\n  \"policy_number\": \"SH-2026-045\",\n  \"policy_booking_date\": \"2026-08-24\",\n  \"policy_start_date\": \"2026-08-24\",\n  \"policy_end_date\": \"2027-08-23\",\n  \"payment_mode\": \"yearly\",\n  \"sum_insured\": 500000,\n  \"net_premium\": 12000,\n  \"gst_percentage\": 18,\n  \"total_premium\": 14160,\n  \"family_members\": [\n    {\n      \"full_name\": \"Rahul Sharma\",\n      \"age\": 34,\n      \"relationship\": \"self\",\n      \"sum_insured\": 500000\n    }\n  ]\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Health policy created successfully\",\n  \"data\": {\n    \"policy_id\": 101,\n    \"policy_number\": \"SH-2026-045\",\n    \"client_name\": \"Rahul Sharma\",\n    \"total_premium\": \"14160.0\",\n    \"created_at\": \"2026-08-24 10:05:00\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    \"Plan name is required\"\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Life Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/life",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "life"
+              ]
+            },
+            "description": "Creates a life insurance policy. `client_id`, `policy_holder`, `insured_name`, `insurance_company_id`, `policy_number`, `policy_start_date`, `policy_end_date`, `policy_term_years`, `premium_payment_term_years`, `net_premium` are required. Accepts nested `nominees`, `bank_details`, and `documents`. NOTE: responds with `status` boolean key, not `success`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": 45,\n  \"policy_holder\": \"self\",\n  \"insured_name\": \"Rahul Sharma\",\n  \"insurance_company_id\": 5,\n  \"policy_type\": \"individual\",\n  \"payment_mode\": \"yearly\",\n  \"policy_number\": \"LIC-2026-090\",\n  \"policy_booking_date\": \"2026-08-24\",\n  \"policy_start_date\": \"2026-08-24\",\n  \"policy_end_date\": \"2046-08-23\",\n  \"policy_term_years\": 20,\n  \"premium_payment_term_years\": 20,\n  \"plan_name\": \"Jeevan Anand\",\n  \"sum_insured\": 1000000,\n  \"net_premium\": 25000,\n  \"gst_percentage_year_1\": 4.5,\n  \"total_premium\": 26125,\n  \"nominees\": [\n    {\n      \"nominee_name\": \"Priya Sharma\",\n      \"relationship\": \"Spouse\",\n      \"age\": 32\n    }\n  ],\n  \"bank_details\": {\n    \"bank_name\": \"HDFC Bank\",\n    \"account_type\": \"savings\",\n    \"account_number\": \"1234567890\",\n    \"ifsc_code\": \"HDFC0000123\",\n    \"account_holder_name\": \"Rahul Sharma\"\n  }\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Life policy created successfully\",\n  \"data\": {\n    \"policy_id\": 102,\n    \"policy_number\": \"LIC-2026-090\",\n    \"client_name\": \"Rahul Sharma\",\n    \"total_premium\": \"26125.0\",\n    \"created_at\": \"2026-08-24 10:07:00\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    \"Policy term years is required\"\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Motor Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/motor",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "motor"
+              ]
+            },
+            "description": "Creates a motor insurance policy. `customer_id` is required (customer must already exist). Accepts vehicle details and a nested `documents` array.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 45,\n  \"policy_holder\": \"self\",\n  \"plan_name\": \"Comprehensive Cover\",\n  \"policy_number\": \"MOT-2026-020\",\n  \"insurance_company_name\": \"ICICI Lombard\",\n  \"policy_type\": \"individual\",\n  \"policy_start_date\": \"2026-08-24\",\n  \"policy_end_date\": \"2027-08-23\",\n  \"policy_booking_date\": \"2026-08-24\",\n  \"sum_insured\": 800000,\n  \"net_premium\": 9000,\n  \"gst_percentage\": 18,\n  \"total_premium\": 10620,\n  \"vehicle_type\": \"Four Wheeler\",\n  \"make\": \"Maruti Suzuki\",\n  \"model\": \"Swift\",\n  \"registration_number\": \"KA01AB1234\",\n  \"registration_date\": \"2022-01-15\",\n  \"engine_number\": \"ENG12345\",\n  \"chassis_number\": \"CHS12345\",\n  \"mfy\": \"2022\",\n  \"variant\": \"VXI\",\n  \"seating_capacity\": 5,\n  \"vehicle_idv\": 750000,\n  \"zero_depreciation\": true,\n  \"roadside_assistance\": true,\n  \"ncb\": 20,\n  \"previous_policy_number\": null,\n  \"payment_mode\": \"yearly\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Motor insurance policy added successfully\",\n  \"data\": {\n    \"id\": 103,\n    \"policy_number\": \"MOT-2026-020\",\n    \"insurance_type\": \"Motor\",\n    \"customer_name\": \"Rahul Sharma\",\n    \"total_premium\": \"\u20b910,620\",\n    \"status\": \"Active\"\n  }\n}"
+            },
+            {
+              "name": "404 Customer Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Customer not found\"\n}"
+            },
+            {
+              "name": "422 Save Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Failed to add motor insurance policy\",\n  \"errors\": [\n    \"Policy number has already been taken\"\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Other Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/other",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "other"
+              ]
+            },
+            "description": "Creates a generic (non health/life/motor) insurance policy against the base `Policy` model. `customer_id` is required.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 45,\n  \"policy_holder\": \"self\",\n  \"plan_name\": \"Home Shield\",\n  \"policy_number\": \"OTH-2026-011\",\n  \"insurance_company_name\": \"HDFC Ergo\",\n  \"policy_type\": \"individual\",\n  \"policy_start_date\": \"2026-08-24\",\n  \"policy_end_date\": \"2027-08-23\",\n  \"payment_mode\": \"yearly\",\n  \"sum_insured\": 2000000,\n  \"net_premium\": 4000,\n  \"gst_percentage\": 18,\n  \"total_premium\": 4720,\n  \"coverage_type\": \"Property\",\n  \"description\": \"Home structure and contents cover\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Other insurance policy added successfully\",\n  \"data\": {\n    \"id\": 104,\n    \"policy_number\": \"OTH-2026-011\",\n    \"insurance_type\": \"Other\",\n    \"customer_name\": \"Rahul Sharma\",\n    \"total_premium\": \"\u20b94,720\",\n    \"status\": \"Active\"\n  }\n}"
+            },
+            {
+              "name": "404 Customer Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Customer not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add General Insurance Policy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/general",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "general"
+              ]
+            },
+            "description": "Creates a `OtherInsurance` record directly (distinct from `Add Other Policy`, which creates a base `Policy` + linked `OtherInsurance`). `customer_id`, `policy_number`, and `insurance_type` are required; `policy_number` must be unique.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 45,\n  \"policy_holder\": \"self\",\n  \"plan_name\": \"Fire & Burglary Cover\",\n  \"policy_number\": \"GEN-2026-004\",\n  \"insurance_company_name\": \"Bajaj Allianz\",\n  \"insurance_type\": \"fire\",\n  \"policy_type\": \"new\",\n  \"policy_start_date\": \"2026-08-24\",\n  \"policy_end_date\": \"2027-08-23\",\n  \"policy_booking_date\": \"2026-08-24\",\n  \"sum_insured\": 1500000,\n  \"net_premium\": 3000,\n  \"gst_percentage\": 18,\n  \"total_premium\": 3540,\n  \"payment_mode\": \"Annual\",\n  \"coverage_type\": \"Fire\",\n  \"description\": \"Shop fire and burglary cover\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"General insurance policy created successfully\",\n  \"data\": {\n    \"id\": 105,\n    \"insurance_type\": \"fire\",\n    \"policy_number\": \"GEN-2026-004\",\n    \"plan_name\": \"Fire & Burglary Cover\",\n    \"policy_holder\": \"self\",\n    \"insurance_company\": \"Bajaj Allianz\",\n    \"policy_type\": \"New\",\n    \"start_date\": \"2026-08-24\",\n    \"end_date\": \"2027-08-23\",\n    \"net_premium\": \"3,000.00\",\n    \"total_premium\": \"3,540.00\",\n    \"sum_insured\": \"15,00,000.00\",\n    \"payment_mode\": \"Annual\",\n    \"status\": \"Active\",\n    \"customer_name\": \"Rahul Sharma\",\n    \"created_at\": \"2026-08-24 10:10:00\"\n  }\n}"
+            },
+            {
+              "name": "422 Duplicate Policy Number",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Policy number already exists\"\n}"
+            },
+            {
+              "name": "404 Customer Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Customer not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List General Insurance Policies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/policies/general?page=1&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "policies",
+                "general"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Paginated list of `OtherInsurance` (general insurance) policies belonging to the agent/sub-agent."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"policies\": [\n      {\n        \"id\": 105,\n        \"insurance_type\": \"fire\",\n        \"policy_number\": \"GEN-2026-004\",\n        \"plan_name\": \"Fire & Burglary Cover\",\n        \"customer_name\": \"Rahul Sharma\",\n        \"total_premium\": \"3,540.00\",\n        \"status\": \"Active\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_policies\": 4,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Form Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/form_data",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "form_data"
+              ]
+            },
+            "description": "Dropdown/reference data for agent-facing forms: clients, insurance companies, payment modes, lead stages/sources, states, etc."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"clients\": [\n      {\n        \"id\": 45,\n        \"name\": \"Rahul Sharma\"\n      }\n    ],\n    \"insurance_companies\": [\n      {\n        \"id\": 3,\n        \"name\": \"Star Health Insurance\"\n      }\n    ],\n    \"payment_modes\": [\n      \"monthly\",\n      \"quarterly\",\n      \"half_yearly\",\n      \"yearly\",\n      \"single\"\n    ],\n    \"policy_types\": [\n      \"individual\",\n      \"family\",\n      \"group\"\n    ],\n    \"insurance_types\": [\n      \"health\",\n      \"life\",\n      \"motor\",\n      \"other\"\n    ],\n    \"lead_stages\": [\n      {\n        \"value\": \"consultation\",\n        \"label\": \"Consultation\"\n      }\n    ],\n    \"lead_sources\": [\n      {\n        \"value\": \"online\",\n        \"label\": \"Online\"\n      }\n    ],\n    \"states\": [\n      \"Karnataka\",\n      \"Maharashtra\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Insurance Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/insurance_companies?search=&status=active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "insurance_companies"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            },
+            "description": "Searchable, optionally-paginated list of insurance companies. No authentication required (public lookup \u2014 `authenticate_agent!` is skipped for this action). `status` filters to `active`, `inactive`, or `all`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"insurance_companies\": [\n      {\n        \"id\": 3,\n        \"name\": \"Star Health Insurance\",\n        \"code\": \"STAR\",\n        \"type\": \"health\",\n        \"status\": \"Active\"\n      }\n    ],\n    \"statistics\": {\n      \"total_companies\": 40,\n      \"active_companies\": 38,\n      \"inactive_companies\": 2\n    },\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 40,\n      \"total_companies\": 40,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Motor Insurance Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/motor_insurance_companies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "motor_insurance_companies"
+              ]
+            },
+            "description": "Fixed list of motor insurance company names (from `MotorInsurance.insurance_companies`) to use verbatim in `insurance_company_name` when creating motor policies. No authentication required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"companies\": [\n      {\n        \"name\": \"ICICI Lombard\",\n        \"type\": \"general\"\n      },\n      {\n        \"name\": \"Bajaj Allianz\",\n        \"type\": \"general\"\n      }\n    ],\n    \"total_companies\": 2,\n    \"message\": \"Use exact company names from this list when creating motor insurance policies\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. Leads (Agent)",
+      "description": "Lead capture and listing for agents/sub-agents.",
+      "item": [
+        {
+          "name": "List Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/leads?page=1&per_page=10&stage=&product=&search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "stage",
+                  "value": ""
+                },
+                {
+                  "key": "product",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Paginated leads visible to the agent/sub-agent, with search/filter support (`stage`, `product`, `search`)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"leads\": [\n      {\n        \"id\": 9,\n        \"lead_id\": \"LD-0009\",\n        \"name\": \"Sanjay Gupta\",\n        \"current_stage\": \"consultation\",\n        \"product_category\": \"health\",\n        \"created_at\": \"2026-08-20T10:00:00.000Z\"\n      }\n    ],\n    \"statistics\": {\n      \"total_leads\": 5,\n      \"converted_leads\": 1,\n      \"pending_leads\": 3,\n      \"closed_leads\": 1\n    },\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 10,\n      \"total_leads\": 5,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/agent/leads",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "agent",
+                "leads"
+              ]
+            },
+            "description": "Creates a lead. `name` and `contact_number` are required; `contact_number` must be a valid 10-digit Indian mobile number. NOTE: responds with `status` boolean key, not `success`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sanjay Gupta\",\n  \"contact_number\": \"9876512345\",\n  \"email\": \"sanjay.gupta@example.com\",\n  \"product_interest\": \"health\",\n  \"address\": \"45 Brigade Road\",\n  \"city\": \"Bengaluru\",\n  \"state\": \"Karnataka\",\n  \"referred_by\": \"Walk-in\",\n  \"current_stage\": \"lead_generated\",\n  \"created_date\": \"2026-08-24\",\n  \"note\": \"Interested in family floater plan\",\n  \"call_disposition\": \"interested\",\n  \"lead_source\": \"walk_in\",\n  \"referral_amount\": 0,\n  \"priority\": \"medium\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Lead created successfully\",\n  \"data\": {\n    \"lead_id\": \"LD-0010\",\n    \"id\": 10,\n    \"name\": \"Sanjay Gupta\",\n    \"contact_number\": \"9876512345\",\n    \"email\": \"sanjay.gupta@example.com\",\n    \"product_category\": \"health\",\n    \"current_stage\": \"lead_generated\",\n    \"lead_source\": \"walk_in\",\n    \"created_at\": \"2026-08-24 10:15:00\",\n    \"created_by\": {\n      \"agent_id\": 7,\n      \"agent_name\": \"Rohit Verma\",\n      \"agent_type\": \"User\"\n    }\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": false,\n  \"message\": \"Failed to create lead\",\n  \"errors\": [\n    \"Contact number is required\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11. Sub-Agent \u2014 Leads & Helpdesk",
+      "description": "Sub-agent (affiliate) leads and helpdesk. Requires `Authorization: Bearer {{token}}` for a `sub_agent`-role JWT \u2014 `validate_sub_agent_access` rejects any other role with 403.",
+      "item": [
+        {
+          "name": "List My Leads",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/leads?page=1&per_page=20&status=&product_category=&search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "product_category",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Leads submitted by the current sub-agent (`affiliate_id`), with search/filter (`status`, `product_category`, `search`) and pagination."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"leads\": [\n      {\n        \"id\": 9,\n        \"lead_id\": \"LD-0009\",\n        \"name\": \"Sanjay Gupta\",\n        \"current_stage\": \"consultation\",\n        \"stage_display_name\": \"Consultation\",\n        \"product_category\": \"health\",\n        \"created_at\": \"2026-08-20T10:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"total_pages\": 1,\n      \"total_count\": 3,\n      \"per_page\": 20,\n      \"has_next_page\": false,\n      \"has_prev_page\": false\n    },\n    \"statistics\": {\n      \"total_leads\": 3,\n      \"converted_leads\": 0,\n      \"pending_leads\": 2,\n      \"closed_leads\": 1\n    }\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Access denied. Sub-agent account required.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Lead Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/leads/10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "leads",
+                "10"
+              ]
+            },
+            "description": "Single lead detail for a lead owned by the sub-agent.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 10,\n    \"lead_id\": \"LD-0010\",\n    \"name\": \"Sanjay Gupta\",\n    \"current_stage\": \"consultation\",\n    \"contact_number\": \"9876512345\",\n    \"email\": \"sanjay.gupta@example.com\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Helpdesk Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/helpdesk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "helpdesk"
+              ]
+            },
+            "description": "Raises a helpdesk ticket as the sub-agent.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Commission payout delay\",\n  \"description\": \"August payout not received yet\",\n  \"category\": \"commission\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created (intended shape)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Ticket created successfully\",\n  \"data\": {\n    \"id\": 55,\n    \"subject\": \"Commission payout delay\",\n    \"status\": \"open\",\n    \"created_at\": \"2026-08-24 10:20:00\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Helpdesk Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/helpdesk_tickets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "helpdesk_tickets"
+              ]
+            },
+            "description": "Helpdesk tickets raised by the sub-agent.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"tickets\": [\n      {\n        \"id\": 55,\n        \"subject\": \"Commission payout delay\",\n        \"status\": \"open\",\n        \"created_at\": \"2026-08-24T10:20:00.000Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12. Sub-Agent \u2014 Notifications",
+      "description": "Sub-agent notification inbox. Requires `Authorization: Bearer {{token}}` for a `sub_agent`-role JWT.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented.",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/notifications",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "notifications"
+              ]
+            },
+            "description": "Sub-agent's notifications.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"notifications\": [\n      {\n        \"id\": 1,\n        \"title\": \"New lead assigned\",\n        \"read\": false,\n        \"created_at\": \"2026-08-24T09:00:00.000Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/notifications/1/mark_read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "notifications",
+                "1",
+                "mark_read"
+              ]
+            },
+            "description": "Marks a single notification as read.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Notification marked as read\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/notifications/mark_all_read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "notifications",
+                "mark_all_read"
+              ]
+            },
+            "description": "Marks all of the sub-agent's notifications as read.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"All notifications marked as read\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unread Notifications Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/sub_agent/notifications/unread_count",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sub_agent",
+                "notifications",
+                "unread_count"
+              ]
+            },
+            "description": "Badge count of unread notifications.\n\n**\u26a0 Not implemented:** this route is defined in `config/routes.rb` but `SubAgentController` has no matching action \u2014 calling it currently raises `AbstractController::ActionNotFound` (500 Internal Server Error), not the response shown below. The example reflects the intended shape once implemented."
+          },
+          "response": [
+            {
+              "name": "200 OK (intended shape)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"unread_count\": 3\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13. Commission (Sub-Agent / Agent)",
+      "description": "Commission payout breakdown/summary/history/stats. Requires `Authorization: Bearer {{token}}` for a `sub_agent` or `agent` (`User`) JWT. Every action here is also reachable under `agent/commission/*` (e.g. `agent/commission/breakdown`) \u2014 same controller action, aliased route, identical response.",
+      "item": [
+        {
+          "name": "Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/commission/breakdown",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "commission",
+                "breakdown"
+              ]
+            },
+            "description": "Commission summary plus the 7 most recent payouts. Alias: `agent/commission/breakdown`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"commission_summary\": {\n      \"commission_earned\": \"Rs. 45,000.00\",\n      \"total_tds_deducted\": \"Rs. 2,250.00\",\n      \"total_earned\": \"Rs. 42,750.00\",\n      \"paid\": \"Rs. 30,000.00\",\n      \"pending\": \"Rs. 12,750.00\",\n      \"processing\": \"Rs. 0.00\",\n      \"total_policies\": 18,\n      \"active_policies\": 17\n    },\n    \"recent_payouts\": [\n      {\n        \"id\": 501,\n        \"policy_number\": \"SH-2024-001\",\n        \"policy_type\": \"Health Insurance\",\n        \"customer_name\": \"Rahul Sharma\",\n        \"commission_amount\": \"Rs. 2,500.00\",\n        \"net_amount\": \"Rs. 2,375.00\",\n        \"status\": \"Paid\",\n        \"payout_date\": \"20 Aug, 2026\"\n      }\n    ]\n  },\n  \"timestamp\": \"2026-08-24T10:00:00+05:30\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/commission/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "commission",
+                "summary"
+              ]
+            },
+            "description": "Just the commission summary block (no recent payouts). Alias: `agent/commission/summary`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"commission_earned\": \"Rs. 45,000.00\",\n    \"total_earned\": \"Rs. 42,750.00\",\n    \"paid\": \"Rs. 30,000.00\",\n    \"pending\": \"Rs. 12,750.00\",\n    \"total_policies\": 18\n  },\n  \"timestamp\": \"2026-08-24T10:00:00+05:30\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/commission/history?page=1&per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "commission",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Paginated commission payout history, newest first. Alias: `agent/commission/history`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"payouts\": [\n      {\n        \"id\": 501,\n        \"policy_number\": \"SH-2024-001\",\n        \"policy_type\": \"Health Insurance\",\n        \"customer_name\": \"Rahul Sharma\",\n        \"commission_amount\": \"Rs. 2,500.00\",\n        \"status\": \"Paid\",\n        \"payout_date\": \"20 Aug, 2026\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 10,\n      \"total_pages\": 2,\n      \"total_count\": 18,\n      \"has_next_page\": true,\n      \"has_prev_page\": false\n    }\n  },\n  \"timestamp\": \"2026-08-24T10:00:00+05:30\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/commission/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "commission",
+                "stats"
+              ]
+            },
+            "description": "Month-by-month commission stats for the current calendar year, plus year-to-date totals. Alias: `agent/commission/stats`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"data\": {\n    \"monthly_stats\": [\n      {\n        \"month\": 8,\n        \"month_name\": \"August\",\n        \"total_earned\": 45000.0,\n        \"paid_amount\": 30000.0,\n        \"pending_amount\": 15000.0,\n        \"processing_amount\": 0.0,\n        \"payout_count\": 6\n      }\n    ],\n    \"ytd_stats\": {\n      \"total_earned\": 210000.0,\n      \"paid_amount\": 180000.0,\n      \"pending_amount\": 30000.0,\n      \"processing_amount\": 0.0,\n      \"total_policies\": 84\n    },\n    \"year\": 2026\n  },\n  \"timestamp\": \"2026-08-24T10:00:00+05:30\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14. Banners",
+      "description": "Promotional banners for the mobile app's home/dashboard screens. No authentication required.",
+      "item": [
+        {
+          "name": "List Banners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "banners"
+              ]
+            },
+            "description": "All banners regardless of active/expired state."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners fetched successfully\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Monsoon Health Offer\",\n      \"description\": \"Monsoon Health Offer promotional banner\",\n      \"redirect_link\": \"https://example.com/promo\",\n      \"display_start_date\": \"2026-08-01\",\n      \"display_end_date\": \"2026-09-30\",\n      \"display_location\": \"dashboard\",\n      \"display_location_humanized\": \"Dashboard\",\n      \"status\": \"active\",\n      \"display_order\": 1,\n      \"created_at\": \"2026-08-01T00:00:00.000Z\",\n      \"updated_at\": \"2026-08-01T00:00:00.000Z\",\n      \"active\": true,\n      \"current\": true,\n      \"expired\": false,\n      \"upcoming\": false,\n      \"banner_image\": {\n        \"url\": \"https://cdn.example.com/banners/1.jpg\",\n        \"filename\": \"promo.jpg\",\n        \"content_type\": \"image/jpeg\",\n        \"byte_size\": 204800\n      }\n    }\n  ],\n  \"meta\": {\n    \"total_count\": 5,\n    \"active_count\": 3,\n    \"current_count\": 2,\n    \"locations\": [\n      \"dashboard\",\n      \"login\",\n      \"policy_list\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Active Banners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/banners/active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "banners",
+                "active"
+              ]
+            },
+            "description": "Only banners that are active and within their display window (cached 5 minutes)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Active banners fetched successfully\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Monsoon Health Offer\",\n      \"description\": \"Monsoon Health Offer promotional banner\",\n      \"redirect_link\": \"https://example.com/promo\",\n      \"display_start_date\": \"2026-08-01\",\n      \"display_end_date\": \"2026-09-30\",\n      \"display_location\": \"dashboard\",\n      \"display_location_humanized\": \"Dashboard\",\n      \"display_order\": 1,\n      \"created_at\": \"2026-08-01T00:00:00.000Z\",\n      \"updated_at\": \"2026-08-01T00:00:00.000Z\",\n      \"banner_image\": {\n        \"url\": \"https://cdn.example.com/banners/1.jpg\",\n        \"filename\": \"promo.jpg\",\n        \"content_type\": \"image/jpeg\",\n        \"byte_size\": 204800\n      }\n    }\n  ],\n  \"meta\": {\n    \"count\": 2,\n    \"locations\": [\n      \"dashboard\",\n      \"login\",\n      \"policy_list\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Banners By Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/banners/by_location?location=dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "banners",
+                "by_location"
+              ],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "dashboard"
+                }
+              ]
+            },
+            "description": "Active/current banners for one `display_location`. `location` is required and must be one of `Banner.display_locations`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banners for dashboard fetched successfully\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Monsoon Health Offer\",\n      \"description\": \"Monsoon Health Offer promotional banner\",\n      \"redirect_link\": \"https://example.com/promo\",\n      \"display_start_date\": \"2026-08-01\",\n      \"display_end_date\": \"2026-09-30\",\n      \"display_location\": \"dashboard\",\n      \"display_location_humanized\": \"Dashboard\",\n      \"display_order\": 1,\n      \"created_at\": \"2026-08-01T00:00:00.000Z\",\n      \"updated_at\": \"2026-08-01T00:00:00.000Z\",\n      \"banner_image\": {\n        \"url\": \"https://cdn.example.com/banners/1.jpg\",\n        \"filename\": \"promo.jpg\",\n        \"content_type\": \"image/jpeg\",\n        \"byte_size\": 204800\n      }\n    }\n  ],\n  \"meta\": {\n    \"location\": \"dashboard\",\n    \"count\": 1\n  }\n}"
+            },
+            {
+              "name": "400 Invalid Location",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid location parameter\",\n  \"error\": \"Location must be one of: dashboard, login, policy_list\",\n  \"data\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Banner Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/banners/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "banners",
+                "1"
+              ]
+            },
+            "description": "Single banner by ID (any status)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Banner fetched successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"title\": \"Monsoon Health Offer\",\n    \"description\": \"Monsoon Health Offer promotional banner\",\n    \"redirect_link\": \"https://example.com/promo\",\n    \"display_start_date\": \"2026-08-01\",\n    \"display_end_date\": \"2026-09-30\",\n    \"display_location\": \"dashboard\",\n    \"display_location_humanized\": \"Dashboard\",\n    \"status\": \"active\",\n    \"display_order\": 1,\n    \"created_at\": \"2026-08-01T00:00:00.000Z\",\n    \"updated_at\": \"2026-08-01T00:00:00.000Z\",\n    \"active\": true,\n    \"current\": true,\n    \"expired\": false,\n    \"upcoming\": false,\n    \"banner_image\": {\n      \"url\": \"https://cdn.example.com/banners/1.jpg\",\n      \"filename\": \"promo.jpg\",\n      \"content_type\": \"image/jpeg\",\n      \"byte_size\": 204800\n    }\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Banner not found\",\n  \"data\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "15. Client Services (Agent / Sub-Agent)",
+      "description": "Unified CRUD + category views for investment/taxation/loan/travel/credit-card services an agent or sub-agent has arranged for a customer (distinct from the customer's own self-view under \"4. Investments\"\u2013\"8. Credit Cards\"). Requires `Authorization: Bearer {{token}}` for an `agent` or `sub_agent` JWT. Admins (`User` with role `admin`/`super_admin`) see all services; other agents see only services tied to their matching `SubAgent` record, if any.",
+      "item": [
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services?category=&service_type=&customer_id=&status=&page=1&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "service_type",
+                  "value": ""
+                },
+                {
+                  "key": "customer_id",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "All client services visible to the current agent/sub-agent, optionally filtered by `category`, `service_type`, `customer_id`, `status`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"services\": [\n      {\n        \"id\": 1,\n        \"service_type\": \"investments_mutual_fund\",\n        \"service_type_label\": \"Investments Mutual Fund\",\n        \"service_category\": \"investments\",\n        \"category_label\": \"Investments\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 12,\n      \"total_pages\": 1\n    },\n    \"available_categories\": {\n      \"investments\": \"Investments\",\n      \"taxation\": \"Taxation\",\n      \"loans\": \"Loans\",\n      \"travel\": \"Travel\",\n      \"credit_card\": \"Credit Card\"\n    },\n    \"available_types\": {\n      \"investments_mutual_fund\": \"Mutual Fund\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Service Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "1"
+              ]
+            },
+            "description": "Single client service record by ID."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"service_type\": \"investments_mutual_fund\",\n    \"service_type_label\": \"Investments Mutual Fund\",\n    \"service_category\": \"investments\",\n    \"category_label\": \"Investments\",\n    \"customer_id\": 45,\n    \"customer_name\": \"Rahul Sharma\",\n    \"sub_agent_id\": 3,\n    \"amount\": 15000.0,\n    \"status\": \"pending\",\n    \"status_badge_class\": \"badge-warning\",\n    \"reference_number\": \"REF-2026-001\",\n    \"start_date\": \"2026-08-24\",\n    \"notes\": null,\n    \"commission\": {\n      \"main_agent_percentage\": 10.0,\n      \"commission_amount\": 1500.0,\n      \"tds_percentage\": 5.0,\n      \"tds_amount\": 75.0,\n      \"after_tds_value\": 1425.0,\n      \"sub_agent_percentage\": 50.0,\n      \"sub_agent_amount\": 712.5,\n      \"sub_agent_after_tds\": 677.0\n    },\n    \"created_at\": \"2026-08-24 10:00:00\",\n    \"updated_at\": \"2026-08-24 10:00:00\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Service not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services"
+              ]
+            },
+            "description": "Creates a client service. `customer_id` and `service_type` are required; `service_type` must be one of `ClientService::SERVICE_TYPES`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 45,\n  \"service_type\": \"investments_mutual_fund\",\n  \"amount\": 15000,\n  \"status\": \"pending\",\n  \"reference_number\": \"REF-2026-002\",\n  \"start_date\": \"2026-08-24\",\n  \"notes\": \"SIP arranged via sub-agent\",\n  \"main_agent_commission_percentage\": 10,\n  \"commission_amount\": 1500,\n  \"tds_percentage\": 5\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Service created successfully\",\n  \"data\": {\n    \"id\": 2,\n    \"service_type\": \"investments_mutual_fund\",\n    \"service_type_label\": \"Investments Mutual Fund\",\n    \"service_category\": \"investments\",\n    \"category_label\": \"Investments\",\n    \"customer_id\": 45,\n    \"customer_name\": \"Rahul Sharma\",\n    \"sub_agent_id\": 3,\n    \"amount\": 15000.0,\n    \"status\": \"pending\",\n    \"status_badge_class\": \"badge-warning\",\n    \"reference_number\": \"REF-2026-001\",\n    \"start_date\": \"2026-08-24\",\n    \"notes\": null,\n    \"commission\": {\n      \"main_agent_percentage\": 10.0,\n      \"commission_amount\": 1500.0,\n      \"tds_percentage\": 5.0,\n      \"tds_amount\": 75.0,\n      \"after_tds_value\": 1425.0,\n      \"sub_agent_percentage\": 50.0,\n      \"sub_agent_amount\": 712.5,\n      \"sub_agent_after_tds\": 677.0\n    },\n    \"created_at\": \"2026-08-24 10:00:00\",\n    \"updated_at\": \"2026-08-24 10:00:00\"\n  }\n}"
+            },
+            {
+              "name": "422 Validation Failed",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    \"service_type is required\"\n  ]\n}"
+            },
+            {
+              "name": "404 Customer Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Customer not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "1"
+              ]
+            },
+            "description": "Updates mutable fields on a client service: `status`, `notes`, `amount`, `reference_number`, `start_date`, `main_agent_commission_percentage`, `commission_amount`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"notes\": \"Policy issued and confirmed\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Service updated successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"service_type\": \"investments_mutual_fund\",\n    \"service_type_label\": \"Investments Mutual Fund\",\n    \"service_category\": \"investments\",\n    \"category_label\": \"Investments\",\n    \"customer_id\": 45,\n    \"customer_name\": \"Rahul Sharma\",\n    \"sub_agent_id\": 3,\n    \"amount\": 15000.0,\n    \"status\": \"pending\",\n    \"status_badge_class\": \"badge-warning\",\n    \"reference_number\": \"REF-2026-001\",\n    \"start_date\": \"2026-08-24\",\n    \"notes\": null,\n    \"commission\": {\n      \"main_agent_percentage\": 10.0,\n      \"commission_amount\": 1500.0,\n      \"tds_percentage\": 5.0,\n      \"tds_amount\": 75.0,\n      \"after_tds_value\": 1425.0,\n      \"sub_agent_percentage\": 50.0,\n      \"sub_agent_amount\": 712.5,\n      \"sub_agent_after_tds\": 677.0\n    },\n    \"created_at\": \"2026-08-24 10:00:00\",\n    \"updated_at\": \"2026-08-24 10:00:00\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Service not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Service",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "1"
+              ]
+            },
+            "description": "Deletes a client service."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Service deleted successfully\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Service not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Investments (Category View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/investments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "investments"
+              ]
+            },
+            "description": "Client services scoped to the `investments` category, with category-specific `service_types` metadata."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"category\": \"investments\",\n    \"category_label\": \"Investments\",\n    \"service_types\": [\n      {\n        \"value\": \"investments_mutual_fund\",\n        \"label\": \"Mutual Fund\"\n      }\n    ],\n    \"services\": [\n      {\n        \"id\": 1,\n        \"service_type\": \"investments_mutual_fund\",\n        \"service_type_label\": \"Investments Mutual Fund\",\n        \"service_category\": \"investments\",\n        \"category_label\": \"Investments\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 4,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Taxation (Category View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/taxation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "taxation"
+              ]
+            },
+            "description": "Client services scoped to the `taxation` category."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"category\": \"taxation\",\n    \"category_label\": \"Taxation\",\n    \"service_types\": [\n      {\n        \"value\": \"taxation_itr\",\n        \"label\": \"Itr\"\n      }\n    ],\n    \"services\": [\n      {\n        \"id\": 3,\n        \"service_type\": \"taxation_itr\",\n        \"service_type_label\": \"Taxation Itr\",\n        \"service_category\": \"taxation\",\n        \"category_label\": \"Taxation\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 2,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Loans (Category View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/loans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "loans"
+              ]
+            },
+            "description": "Client services scoped to the `loans` category."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"category\": \"loans\",\n    \"category_label\": \"Loans\",\n    \"service_types\": [\n      {\n        \"value\": \"loans_personal\",\n        \"label\": \"Personal\"\n      }\n    ],\n    \"services\": [\n      {\n        \"id\": 4,\n        \"service_type\": \"loans_personal\",\n        \"service_type_label\": \"Loans Personal\",\n        \"service_category\": \"loans\",\n        \"category_label\": \"Loans\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 3,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Travel (Category View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/travel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "travel"
+              ]
+            },
+            "description": "Client services scoped to the `travel` category."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"category\": \"travel\",\n    \"category_label\": \"Travel\",\n    \"service_types\": [\n      {\n        \"value\": \"travel_domestic\",\n        \"label\": \"Domestic\"\n      }\n    ],\n    \"services\": [\n      {\n        \"id\": 5,\n        \"service_type\": \"travel_domestic\",\n        \"service_type_label\": \"Travel Domestic\",\n        \"service_category\": \"travel\",\n        \"category_label\": \"Travel\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 1,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Credit Card (Category View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/credit_card",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "credit_card"
+              ]
+            },
+            "description": "Client services scoped to the `credit_card` category."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"category\": \"credit_card\",\n    \"category_label\": \"Credit Card\",\n    \"service_types\": [\n      {\n        \"value\": \"credit_card_rewards\",\n        \"label\": \"Rewards\"\n      }\n    ],\n    \"services\": [\n      {\n        \"id\": 6,\n        \"service_type\": \"credit_card_rewards\",\n        \"service_type_label\": \"Credit Card Rewards\",\n        \"service_category\": \"credit_card\",\n        \"category_label\": \"Credit Card\",\n        \"customer_id\": 45,\n        \"customer_name\": \"Rahul Sharma\",\n        \"sub_agent_id\": 3,\n        \"amount\": 15000.0,\n        \"status\": \"pending\",\n        \"status_badge_class\": \"badge-warning\",\n        \"reference_number\": \"REF-2026-001\",\n        \"start_date\": \"2026-08-24\",\n        \"notes\": null,\n        \"commission\": {\n          \"main_agent_percentage\": 10.0,\n          \"commission_amount\": 1500.0,\n          \"tds_percentage\": 5.0,\n          \"tds_amount\": 75.0,\n          \"after_tds_value\": 1425.0,\n          \"sub_agent_percentage\": 50.0,\n          \"sub_agent_amount\": 712.5,\n          \"sub_agent_after_tds\": 677.0\n        },\n        \"created_at\": \"2026-08-24 10:00:00\",\n        \"updated_at\": \"2026-08-24 10:00:00\"\n      }\n    ],\n    \"pagination\": {\n      \"current_page\": 1,\n      \"per_page\": 20,\n      \"total_count\": 2,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Form Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/form_data",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "form_data"
+              ]
+            },
+            "description": "Dropdown/reference data for building client-service forms: categories, service types (overall and per-category), statuses, payment modes."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"categories\": [\n      {\n        \"value\": \"investments\",\n        \"label\": \"Investments\"\n      }\n    ],\n    \"service_types\": [\n      {\n        \"value\": \"investments_mutual_fund\",\n        \"label\": \"Mutual Fund\"\n      }\n    ],\n    \"types_by_category\": {\n      \"investments\": [\n        {\n          \"value\": \"investments_mutual_fund\",\n          \"label\": \"Mutual Fund\"\n        }\n      ]\n    },\n    \"statuses\": [\n      {\n        \"value\": \"pending\",\n        \"label\": \"Pending\"\n      },\n      {\n        \"value\": \"in_progress\",\n        \"label\": \"In progress\"\n      },\n      {\n        \"value\": \"completed\",\n        \"label\": \"Completed\"\n      },\n      {\n        \"value\": \"cancelled\",\n        \"label\": \"Cancelled\"\n      }\n    ],\n    \"payment_modes\": [\n      \"monthly\",\n      \"quarterly\",\n      \"half_yearly\",\n      \"yearly\",\n      \"one_time\"\n    ],\n    \"loan_types\": [\n      {\n        \"value\": \"loans_personal\",\n        \"label\": \"Personal\"\n      }\n    ],\n    \"investment_types\": [\n      {\n        \"value\": \"investments_mutual_fund\",\n        \"label\": \"Mutual Fund\"\n      }\n    ],\n    \"taxation_types\": [\n      {\n        \"value\": \"taxation_itr\",\n        \"label\": \"Itr\"\n      }\n    ],\n    \"travel_types\": [\n      {\n        \"value\": \"travel_domestic\",\n        \"label\": \"Domestic\"\n      }\n    ],\n    \"credit_card_types\": [\n      {\n        \"value\": \"credit_card_rewards\",\n        \"label\": \"Rewards\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/client_services/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "client_services",
+                "summary"
+              ]
+            },
+            "description": "Aggregate totals and per-category breakdown (count/amount/status split) across all client services visible to the agent/sub-agent."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"total_services\": 12,\n    \"total_amount\": 185000.0,\n    \"by_category\": {\n      \"investments\": {\n        \"label\": \"Investments\",\n        \"total\": 4,\n        \"total_amount\": 60000.0,\n        \"pending\": 1,\n        \"in_progress\": 1,\n        \"completed\": 2,\n        \"cancelled\": 0\n      },\n      \"taxation\": {\n        \"label\": \"Taxation\",\n        \"total\": 2,\n        \"total_amount\": 15000.0,\n        \"pending\": 0,\n        \"in_progress\": 1,\n        \"completed\": 1,\n        \"cancelled\": 0\n      },\n      \"loans\": {\n        \"label\": \"Loans\",\n        \"total\": 3,\n        \"total_amount\": 90000.0,\n        \"pending\": 1,\n        \"in_progress\": 0,\n        \"completed\": 2,\n        \"cancelled\": 0\n      },\n      \"travel\": {\n        \"label\": \"Travel\",\n        \"total\": 1,\n        \"total_amount\": 12000.0,\n        \"pending\": 0,\n        \"in_progress\": 0,\n        \"completed\": 1,\n        \"cancelled\": 0\n      },\n      \"credit_card\": {\n        \"label\": \"Credit Card\",\n        \"total\": 2,\n        \"total_amount\": 8000.0,\n        \"pending\": 1,\n        \"in_progress\": 0,\n        \"completed\": 1,\n        \"cancelled\": 0\n      }\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16. Common Error Responses",
       "item": [
         {
           "name": "401 Unauthorized",
@@ -4065,6 +6572,142 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Failed to create record\",\n  \"errors\": [\"Amount can't be blank\"]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "17. Sub-Agent \u2014 KYC (Affiliate Onboarding)",
+      "item": [
+        {
+          "name": "Upload KYC Documents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "aadhaar_file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "pan_file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/kyc/documents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "kyc",
+                "documents"
+              ]
+            },
+            "description": "Uploads Aadhaar and/or PAN card photos for the currently authenticated sub-agent (token from Register (Affiliate) or sub-agent Login). Each file is stored on R2 and run through OCR synchronously (Google Cloud Vision - TEXT_DETECTION). Once both an Aadhaar Card and a Pancard document exist, `kyc_status` moves to `submitted` and a confirmation email is sent.\n\nEach returned document includes `name`, `dob`, and `id_number` flattened to the top level for convenience (pulled from `ocr_extracted_data`), plus the full `ocr_text` Vision read off the card and the complete `ocr_extracted_data` (also has `gender`/`address` for Aadhaar, `father_name` for PAN, when present). These are best-effort - number/DOB/gender match fixed formats and are reliable; name/address are inferred from label text and are lower-confidence, so the mobile app should treat them as pre-fill, not ground truth, until the admin approves.\n\nSend just `aadhaar_file` or just `pan_file` to fill in a missing document, or to resend after a rejection - this clears `kyc_rejection_reason` and re-submits once both are present.\n\nThis endpoint (and Check KYC Status) works even while the account is `inactive` / KYC is pending or rejected - unlike every other sub-agent endpoint, which requires an approved, active account."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Documents uploaded successfully\",\n  \"data\": {\n    \"kyc_status\": \"submitted\",\n    \"documents\": [\n      {\n        \"id\": 101,\n        \"document_type\": \"Aadhaar Card\",\n        \"document_url\": \"https://pub-5c8ca1934dba43a9bc18041c326adce0.r2.dev/sub_agent_documents/42/20260905_103000_a1b2c3d4_aadhaar.jpg\",\n        \"ocr_status\": \"success\",\n        \"name\": \"RAHUL KUMAR SHARMA\",\n        \"dob\": \"01/01/1990\",\n        \"id_number\": \"1234 5678 9012\",\n        \"ocr_text\": \"Government of India\\nUnique Identification Authority of India\\nRAHUL KUMAR SHARMA\\nDOB: 01/01/1990\\nMale\\n1234 5678 9012\\nAddress:\\nS/O Suresh Kumar Sharma, 12 MG Road,\\nIndiranagar, Bengaluru,\\nKarnataka - 560038\",\n        \"ocr_extracted_data\": {\n          \"aadhaar_number\": \"1234 5678 9012\",\n          \"dob\": \"01/01/1990\",\n          \"gender\": \"Male\",\n          \"name\": \"RAHUL KUMAR SHARMA\",\n          \"address\": \"S/O Suresh Kumar Sharma, 12 MG Road, Indiranagar, Bengaluru, Karnataka - 560038\"\n        },\n        \"created_at\": \"2026-09-05T10:30:00.000Z\"\n      },\n      {\n        \"id\": 102,\n        \"document_type\": \"Pancard\",\n        \"document_url\": \"https://pub-5c8ca1934dba43a9bc18041c326adce0.r2.dev/sub_agent_documents/42/20260905_103001_e5f6g7h8_pan.jpg\",\n        \"ocr_status\": \"success\",\n        \"name\": \"RAHUL KUMAR SHARMA\",\n        \"dob\": \"01/01/1990\",\n        \"id_number\": \"ABCDE1234F\",\n        \"ocr_text\": \"INCOME TAX DEPARTMENT\\nGOVT. OF INDIA\\nPermanent Account Number Card\\nABCDE1234F\\nName\\nRAHUL KUMAR SHARMA\\nFather's Name\\nSURESH KUMAR SHARMA\\nDate of Birth\\n01/01/1990\\nSignature\",\n        \"ocr_extracted_data\": {\n          \"pan_number\": \"ABCDE1234F\",\n          \"dob\": \"01/01/1990\",\n          \"name\": \"RAHUL KUMAR SHARMA\",\n          \"father_name\": \"SURESH KUMAR SHARMA\"\n        },\n        \"created_at\": \"2026-09-05T10:30:01.000Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Authorization token is required\"\n}"
+            },
+            {
+              "name": "422 No File Attached",
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Please attach an aadhaar_file and/or pan_file\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Check KYC Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mobile/kyc/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "kyc",
+                "status"
+              ]
+            },
+            "description": "Current KYC state for the authenticated sub-agent: `pending` (no/incomplete documents yet), `submitted` (awaiting admin review), `approved` (can now log in), or `rejected` (see `kyc_rejection_reason`, then re-upload via Upload KYC Documents)."
+          },
+          "response": [
+            {
+              "name": "200 OK (submitted)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"kyc_status\": \"submitted\",\n    \"kyc_submitted_at\": \"2026-09-05T10:30:01.000Z\",\n    \"kyc_reviewed_at\": null,\n    \"kyc_rejection_reason\": null,\n    \"documents\": [\n      {\n        \"id\": 101,\n        \"document_type\": \"Aadhaar Card\",\n        \"document_url\": \"https://pub-5c8ca1934dba43a9bc18041c326adce0.r2.dev/sub_agent_documents/42/20260905_103000_a1b2c3d4_aadhaar.jpg\",\n        \"ocr_status\": \"success\",\n        \"name\": \"RAHUL KUMAR SHARMA\",\n        \"dob\": \"01/01/1990\",\n        \"id_number\": \"1234 5678 9012\",\n        \"ocr_text\": \"Government of India\\nUnique Identification Authority of India\\nRAHUL KUMAR SHARMA\\nDOB: 01/01/1990\\nMale\\n1234 5678 9012\\nAddress:\\nS/O Suresh Kumar Sharma, 12 MG Road,\\nIndiranagar, Bengaluru,\\nKarnataka - 560038\",\n        \"ocr_extracted_data\": {\n          \"aadhaar_number\": \"1234 5678 9012\",\n          \"dob\": \"01/01/1990\",\n          \"gender\": \"Male\",\n          \"name\": \"RAHUL KUMAR SHARMA\",\n          \"address\": \"S/O Suresh Kumar Sharma, 12 MG Road, Indiranagar, Bengaluru, Karnataka - 560038\"\n        },\n        \"created_at\": \"2026-09-05T10:30:00.000Z\"\n      },\n      {\n        \"id\": 102,\n        \"document_type\": \"Pancard\",\n        \"document_url\": \"https://pub-5c8ca1934dba43a9bc18041c326adce0.r2.dev/sub_agent_documents/42/20260905_103001_e5f6g7h8_pan.jpg\",\n        \"ocr_status\": \"success\",\n        \"name\": \"RAHUL KUMAR SHARMA\",\n        \"dob\": \"01/01/1990\",\n        \"id_number\": \"ABCDE1234F\",\n        \"ocr_text\": \"INCOME TAX DEPARTMENT\\nGOVT. OF INDIA\\nPermanent Account Number Card\\nABCDE1234F\\nName\\nRAHUL KUMAR SHARMA\\nFather's Name\\nSURESH KUMAR SHARMA\\nDate of Birth\\n01/01/1990\\nSignature\",\n        \"ocr_extracted_data\": {\n          \"pan_number\": \"ABCDE1234F\",\n          \"dob\": \"01/01/1990\",\n          \"name\": \"RAHUL KUMAR SHARMA\",\n          \"father_name\": \"SURESH KUMAR SHARMA\"\n        },\n        \"created_at\": \"2026-09-05T10:30:01.000Z\"\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "200 OK (rejected)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"kyc_status\": \"rejected\",\n    \"kyc_submitted_at\": \"2026-09-05T10:30:01.000Z\",\n    \"kyc_reviewed_at\": \"2026-09-05T14:00:00.000Z\",\n    \"kyc_rejection_reason\": \"Aadhaar photo is blurry - please re-upload a clearer image.\",\n    \"documents\": []\n  }\n}"
             }
           ]
         }
