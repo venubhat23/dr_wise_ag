@@ -524,10 +524,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     )
 
     if user.save
+      token = generate_token(user, 'agent')
       render json: {
         success: true,
         message: 'Agent registration successful. Your account is pending approval by admin.',
         data: {
+          token: token,
           user_id: user.id,
           email: user.email,
           mobile: user.mobile,
