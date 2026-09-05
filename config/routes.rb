@@ -869,6 +869,7 @@ Rails.application.routes.draw do
         # Sub Agent KYC APIs (self-service affiliate onboarding)
         get 'kyc/status', to: 'kyc#status'
         post 'kyc/documents', to: 'kyc#upload_documents'
+        patch 'kyc/details', to: 'kyc#update_details'
 
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'

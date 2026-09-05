@@ -52,6 +52,33 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     }, 'Documents uploaded successfully')
   end
 
+  # PATCH /api/v1/mobile/kyc/details
+  # Lets the app submit the (optionally user-corrected) OCR-extracted fields
+  # as the affiliate's actual profile data, instead of the user re-typing
+  # name/DOB/address/PAN/Aadhaar by hand after Upload KYC Documents.
+  def update_details
+    permitted = params.permit(:first_name, :middle_name, :last_name, :birth_date,
+                               :gender, :address, :city, :state, :pan_no, :aadhaar_no)
+
+    if @sub_agent.update(permitted)
+      render_success({
+        first_name: @sub_agent.first_name,
+        middle_name: @sub_agent.middle_name,
+        last_name: @sub_agent.last_name,
+        birth_date: @sub_agent.birth_date,
+        gender: @sub_agent.gender,
+        address: @sub_agent.address,
+        city: @sub_agent.city,
+        state: @sub_agent.state,
+        pan_no: @sub_agent.pan_no,
+        aadhaar_no: @sub_agent.aadhaar_no,
+        kyc_status: @sub_agent.kyc_status
+      }, 'KYC details updated successfully')
+    else
+      render_error(@sub_agent.errors.full_messages.join(', '), :unprocessable_entity)
+    end
+  end
+
   private
 
   def create_document(document_type, file)
