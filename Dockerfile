@@ -18,9 +18,12 @@ FROM base AS build
 
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      build-essential git pkg-config curl libpq-dev libyaml-dev ca-certificates gnupg && \
+RUN for i in 1 2 3 4 5; do \
+      apt-get update -qq && \
+      apt-get install --no-install-recommends -y \
+        build-essential git pkg-config curl libpq-dev libyaml-dev ca-certificates gnupg \
+      && break || { echo "apt install failed, retrying ($i/5)..."; sleep 5; }; \
+    done && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install --no-install-recommends -y nodejs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
@@ -45,10 +48,13 @@ FROM base
 
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      curl libpq5 libjemalloc2 imagemagick \
-      libxrender1 libxext6 libfontconfig1 fontconfig fonts-dejavu-core libjpeg62-turbo && \
+RUN for i in 1 2 3 4 5; do \
+      apt-get update -qq && \
+      apt-get install --no-install-recommends -y \
+        curl libpq5 libjemalloc2 imagemagick \
+        libxrender1 libxext6 libfontconfig1 fontconfig fonts-dejavu-core libjpeg62-turbo \
+      && break || { echo "apt install failed, retrying ($i/5)..."; sleep 5; }; \
+    done && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 ENV LD_PRELOAD="libjemalloc.so.2"
