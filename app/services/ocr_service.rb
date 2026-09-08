@@ -1,15 +1,19 @@
 require "net/http"
 require "base64"
+require "tempfile"
 
-# Extracts raw text from an ID document image (Aadhaar/PAN card photo) via the
-# free OCR.space OCR API (https://ocr.space/ocrapi). Kept behind this single
-# class so a different OCR provider (Google Vision, AWS Textract, self-hosted
-# Tesseract, ...) can be swapped in later without touching callers - see
-# .extract_text.
+# Extracts raw text from an ID document (Aadhaar/PAN card photo, or a PDF such
+# as an e-Aadhaar / PAN download) via the free OCR.space OCR API
+# (https://ocr.space/ocrapi). OCR.space parses PDFs natively, so PDFs are sent
+# through as-is; only photos are re-encoded. Kept behind this single class so a
+# different OCR provider (Google Vision, AWS Textract, self-hosted Tesseract,
+# ...) can be swapped in later without touching callers - see .extract_text.
 #
 # Free tier limits we work around here:
-#   * 1 MB upload size  -> the image is auto-oriented and re-compressed to JPEG
-#                          under that cap before sending (see #image_data_uri).
+#   * 1 MB upload size  -> photos are auto-oriented and re-compressed to JPEG
+#                          under that cap; an oversized PDF is shrunk with
+#                          Ghostscript (see #ocr_payload).
+#   * 3 PDF pages        -> only the ID page matters, so this is fine.
 #   * 500 requests/day per IP / 25,000 per month - enough for KYC onboarding.
 class OcrService
   class ExtractionError < StandardError; end
@@ -54,11 +58,15 @@ class OcrService
     http.open_timeout = 10
     http.read_timeout = 60
 
+    payload = ocr_payload
+
     request = Net::HTTP::Post.new(uri.request_uri)
     request["apikey"] = OCR_SPACE_API_KEY
     request.set_form(
       [
-        [ "base64Image", image_data_uri ],
+        [ "base64Image", payload[:data_uri] ],
+        # Explicit so OCR.space doesn't have to guess from the data URI.
+        [ "filetype", payload[:filetype] ],
         [ "language", "eng" ],
         [ "OCREngine", OCR_ENGINE ],
         [ "scale", "true" ],
@@ -102,36 +110,107 @@ class OcrService
     Array(body["ErrorMessage"]).flatten.join(", ").presence || body["ErrorDetails"].to_s
   end
 
-  # Returns the upload as a "data:image/jpeg;base64,..." string, auto-oriented
-  # and compressed to stay under the free tier's 1 MB cap.
-  def image_data_uri
-    "data:image/jpeg;base64,#{Base64.strict_encode64(compressed_jpeg)}"
+  # Builds the OCR.space upload: a base64 data URI plus the matching `filetype`.
+  #   * PDF  -> sent through unchanged (OCR.space parses PDF natively); only
+  #             Ghostscript-shrunk if it's over the free tier's 1 MB cap.
+  #   * image -> auto-oriented and re-compressed to JPEG under the 1 MB cap.
+  def ocr_payload
+    bytes = read_file_bytes
+
+    if pdf?(bytes)
+      { data_uri: data_uri("application/pdf", pdf_within_cap(bytes)), filetype: "PDF" }
+    else
+      { data_uri: data_uri("image/jpeg", compressed_jpeg(bytes)), filetype: "JPG" }
+    end
   end
 
-  def compressed_jpeg
-    original = read_file_bytes
-    last = nil
+  def data_uri(mime, binary)
+    "data:#{mime};base64,#{Base64.strict_encode64(binary)}"
+  end
 
-    COMPRESSION_STEPS.each do |dimension, quality|
-      image = MiniMagick::Image.read(original)
-      image.combine_options do |c|
-        c.auto_orient
-        c.strip
-        c.resize "#{dimension}x#{dimension}>"
-      end
-      image.format("jpg") { |c| c.quality quality.to_s }
+  # OCR.space's free tier rejects uploads over 1 MB. Return the PDF unchanged if
+  # it already fits; otherwise try to shrink it with Ghostscript; if it still
+  # won't fit, raise a message the app can show the user.
+  def pdf_within_cap(bytes)
+    return bytes if bytes.bytesize <= MAX_UPLOAD_BYTES
 
-      last = File.binread(image.path)
-      return last if last.bytesize <= MAX_UPLOAD_BYTES
+    shrunk = ghostscript_shrunk_pdf(bytes)
+    return shrunk if shrunk && shrunk.bytesize <= MAX_UPLOAD_BYTES
+
+    raise ExtractionError,
+      "PDF is #{(bytes.bytesize / 1_000_000.0).round(1)} MB; the free OCR service accepts files up to 1 MB. " \
+      "Please upload a clearer photo of the card or a smaller PDF."
+  end
+
+  # Re-saves the PDF through Ghostscript's /ebook preset (downsamples embedded
+  # scans to ~150 DPI). Returns the smaller bytes, or nil if gs is missing or
+  # fails - the caller then reports the size error.
+  def ghostscript_shrunk_pdf(bytes)
+    Tempfile.create([ "ocr_pdf_in", ".pdf" ]) do |input|
+      input.binmode
+      input.write(bytes)
+      input.close
+
+      output = "#{input.path}-out.pdf"
+      ok = system(
+        "gs", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.4",
+        "-dPDFSETTINGS=/ebook", "-dNOPAUSE", "-dBATCH", "-dQUIET",
+        "-sOutputFile=#{output}", input.path,
+        out: File::NULL, err: File::NULL
+      )
+
+      return nil unless ok && File.exist?(output)
+
+      shrunk = File.binread(output)
+      File.delete(output)
+      shrunk
     end
+  rescue => e
+    Rails.logger.warn("OcrService: Ghostscript PDF shrink failed: #{e.message}")
+    nil
+  end
 
-    last
+  # Auto-orients and re-compresses an image upload to a JPEG under the 1 MB cap.
+  def compressed_jpeg(bytes)
+    Tempfile.create([ "ocr_img", "" ]) do |source|
+      source.binmode
+      source.write(bytes)
+      source.close
+
+      last = nil
+
+      COMPRESSION_STEPS.each do |dimension, quality|
+        output = "#{source.path}-out.jpg"
+
+        MiniMagick.convert do |c|
+          c.background "white"
+          # "[0]" = first frame (e.g. of an animated image); no-op otherwise.
+          c << "#{source.path}[0]"
+          c.auto_orient
+          c.flatten
+          c.strip
+          c.resize "#{dimension}x#{dimension}>"
+          c.quality quality.to_s
+          c << output
+        end
+
+        last = File.binread(output)
+        File.delete(output) if File.exist?(output)
+        return last if last.bytesize <= MAX_UPLOAD_BYTES
+      end
+
+      last
+    end
   rescue MiniMagick::Error, MiniMagick::Invalid => e
-    # Non-image or unsupported format (e.g. HEIC without a delegate) - fall back
-    # to the raw bytes if they already fit, otherwise surface a clear error.
-    raw = read_file_bytes
-    return raw if raw.bytesize <= MAX_UPLOAD_BYTES
+    # ImageMagick missing, or the file isn't a decodable image. Use the raw
+    # bytes if they already fit the cap, else surface a clear error.
+    return bytes if bytes.bytesize <= MAX_UPLOAD_BYTES
     raise ExtractionError, "Could not process the uploaded image (#{e.message})"
+  end
+
+  # True if the bytes are a PDF (magic number "%PDF-").
+  def pdf?(bytes)
+    bytes.to_s.byteslice(0, 5) == "%PDF-"
   end
 
   def read_file_bytes
