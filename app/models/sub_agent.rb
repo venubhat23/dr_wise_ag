@@ -46,8 +46,12 @@ class SubAgent < ApplicationRecord
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
-  validates :first_name, presence: true
-  validates :last_name, presence: true
+  # Self-registered affiliates sign up with only email/mobile/password and stay
+  # inactive+pending until their name is filled in from the KYC OCR details
+  # (Api::V1::Mobile::KycController#update_details), so name is only enforced
+  # once the affiliate is active or has cleared KYC.
+  validates :first_name, presence: true, unless: :pending_kyc_self_registration?
+  validates :last_name, presence: true, unless: :pending_kyc_self_registration?
   validates :mobile, presence: true,
             uniqueness: {
               message: "number is already registered with another affiliate",
@@ -149,6 +153,13 @@ class SubAgent < ApplicationRecord
 
   def truly_active?
     active? && !deactivated?
+  end
+
+  # True while a self-registered affiliate is still inactive and hasn't had its
+  # KYC approved - during this window name may legitimately be blank because it
+  # is captured later from the uploaded KYC documents.
+  def pending_kyc_self_registration?
+    inactive? && !kyc_approved?
   end
 
   def approve_kyc!

@@ -556,11 +556,13 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
                                       :password, :password_confirmation, :pan_no, :address,
                                       :city, :state, :gender, :birth_date, :company_name)
 
-    if sub_agent_params[:first_name].blank? || sub_agent_params[:last_name].blank? ||
-       sub_agent_params[:email].blank? || sub_agent_params[:mobile].blank? || sub_agent_params[:password].blank?
+    # Only email, mobile and password are collected at sign-up. Name and the rest
+    # of the profile are filled in later from the KYC OCR details
+    # (Api::V1::Mobile::KycController#update_details).
+    if sub_agent_params[:email].blank? || sub_agent_params[:mobile].blank? || sub_agent_params[:password].blank?
       return render json: {
         success: false,
-        message: 'First name, last name, email, mobile number, and password are required'
+        message: 'Email, mobile number, and password are required'
       }, status: :unprocessable_entity
     end
 
@@ -586,11 +588,13 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unprocessable_entity
     end
 
-    unless validate_name_fields(sub_agent_params[:first_name]) && validate_name_fields(sub_agent_params[:last_name])
-      return render json: {
-        success: false,
-        message: 'First and last name should contain only alphabetic characters and be 2-50 characters long'
-      }, status: :unprocessable_entity
+    if sub_agent_params[:first_name].present? || sub_agent_params[:last_name].present?
+      unless validate_name_fields(sub_agent_params[:first_name]) && validate_name_fields(sub_agent_params[:last_name])
+        return render json: {
+          success: false,
+          message: 'First and last name should contain only alphabetic characters and be 2-50 characters long'
+        }, status: :unprocessable_entity
+      end
     end
 
     if sub_agent_params[:password].length < 6

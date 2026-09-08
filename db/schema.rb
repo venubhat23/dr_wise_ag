@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_05_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -1876,9 +1876,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_05_090000) do
   end
 
   create_table "sub_agents", force: :cascade do |t|
-    t.string "first_name", null: false
+    t.string "first_name"
     t.string "middle_name"
-    t.string "last_name", null: false
+    t.string "last_name"
     t.string "mobile", null: false
     t.string "email", null: false
     t.integer "role_id", null: false

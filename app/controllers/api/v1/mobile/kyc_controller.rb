@@ -37,14 +37,7 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       uploaded << document
     end
 
-    if @sub_agent.kyc_documents_complete?
-      @sub_agent.update!(
-        kyc_status: :submitted,
-        kyc_submitted_at: Time.current,
-        kyc_rejection_reason: nil
-      )
-      SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'submitted')
-    end
+    submit_kyc_if_complete
 
     render_success({
       kyc_status: @sub_agent.kyc_status,
@@ -61,6 +54,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
                                :gender, :address, :city, :state, :pan_no, :aadhaar_no)
 
     if @sub_agent.update(permitted)
+      mark_kyc_submitted!
+
       render_success({
         first_name: @sub_agent.first_name,
         middle_name: @sub_agent.middle_name,
@@ -72,7 +67,10 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
         state: @sub_agent.state,
         pan_no: @sub_agent.pan_no,
         aadhaar_no: @sub_agent.aadhaar_no,
-        kyc_status: @sub_agent.kyc_status
+        kyc_status: @sub_agent.kyc_status,
+        kyc_submitted_at: @sub_agent.kyc_submitted_at,
+        kyc_reviewed_at: @sub_agent.kyc_reviewed_at,
+        kyc_rejection_reason: @sub_agent.kyc_rejection_reason
       }, 'KYC details updated successfully')
     else
       render_error(@sub_agent.errors.full_messages.join(', '), :unprocessable_entity)
@@ -80,6 +78,29 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   end
 
   private
+
+  # From upload_documents: only move into the admin KYC queue once both required
+  # documents are present.
+  def submit_kyc_if_complete
+    mark_kyc_submitted! if @sub_agent.kyc_documents_complete?
+  end
+
+  # Moves the affiliate into the admin KYC queue (kyc_status: submitted). This is
+  # the app's explicit "submit" action on the details screen, so it fires as soon
+  # as the affiliate has entered their profile data - the document images are not
+  # required and can still be uploaded (or re-uploaded after a rejection)
+  # afterwards. Skips agents already submitted or approved so re-saving details
+  # doesn't reset kyc_submitted_at or re-send the notification.
+  def mark_kyc_submitted!
+    return if @sub_agent.kyc_submitted? || @sub_agent.kyc_approved?
+
+    @sub_agent.update!(
+      kyc_status: :submitted,
+      kyc_submitted_at: Time.current,
+      kyc_rejection_reason: nil
+    )
+    SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'submitted')
+  end
 
   def create_document(document_type, file)
     document = @sub_agent.sub_agent_documents.build(document_type: document_type)

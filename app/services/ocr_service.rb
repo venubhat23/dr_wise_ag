@@ -2,18 +2,34 @@ require "net/http"
 require "base64"
 
 # Extracts raw text from an ID document image (Aadhaar/PAN card photo) via the
-# Google Cloud Vision API (TEXT_DETECTION). Kept behind this single class so a
-# different OCR provider (AWS Textract, OCR.space, Tesseract, ...) can be
-# swapped in later without touching callers - see .extract_text.
+# free OCR.space OCR API (https://ocr.space/ocrapi). Kept behind this single
+# class so a different OCR provider (Google Vision, AWS Textract, self-hosted
+# Tesseract, ...) can be swapped in later without touching callers - see
+# .extract_text.
+#
+# Free tier limits we work around here:
+#   * 1 MB upload size  -> the image is auto-oriented and re-compressed to JPEG
+#                          under that cap before sending (see #image_data_uri).
+#   * 500 requests/day per IP / 25,000 per month - enough for KYC onboarding.
 class OcrService
   class ExtractionError < StandardError; end
   class ConfigurationError < StandardError; end
 
-  VISION_ENDPOINT = "https://vision.googleapis.com/v1/images:annotate"
-  # Create this key in Google Cloud Console with the Vision API enabled, then
-  # paste it here (same convention as OtpSenderService::TWOFACTOR_API_KEY and
-  # R2Service's credentials - not read from ENV).
-  GOOGLE_VISION_API_KEY = "PASTE_GOOGLE_VISION_API_KEY_HERE"
+  OCR_SPACE_ENDPOINT = "https://api.ocr.space/parse/image"
+  # Free OCR.space key (25,000 requests/month, 500/day per IP). Registered at
+  # https://ocr.space/ocrapi/freekey - hardcoded here on purpose, same
+  # convention as OtpSenderService::TWOFACTOR_API_KEY and R2Service's
+  # credentials (not read from ENV).
+  OCR_SPACE_API_KEY = "K85495011888957"
+
+  # OCR.space engine 2 is the best all-round choice and is strong on photos of
+  # documents on noisy backgrounds (see their "Select the best OCR Engine" docs).
+  OCR_ENGINE = "2"
+  # Free tier hard limit on the uploaded file.
+  MAX_UPLOAD_BYTES = 1_000_000
+  # (max dimension, JPEG quality) steps tried in order until the encoded image
+  # fits MAX_UPLOAD_BYTES. An ID card stays readable well below the smallest.
+  COMPRESSION_STEPS = [ [ 2000, 85 ], [ 1600, 80 ], [ 1200, 75 ], [ 1000, 65 ], [ 800, 55 ] ].freeze
 
   # file: anything responding to #read (e.g. an ActionDispatch::Http::UploadedFile
   # or its #tempfile) with image bytes - must be called while the upload is
@@ -28,18 +44,29 @@ class OcrService
   end
 
   def extract_text
-    if GOOGLE_VISION_API_KEY.blank? || GOOGLE_VISION_API_KEY == "PASTE_GOOGLE_VISION_API_KEY_HERE"
-      raise ConfigurationError, "OcrService::GOOGLE_VISION_API_KEY is not configured"
+    if OCR_SPACE_API_KEY.blank?
+      raise ConfigurationError, "OcrService::OCR_SPACE_API_KEY is not configured"
     end
 
-    uri = URI.parse("#{VISION_ENDPOINT}?key=#{GOOGLE_VISION_API_KEY}")
+    uri = URI.parse(OCR_SPACE_ENDPOINT)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.open_timeout = 10
-    http.read_timeout = 20
+    http.read_timeout = 60
 
-    request = Net::HTTP::Post.new(uri.request_uri, "Content-Type" => "application/json")
-    request.body = { requests: [ { image: { content: image_base64 }, features: [ { type: "TEXT_DETECTION" } ] } ] }.to_json
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request["apikey"] = OCR_SPACE_API_KEY
+    request.set_form(
+      [
+        [ "base64Image", image_data_uri ],
+        [ "language", "eng" ],
+        [ "OCREngine", OCR_ENGINE ],
+        [ "scale", "true" ],
+        [ "detectOrientation", "true" ],
+        [ "isOverlayRequired", "false" ]
+      ],
+      "multipart/form-data"
+    )
 
     response = http.request(request)
     body = begin
@@ -49,13 +76,19 @@ class OcrService
     end
 
     unless response.is_a?(Net::HTTPSuccess)
-      raise ExtractionError, body.dig("error", "message").presence || "Vision API responded with #{response.code}"
+      raise ExtractionError, error_message(body).presence || "OCR.space responded with #{response.code}"
     end
 
-    result = body.dig("responses", 0)
-    raise ExtractionError, result.dig("error", "message") if result && result["error"]
+    if body["IsErroredOnProcessing"]
+      raise ExtractionError, error_message(body).presence || "OCR.space reported a processing error"
+    end
 
-    result&.dig("fullTextAnnotation", "text").to_s
+    result = body.dig("ParsedResults", 0)
+    if result && result["FileParseExitCode"].to_i != 1
+      raise ExtractionError, result["ErrorMessage"].presence || "OCR.space could not parse the document"
+    end
+
+    result&.dig("ParsedText").to_s
   rescue ExtractionError, ConfigurationError
     raise
   rescue => e
@@ -64,10 +97,47 @@ class OcrService
 
   private
 
-  def image_base64
+  # OCR.space returns ErrorMessage as either a string or an array of strings.
+  def error_message(body)
+    Array(body["ErrorMessage"]).flatten.join(", ").presence || body["ErrorDetails"].to_s
+  end
+
+  # Returns the upload as a "data:image/jpeg;base64,..." string, auto-oriented
+  # and compressed to stay under the free tier's 1 MB cap.
+  def image_data_uri
+    "data:image/jpeg;base64,#{Base64.strict_encode64(compressed_jpeg)}"
+  end
+
+  def compressed_jpeg
+    original = read_file_bytes
+    last = nil
+
+    COMPRESSION_STEPS.each do |dimension, quality|
+      image = MiniMagick::Image.read(original)
+      image.combine_options do |c|
+        c.auto_orient
+        c.strip
+        c.resize "#{dimension}x#{dimension}>"
+      end
+      image.format("jpg") { |c| c.quality quality.to_s }
+
+      last = File.binread(image.path)
+      return last if last.bytesize <= MAX_UPLOAD_BYTES
+    end
+
+    last
+  rescue MiniMagick::Error, MiniMagick::Invalid => e
+    # Non-image or unsupported format (e.g. HEIC without a delegate) - fall back
+    # to the raw bytes if they already fit, otherwise surface a clear error.
+    raw = read_file_bytes
+    return raw if raw.bytesize <= MAX_UPLOAD_BYTES
+    raise ExtractionError, "Could not process the uploaded image (#{e.message})"
+  end
+
+  def read_file_bytes
     io = @file.respond_to?(:tempfile) ? @file.tempfile : @file
     io.rewind if io.respond_to?(:rewind)
-    Base64.strict_encode64(io.read)
+    io.read
   end
 
   # Best-effort field extraction from raw OCR text - not authoritative, only
