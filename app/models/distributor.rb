@@ -1,5 +1,9 @@
 class Distributor < ApplicationRecord
   include PgSearch::Model
+  include ReferralCodeable
+
+  # Ambassador referral code, e.g. "AMB123456"
+  referral_code_prefix 'AMB'
 
   # Add password authentication
   has_secure_password validations: false
@@ -12,6 +16,7 @@ class Distributor < ApplicationRecord
   has_many :distributor_assignments, dependent: :destroy
   has_many :assigned_sub_agents, through: :distributor_assignments, source: :sub_agent
   has_many :sub_agents, dependent: :nullify
+  has_one :wallet, as: :owner, dependent: :destroy
   has_one_attached :upload_main_document
   has_one_attached :profile_image
 
@@ -76,6 +81,11 @@ class Distributor < ApplicationRecord
 
   def display_name
     "#{first_name} #{last_name}"
+  end
+
+  # Returns the wallet, creating an empty one on first access.
+  def wallet!
+    wallet || create_wallet(balance: 0)
   end
 
   def formatted_mobile

@@ -1,5 +1,9 @@
 class SubAgent < ApplicationRecord
   include PgSearch::Model
+  include ReferralCodeable
+
+  # Affiliate referral code, e.g. "AFF123456"
+  referral_code_prefix 'AFF'
 
   # Password authentication
   has_secure_password
@@ -29,6 +33,7 @@ class SubAgent < ApplicationRecord
   has_one :distributor_assignment, dependent: :destroy
   has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
   belongs_to :distributor, optional: true
+  has_one :wallet, as: :owner, dependent: :destroy
   has_one_attached :upload_main_document
   has_one_attached :profile_image
   has_many :customers, foreign_key: 'sub_agent_id'
@@ -97,6 +102,26 @@ class SubAgent < ApplicationRecord
 
   def display_name
     "#{first_name} #{last_name}"
+  end
+
+  # Returns the wallet, creating an empty one on first access.
+  def wallet!
+    wallet || create_wallet(balance: 0)
+  end
+
+  # The Ambassador this affiliate is mapped under. The referral program keeps
+  # both the direct FK (distributor_id) and the assignment join row in sync,
+  # so either source answers the question.
+  def ambassador
+    distributor || assigned_distributor
+  end
+
+  def ambassador_id
+    distributor_id || assigned_distributor&.id
+  end
+
+  def referral_bonus_credited?
+    referral_bonus_credited_at.present?
   end
 
   def formatted_mobile

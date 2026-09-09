@@ -1,0 +1,191 @@
+<% noun = @wallet_config[:noun] %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><%= link_to "#{noun} Wallets", @wallet_config[:index_path] %></li>
+        <li class="breadcrumb-item active" aria-current="page"><%= @owner.display_name %></li>
+      </ol>
+    </nav>
+    <h2 class="mb-0"><%= @owner.display_name %> &mdash; Wallet</h2>
+    <p class="text-muted mb-0">
+      <%= @owner.email.presence || "—" %> &nbsp;|&nbsp; <%= @owner.mobile.presence || "—" %>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addFundsModal">
+      <i class="bi bi-plus-circle me-1"></i> Add Amount
+    </button>
+    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeFundsModal">
+      <i class="bi bi-dash-circle me-1"></i> Remove Amount
+    </button>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Current Balance</h6>
+        <h3 class="mb-0 text-primary"><%= indian_currency(@wallet.balance) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Total Added</h6>
+        <h3 class="mb-0 text-success"><%= indian_currency(@wallet.total_credited) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Total Removed</h6>
+        <h3 class="mb-0 text-danger"><%= indian_currency(@wallet.total_debited) %></h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="text-muted mb-2">Transactions</h6>
+        <h3 class="mb-0 text-info"><%= number_with_delimiter(@transactions.total_count) %></h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction History -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0">Transaction History</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @transactions.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0">Date &amp; Time</th>
+              <th class="border-0">Activity</th>
+              <th class="border-0 text-end">Amount</th>
+              <th class="border-0 text-end">Balance After</th>
+              <th class="border-0">Note</th>
+              <th class="border-0">By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @transactions.each do |txn| %>
+              <tr>
+                <td><%= txn.created_at.strftime('%d %b %Y, %I:%M %p') %></td>
+                <td>
+                  <% if txn.credit? %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-arrow-down-circle me-1"></i>Amount Added
+                    </span>
+                  <% else %>
+                    <span class="badge bg-danger-subtle text-danger">
+                      <i class="bi bi-arrow-up-circle me-1"></i>Amount Removed
+                    </span>
+                  <% end %>
+                </td>
+                <td class="text-end fw-semibold <%= txn.credit? ? 'text-success' : 'text-danger' %>">
+                  <%= txn.credit? ? '+' : '−' %><%= indian_currency(txn.amount) %>
+                </td>
+                <td class="text-end"><%= indian_currency(txn.balance_after) %></td>
+                <td><%= txn.description.presence || "—" %></td>
+                <td><small class="text-muted"><%= txn.performed_by.presence || "system" %></small></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-transparent border-0">
+        <%= render 'shared/pagination', records: @transactions %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <i class="bi bi-clock-history display-1 text-muted"></i>
+        </div>
+        <h5 class="mb-3">No Transactions Yet</h5>
+        <p class="text-muted mb-0">Use "Add Amount" or "Remove Amount" to record the first wallet activity.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Add Funds Modal -->
+<div class="modal fade" id="addFundsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: wallet_add_funds_path(@owner), method: :post, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Add Amount to Wallet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Current balance: <strong><%= indian_currency(@wallet.balance) %></strong>
+          </p>
+          <div class="mb-3">
+            <label class="form-label">Amount <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rs.</span>
+              <%= form.number_field :amount, step: '0.01', min: '0.01', required: true, class: "form-control", placeholder: "0.00" %>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Note</label>
+            <%= form.text_field :description, class: "form-control", placeholder: "e.g. Bonus credit, adjustment reason" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Add Amount", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Funds Modal -->
+<div class="modal fade" id="removeFundsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: wallet_remove_funds_path(@owner), method: :post, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Remove Amount from Wallet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Current balance: <strong><%= indian_currency(@wallet.balance) %></strong>
+          </p>
+          <div class="mb-3">
+            <label class="form-label">Amount <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rs.</span>
+              <%= form.number_field :amount, step: '0.01', min: '0.01', max: @wallet.balance, required: true, class: "form-control", placeholder: "0.00" %>
+            </div>
+            <div class="form-text">Cannot exceed the current balance.</div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Note</label>
+            <%= form.text_field :description, class: "form-control", placeholder: "e.g. Payout adjustment, reversal reason" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Remove Amount", class: "btn btn-danger" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -13,10 +13,24 @@
 
 <!-- Status Filter Tabs -->
 <ul class="nav nav-tabs mb-4">
-  <% [['submitted', 'Awaiting Review'], ['pending', 'Not Submitted'], ['approved', 'Approved'], ['rejected', 'Rejected']].each do |status, label| %>
+  <% tabs = [
+       ['submitted', 'Awaiting Review'],
+       ['just_registered', 'Just Registered'],
+       ['pending', 'Not Submitted'],
+       ['approved', 'Approved'],
+       ['rejected', 'Rejected']
+     ] %>
+  <% tabs.each do |status, label| %>
     <li class="nav-item">
-      <%= link_to label, admin_kyc_verifications_path(status: status),
-                  class: "nav-link #{'active' if @kyc_status_filter == status}" %>
+      <%= link_to admin_kyc_verifications_path(status: status),
+                  class: "nav-link #{'active' if @kyc_status_filter == status}" do %>
+        <%= label %>
+        <% if status == 'just_registered' && @just_registered_count > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @just_registered_count %></span>
+        <% elsif status == 'submitted' && @pending_count > 0 %>
+          <span class="badge bg-warning text-dark ms-1"><%= @pending_count %></span>
+        <% end %>
+      <% end %>
     </li>
   <% end %>
 </ul>
@@ -31,7 +45,7 @@
               <th>Affiliate</th>
               <th>Email</th>
               <th>Mobile</th>
-              <th>Submitted</th>
+              <th><%= @kyc_status_filter == 'just_registered' ? 'Registered' : 'Submitted' %></th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
@@ -41,7 +55,10 @@
                 <td><%= sub_agent.display_name %></td>
                 <td><%= sub_agent.email %></td>
                 <td><%= sub_agent.mobile %></td>
-                <td><%= sub_agent.kyc_submitted_at&.strftime('%d %b %Y, %I:%M %p') || '—' %></td>
+                <td>
+                  <% ts = @kyc_status_filter == 'just_registered' ? sub_agent.created_at : sub_agent.kyc_submitted_at %>
+                  <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>
+                </td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end gap-2">
                     <%= link_to "View Documents", documents_admin_sub_agent_path(sub_agent), class: "btn btn-sm btn-outline-primary" %>

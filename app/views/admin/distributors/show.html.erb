@@ -647,6 +647,16 @@
         </h6>
       </div>
       <div class="card-body">
+        <% login_url = new_user_session_url %>
+        <div class="mb-3">
+          <label class="form-label text-muted">Login URL</label>
+          <div class="input-group">
+            <input type="text" class="form-control" value="<%= login_url %>" readonly>
+            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= login_url %>')">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
         <div class="mb-3">
           <label class="form-label text-muted">Email</label>
           <div class="input-group">
@@ -675,6 +685,28 @@
             Login credentials not yet generated. They will be created when the ambassador account is saved.
           </div>
         <% end %>
+      </div>
+    </div>
+
+    <!-- Referral Code -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h6 class="mb-0">
+          <i class="bi bi-share me-2 text-success"></i>
+          Ambassador Referral Code
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="input-group">
+          <input type="text" class="form-control fw-bold text-uppercase bg-light" value="<%= @distributor.referral_code %>" readonly>
+          <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @distributor.referral_code %>')" title="Copy referral code">
+            <i class="bi bi-clipboard"></i> Copy
+          </button>
+        </div>
+        <small class="text-muted d-block mt-2">
+          A new affiliate who signs up with this code is mapped directly under this ambassador and receives a
+          <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> welcome bonus. The ambassador is not credited.
+        </small>
       </div>
     </div>
 

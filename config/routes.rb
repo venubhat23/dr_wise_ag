@@ -187,6 +187,25 @@ Rails.application.routes.draw do
       end
     end
 
+    # Referral Program (Ambassador -> Affiliate hierarchy, referral codes, signup bonuses)
+    resources :referral_program, only: [:index, :show], controller: 'referral_program'
+
+    # Wallet System (Affiliate wallets + Ambassador e-wallets)
+    namespace :wallets do
+      resources :affiliate_wallets, only: [:index, :show] do
+        member do
+          post :add_funds
+          post :remove_funds
+        end
+      end
+      resources :ambassador_wallets, only: [:index, :show] do
+        member do
+          post :add_funds
+          post :remove_funds
+        end
+      end
+    end
+
     # Payout 2 System - Comprehensive Payout Management
     resources :payout2, only: [:index] do
       collection do

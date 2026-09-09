@@ -107,6 +107,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'sub_agents', name: 'Affiliates' },
         { key: 'kyc_verification', name: 'KYC Verification' },
         { key: 'distributors', name: 'Ambassadors' },
+        { key: 'referral_program', name: 'Referral Program' },
         { key: 'vendors', name: 'Vendors' },
         { key: 'vendor_payouts', name: 'Vendor Payouts' }
       ],
@@ -129,6 +130,9 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'payouts', name: 'Commissions' },
         { key: 'affiliate_payouts', name: 'Affiliate Payout' },
         { key: 'distributor_payouts', name: 'Ambassador Payout' }
+      ],
+      'Wallets' => [
+        { key: 'wallets', name: 'Affiliate & Ambassador Wallets' }
       ],
       'Transactions' => [
         { key: 'invoices', name: 'Invoices' }

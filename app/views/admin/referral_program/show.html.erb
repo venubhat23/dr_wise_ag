@@ -1,0 +1,154 @@
+<style>
+  .rp-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700; letter-spacing: .5px;
+    background: rgba(139, 92, 246, .1); color: #7c3aed;
+    padding: 3px 10px; border-radius: 8px; font-size: 12px;
+    border: 1px dashed rgba(139, 92, 246, .35);
+  }
+  .rp-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+  .rp-stat { border: 0; border-radius: 14px; background: #fff; box-shadow: 0 6px 20px rgba(15,23,42,.06); }
+  .text-purple { color: #7c3aed !important; }
+
+  /* Tree */
+  .rp-tree { text-align: center; padding: 8px 0 4px; }
+  .rp-amb-node {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff; padding: 16px 28px; border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(99, 102, 241, .3);
+  }
+  .rp-amb-node .rp-code { background: rgba(255,255,255,.2); color: #fff; border-color: rgba(255,255,255,.5); }
+  .rp-trunk { width: 2px; height: 28px; background: #c4b5fd; margin: 0 auto; }
+  .rp-branches {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding-top: 22px; position: relative;
+  }
+  .rp-branches::before {
+    content: ""; position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: #ddd6fe;
+  }
+  .rp-aff {
+    position: relative; width: 260px; text-align: left;
+    background: #fff; border: 1px solid #ece9f5; border-radius: 14px; padding: 14px;
+    box-shadow: 0 4px 14px rgba(15,23,42,.05);
+  }
+  .rp-aff::before {
+    content: ""; position: absolute; top: -22px; left: 50%; width: 2px; height: 22px; background: #ddd6fe;
+  }
+  .rp-aff:hover { border-color: #c4b5fd; box-shadow: 0 8px 22px rgba(139,92,246,.16); }
+  .rp-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: #ede9fe; color: #7c3aed;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  }
+  [data-theme="dark"] .rp-stat, [data-theme="dark"] .rp-aff { background: #1e1f30; border-color: #2d2f45; box-shadow: none; }
+  [data-theme="dark"] .rp-code { background: rgba(168,85,247,.15); color: #d8b4fe; }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><%= link_to "Referral Program", admin_referral_program_index_path %></li>
+        <li class="breadcrumb-item active"><%= @ambassador.display_name %></li>
+      </ol>
+    </nav>
+    <h2 class="mb-1"><%= @ambassador.display_name %> &mdash; Referral Tree</h2>
+    <p class="text-muted mb-0"><%= @ambassador.email %> &nbsp;·&nbsp; <%= @ambassador.mobile %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to admin_distributor_path(@ambassador), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-person-lines-fill me-1"></i> Ambassador profile
+    <% end %>
+    <%= link_to admin_wallets_ambassador_wallet_path(@ambassador), class: "btn btn-outline-primary" do %>
+      <i class="bi bi-wallet2 me-1"></i> Wallet
+    <% end %>
+  </div>
+</div>
+
+<!-- Stat row -->
+<div class="row g-3 mb-4">
+  <% [
+       ["Total affiliates", @affiliates.size, "text-primary"],
+       ["Via ambassador code", @via_ambassador_code, "text-info"],
+       ["Via affiliate code", @via_affiliate_code, "text-purple"],
+       ["Added directly", @via_no_code, "text-secondary"],
+       ["Bonuses paid", "#{@bonuses_paid} · #{indian_currency(@bonus_amount)}", "text-success"]
+     ].each do |label, value, cls| %>
+    <div class="col-6 col-xl">
+      <div class="rp-stat p-3">
+        <div class="text-muted small fw-semibold mb-1"><%= label %></div>
+        <h4 class="mb-0 <%= cls %>"><%= value.is_a?(Numeric) ? number_with_delimiter(value) : value %></h4>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Tree -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="rp-tree">
+      <div class="rp-amb-node">
+        <div class="fw-bold fs-5"><i class="bi bi-diagram-3 me-1"></i><%= @ambassador.display_name %></div>
+        <span class="rp-code"><%= @ambassador.referral_code %></span>
+        <small class="opacity-75"><%= pluralize(@affiliates.size, "affiliate") %> in network</small>
+      </div>
+
+      <% if @affiliates.any? %>
+        <div class="rp-trunk"></div>
+        <div class="rp-branches">
+          <% @affiliates.each do |aff| %>
+            <div class="rp-aff">
+              <div class="d-flex align-items-center mb-2">
+                <div class="rp-avatar me-2"><%= (aff.display_name.presence || aff.email).to_s[0]&.upcase %></div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="fw-semibold text-truncate"><%= aff.display_name.presence || aff.email %></div>
+                  <span class="rp-code"><%= aff.referral_code %></span>
+                </div>
+              </div>
+
+              <div class="small mb-2">
+                <% case aff.referred_by_kind %>
+                <% when 'ambassador' %>
+                  <span class="rp-pill bg-primary-subtle text-primary">Joined via ambassador code</span>
+                <% when 'affiliate' %>
+                  <% ref = @referrers_by_code[aff.referred_by_code.to_s.upcase] %>
+                  <span class="rp-pill bg-info-subtle text-info">
+                    Referred by <%= ref&.display_name.presence || aff.referred_by_code %>
+                  </span>
+                <% else %>
+                  <span class="rp-pill bg-secondary-subtle text-secondary">Added directly</span>
+                <% end %>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center small">
+                <span>
+                  <% if aff.referral_bonus_credited? %>
+                    <span class="text-success"><i class="bi bi-gift-fill"></i> <%= indian_currency(Admin::ReferralProgramController::SIGNUP_BONUS) %></span>
+                  <% else %>
+                    <span class="text-muted"><i class="bi bi-gift"></i> No bonus</span>
+                  <% end %>
+                </span>
+                <span class="text-muted">
+                  Wallet <strong><%= indian_currency(@wallets_by_owner[aff.id]&.balance || 0) %></strong>
+                </span>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                <% kyc = aff.kyc_status.to_s %>
+                <span class="rp-pill <%= { 'approved' => 'bg-success-subtle text-success', 'submitted' => 'bg-warning-subtle text-warning', 'rejected' => 'bg-danger-subtle text-danger' }[kyc] || 'bg-secondary-subtle text-secondary' %>">
+                  KYC <%= kyc.titleize %>
+                </span>
+                <%= link_to "Open", admin_sub_agent_path(aff), class: "btn btn-sm btn-link p-0" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="rp-trunk"></div>
+        <div class="text-muted py-4">
+          <i class="bi bi-people display-6 d-block mb-2"></i>
+          No affiliates yet. Share code <span class="rp-code"><%= @ambassador.referral_code %></span> to grow this network.
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

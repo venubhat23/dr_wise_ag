@@ -1,0 +1,202 @@
+<% noun = @wallet_config[:noun] %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><%= noun %> Wallets</h2>
+    <p class="text-muted mb-0">Manage <%= noun.downcase %> wallet balances and track every credit &amp; debit.</p>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-xl-4 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Wallets</h6>
+            <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_wallets) %></h3>
+          </div>
+          <div class="bg-primary bg-opacity-10 rounded p-3">
+            <i class="bi bi-wallet2 text-primary fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Total Balance Held</h6>
+            <h3 class="mb-0 text-success"><%= indian_currency(@total_balance) %></h3>
+          </div>
+          <div class="bg-success bg-opacity-10 rounded p-3">
+            <i class="bi bi-cash-stack text-success fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4 col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="text-muted mb-2">Wallets With Funds</h6>
+            <h3 class="mb-0 text-info"><%= number_with_delimiter(@wallets_with_funds) %></h3>
+          </div>
+          <div class="bg-info bg-opacity-10 rounded p-3">
+            <i class="bi bi-piggy-bank text-info fs-4"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= form_with url: @wallet_config[:index_path], method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end", id: "search_form" do |form| %>
+      <div class="flex-grow-1" style="min-width: 250px;">
+        <%= form.text_field :search, placeholder: "Search by name, email or mobile... (min 3 characters)",
+                           value: params[:search],
+                           class: "form-control",
+                           id: "search_input" %>
+      </div>
+
+      <div>
+        <%= form.select :status,
+                       options_for_select([
+                         ['All Status', ''],
+                         ['Active', 'active'],
+                         ['Inactive', 'inactive']
+                       ], params[:status]),
+                       {},
+                       { class: "form-select", id: "status_filter" } %>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= link_to "Clear", @wallet_config[:index_path], class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Wallet List -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h5 class="mb-0"><%= noun %> Wallet List</h5>
+  </div>
+  <div class="card-body p-0">
+    <% if @owners.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-0"><%= noun %></th>
+              <th class="border-0">Contact</th>
+              <th class="border-0">Status</th>
+              <th class="border-0 text-end">Wallet Balance</th>
+              <th class="border-0 text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @owners.each do |owner| %>
+              <% wallet = @wallets_by_owner[owner.id] %>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="me-3">
+                      <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                           style="width: 40px; height: 40px;">
+                        <span class="text-primary fw-bold">
+                          <%= owner.display_name.present? ? owner.display_name[0].upcase : "?" %>
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <h6 class="mb-0"><%= owner.display_name.presence || "—" %></h6>
+                      <% if owner.company_name.present? %>
+                        <small class="text-muted d-block"><%= owner.company_name %></small>
+                      <% end %>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="mb-1"><%= owner.mobile.presence || "—" %></div>
+                  <small class="text-muted"><%= owner.email.presence || "—" %></small>
+                </td>
+                <td>
+                  <% if owner.respond_to?(:active?) && owner.active? %>
+                    <span class="badge bg-success-subtle text-success">Active</span>
+                  <% else %>
+                    <span class="badge bg-warning-subtle text-warning">Inactive</span>
+                  <% end %>
+                </td>
+                <td class="text-end fw-semibold">
+                  <%= indian_currency(wallet&.balance || 0) %>
+                </td>
+                <td class="text-end">
+                  <%= link_to wallet_entity_path(owner), class: "btn btn-sm btn-outline-primary", title: "Manage wallet" do %>
+                    <i class="bi bi-wallet2 me-1"></i> Manage
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-transparent border-0">
+        <%= render 'shared/pagination', records: @owners %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <i class="bi bi-wallet2 display-1 text-muted"></i>
+        </div>
+        <h5 class="mb-3">No <%= noun %> Wallets Found</h5>
+        <p class="text-muted mb-0">
+          <% if params[:search].present? || params[:status].present? %>
+            No <%= noun.downcase %>s match your current filters. Try adjusting your search criteria.
+          <% else %>
+            <%= noun %> wallets appear here once <%= noun.downcase %>s are added.
+          <% end %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('search_input');
+  const statusFilter = document.getElementById('status_filter');
+  const searchForm = document.getElementById('search_form');
+  let searchTimeout;
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      const searchValue = this.value;
+      searchTimeout = setTimeout(() => {
+        if (searchValue.length >= 3 || searchValue.length === 0) {
+          searchForm.submit();
+        }
+      }, 500);
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', function() {
+      searchForm.submit();
+    });
+  }
+});
+</script>

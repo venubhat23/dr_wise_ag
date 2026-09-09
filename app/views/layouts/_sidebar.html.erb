@@ -986,6 +986,21 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+        <!-- Referral Program -->
+        <% if show_sidebar_item?('referral_program') %>
+          <li class="nav-item">
+            <%= link_to admin_referral_program_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/referral_program')}", data: { tooltip: "Referral Program" } do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-violet">
+                  <i class="bi bi-share-fill"></i>
+                </div>
+              </div>
+              <span class="nav-text">Referral Program</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Vendors -->
         <% if show_sidebar_item?('vendors') %>
           <li class="nav-item">
@@ -1354,6 +1369,42 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+      </ul>
+    </div>
+    <% end %>
+
+    <!-- Wallets Section -->
+    <% if show_sidebar_section?(['wallets']) %>
+    <div class="nav-section">
+      <div class="nav-section-title">Wallets</div>
+      <ul class="nav-menu">
+        <li class="nav-item dropdown-menu-item">
+          <div class="nav-link-modern dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#wallets-menu" aria-expanded="<%= request.path.include?('/admin/wallets') %>" style="cursor: pointer;" data-tooltip="Wallets">
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-emerald">
+                <i class="bi bi-wallet2"></i>
+              </div>
+            </div>
+            <span class="nav-text">Wallets</span>
+            <i class="bi bi-chevron-right dropdown-arrow ms-auto"></i>
+          </div>
+          <div class="collapse submenu <%= 'show' if request.path.include?('/admin/wallets') %>" id="wallets-menu">
+            <ul class="nav-menu submenu-list">
+              <li class="nav-item">
+                <%= link_to admin_wallets_affiliate_wallets_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/wallets/affiliate_wallets')}" do %>
+                  <i class="bi bi-people text-violet me-2"></i>
+                  <span class="nav-text">Affiliate Wallets</span>
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to admin_wallets_ambassador_wallets_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/wallets/ambassador_wallets')}" do %>
+                  <i class="bi bi-diagram-3 text-indigo me-2"></i>
+                  <span class="nav-text">Ambassador eWallet</span>
+                <% end %>
+              </li>
+            </ul>
+          </div>
+        </li>
       </ul>
     </div>
     <% end %>

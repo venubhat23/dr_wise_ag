@@ -72,7 +72,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :not_found
     end
 
-    unless identity[:active]
+    # Sub-agents (affiliates) are allowed to log in while inactive/pending KYC so
+    # the app can show the approval-pending state - see render_sub_agent_login_response.
+    unless identity[:active] || identity[:role] == 'sub_agent'
       return render json: {
         success: false,
         message: 'Account is inactive. Please contact support.'
@@ -131,7 +133,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
     case result
     when :verified
-      unless identity[:active]
+      unless identity[:active] || identity[:role] == 'sub_agent'
         return render json: {
           success: false,
           message: 'Account is inactive. Please contact support.'
@@ -225,6 +227,13 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       register_agent
     when 'sub_agent', 'affiliate'
       register_sub_agent
+    when 'ambassador', 'distributor'
+      # An Ambassador can never be self-registered, and an Affiliate can never
+      # create/refer an Ambassador. Ambassadors are onboarded by the admin team.
+      render json: {
+        success: false,
+        message: 'Ambassador accounts are created by the admin team and cannot be self-registered.'
+      }, status: :unprocessable_entity
     else
       render json: {
         success: false,
@@ -554,7 +563,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   def register_sub_agent
     sub_agent_params = params.permit(:first_name, :middle_name, :last_name, :email, :mobile,
                                       :password, :password_confirmation, :pan_no, :address,
-                                      :city, :state, :gender, :birth_date, :company_name)
+                                      :city, :state, :gender, :birth_date, :company_name,
+                                      :referral_code)
 
     # Only email, mobile and password are collected at sign-up. Name and the rest
     # of the profile are filled in later from the KYC OCR details
@@ -616,6 +626,18 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       end
     end
 
+    # Referral program: an ambassador OR affiliate code maps the new affiliate
+    # directly under an Ambassador (never nested under another affiliate) and
+    # makes the new affiliate eligible for the one-time signup bonus.
+    referral_code = sub_agent_params[:referral_code].to_s.strip
+    referral = AffiliateReferralService.resolve(referral_code)
+    unless referral.success?
+      return render json: {
+        success: false,
+        message: referral.error
+      }, status: :unprocessable_entity
+    end
+
     affiliate_role = Role.find_or_create_by!(name: 'affiliate') do |r|
       r.description = 'Self-registered mobile affiliate/sub-agent pending KYC approval'
       r.status = true
@@ -637,11 +659,24 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       gender: sub_agent_params[:gender],
       birth_date: parsed_birth_date,
       company_name: sub_agent_params[:company_name],
+      distributor_id: referral.ambassador&.id,
+      referred_by_code: referral_code.presence&.upcase,
       status: :inactive,
       kyc_status: :pending
     )
 
     if sub_agent.save
+      bonus_credited = false
+      begin
+        AffiliateReferralService.attribute!(sub_agent, referral)
+        if referral.bonus_eligible?
+          AffiliateReferralService.credit_signup_bonus!(sub_agent, code: referral_code)
+          bonus_credited = sub_agent.reload.referral_bonus_credited?
+        end
+      rescue => e
+        Rails.logger.error "[ReferralProgram] post-signup step failed for SubAgent##{sub_agent.id}: #{e.message}"
+      end
+
       token = generate_token(sub_agent, 'sub_agent')
       render json: {
         success: true,
@@ -652,7 +687,16 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           email: sub_agent.email,
           mobile: sub_agent.mobile,
           role: 'sub_agent',
-          kyc_status: sub_agent.kyc_status
+          kyc_status: sub_agent.kyc_status,
+          referral_code: sub_agent.referral_code,
+          referral: {
+            code_used: referral_code.presence&.upcase,
+            code_type: referral.kind,
+            ambassador_id: referral.ambassador&.id,
+            ambassador_name: referral.ambassador&.display_name,
+            signup_bonus: bonus_credited ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
+            wallet_balance: sub_agent.wallet&.balance.to_f
+          }
         }
       }
     else
@@ -720,14 +764,6 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unauthorized
     end
 
-    # Check if sub_agent is active
-    unless sub_agent.status == 'active'
-      return render json: {
-        success: false,
-        message: 'Sub-agent account is inactive. Please contact support.'
-      }, status: :unauthorized
-    end
-
     # Validate password using SubAgent's has_secure_password method
     unless sub_agent.authenticate(password)
       return render json: {
@@ -736,6 +772,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unauthorized
     end
 
+    # An inactive / not-yet-KYC-approved affiliate is still allowed to log in so
+    # the app can route them to the "pending approval" screen. The login response
+    # carries kyc_approved / account_active flags so the client knows the state.
     render_sub_agent_login_response(sub_agent)
   end
 
@@ -845,6 +884,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       token = generate_token(user, user.user_type)
       agent_stats = get_agent_statistics(user)
 
+      ambassador_record = Distributor.find_by(email: user.email) if user.ambassador?
+
       render json: {
         success: true,
         data: {
@@ -856,6 +897,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           mobile: user.mobile,
           password_reset_days: user.days_until_password_expires,
           password_reset_required: user.password_reset_required?,
+          referral_code: ambassador_record&.referral_code,
+          referral_program: ambassador_record && {
+            my_referral_code: ambassador_record.referral_code,
+            affiliates_count: ambassador_record.sub_agents.count,
+            wallet_balance: ambassador_record.wallet&.balance.to_f
+          },
           commission_earned: format_indian_amount(agent_stats[:commission_earned]),
           customers_count: agent_stats[:customers_count],
           policies_count: agent_stats[:policies_count],
@@ -919,8 +966,21 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     token = generate_token(sub_agent, 'sub_agent')
     sub_agent_stats = get_sub_agent_statistics(sub_agent)
 
+    kyc_approved   = sub_agent.kyc_approved?
+    account_active = sub_agent.status == 'active'
+    message = if kyc_approved && account_active
+      'Login successful'
+    elsif sub_agent.kyc_rejected?
+      'Your KYC was rejected. Please re-upload your documents.'
+    elsif sub_agent.kyc_submitted?
+      'Your KYC is under review. You will be able to use your account once it is approved.'
+    else
+      'Your KYC is not approved yet. Please complete your KYC to activate your account.'
+    end
+
     render json: {
       success: true,
+      message: message,
       data: {
         token: token,
         username: sub_agent.display_name,
@@ -928,6 +988,17 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         user_id: sub_agent.id,
         email: sub_agent.email,
         mobile: sub_agent.mobile,
+        kyc_approved: kyc_approved,
+        kyc_status: sub_agent.kyc_status,
+        account_active: account_active,
+        referral_code: sub_agent.referral_code,
+        referral_program: {
+          my_referral_code: sub_agent.referral_code,
+          ambassador_id: sub_agent.ambassador_id,
+          ambassador_name: sub_agent.ambassador&.display_name,
+          signup_bonus_received: sub_agent.referral_bonus_credited?,
+          wallet_balance: sub_agent.wallet&.balance.to_f
+        },
         password_reset_days: get_sub_agent_password_reset_days(sub_agent),
         password_reset_required: get_sub_agent_password_reset_required(sub_agent),
         commission_earned: format_indian_amount(sub_agent_stats[:commission_earned]),

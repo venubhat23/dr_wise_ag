@@ -206,6 +206,58 @@
   </div>
 </div>
 
+<!-- Referral -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-share me-2 text-success"></i>
+    <h5 class="mb-0">Referral</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <label class="form-label text-muted">This affiliate's referral code</label>
+        <div class="input-group mb-2">
+          <input type="text" class="form-control fw-bold text-uppercase bg-light" value="<%= @sub_agent.referral_code %>" readonly>
+          <button class="btn btn-outline-secondary copy-btn" type="button" data-copy="<%= @sub_agent.referral_code %>" title="Copy referral code">
+            <i class="bi bi-clipboard"></i> Copy
+          </button>
+        </div>
+        <small class="text-muted">
+          When someone signs up with this code, the new affiliate is mapped under
+          <strong><%= @sub_agent.ambassador&.display_name || 'this affiliate\'s ambassador' %></strong>
+          (not under this affiliate) and gets a <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> bonus.
+          This affiliate is not credited.
+        </small>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label text-muted">How this affiliate joined</label>
+        <% if @sub_agent.referred_by_code.present? %>
+          <p class="mb-1">
+            Referral code used:
+            <code class="text-uppercase"><%= @sub_agent.referred_by_code %></code>
+            <span class="badge bg-<%= @sub_agent.referred_by_kind == 'ambassador' ? 'primary' : 'info' %>-subtle text-<%= @sub_agent.referred_by_kind == 'ambassador' ? 'primary' : 'info' %> ms-1">
+              <%= @sub_agent.referred_by_kind&.titleize || 'Referral' %> code
+            </span>
+          </p>
+        <% else %>
+          <p class="mb-1 text-muted">Added without a referral code.</p>
+        <% end %>
+        <p class="mb-0">
+          Signup bonus:
+          <% if @sub_agent.referral_bonus_credited? %>
+            <span class="badge bg-success-subtle text-success">
+              <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> credited
+              <%= "on #{@sub_agent.referral_bonus_credited_at.strftime('%d %b %Y')}" %>
+            </span>
+          <% else %>
+            <span class="badge bg-secondary-subtle text-secondary">Not credited</span>
+          <% end %>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Bank Details -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">

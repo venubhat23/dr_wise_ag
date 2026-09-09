@@ -1,0 +1,212 @@
+<style>
+  .rp-hero {
+    border: 0;
+    border-radius: 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #d946ef 100%);
+    box-shadow: 0 18px 40px rgba(139, 92, 246, .28);
+  }
+  .rp-hero .rp-flow {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .25);
+    padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 13px;
+  }
+  .rp-stat {
+    border: 0; border-radius: 16px; background: #fff;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, .06);
+    height: 100%;
+  }
+  .rp-stat .rp-ic {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff;
+  }
+  .rp-stat h3 { font-weight: 700; letter-spacing: -.5px; }
+  .g-indigo { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .g-violet { background: linear-gradient(135deg, #a855f7, #d946ef); }
+  .g-emerald { background: linear-gradient(135deg, #059669, #10b981); }
+  .g-amber { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+  .g-rose  { background: linear-gradient(135deg, #f43f5e, #fb7185); }
+  .rp-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700; letter-spacing: .5px;
+    background: rgba(139, 92, 246, .1); color: #7c3aed;
+    padding: 3px 10px; border-radius: 8px; font-size: 12px;
+    border: 1px dashed rgba(139, 92, 246, .35);
+  }
+  .rp-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .rp-feed-item { border-left: 2px solid #ede9fe; }
+  .rp-feed-item:hover { border-left-color: #8b5cf6; background: #faf5ff; }
+  [data-theme="dark"] .rp-stat { background: #1e1f30; box-shadow: none; }
+  [data-theme="dark"] .rp-code { background: rgba(168,85,247,.15); color: #d8b4fe; }
+</style>
+
+<!-- Hero -->
+<div class="card rp-hero mb-4">
+  <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <h2 class="mb-1 fw-bold">Referral Program</h2>
+      <p class="mb-3 opacity-75">Track how ambassadors and affiliates grow the network.</p>
+      <span class="rp-flow">
+        <i class="bi bi-diagram-3"></i> Ambassador
+        <i class="bi bi-arrow-right"></i>
+        <i class="bi bi-people"></i> Affiliate
+        <span class="mx-1">·</span>
+        <i class="bi bi-gift"></i> <%= indian_currency(Admin::ReferralProgramController::SIGNUP_BONUS) %> welcome bonus to every new affiliate
+      </span>
+    </div>
+    <div class="text-end">
+      <div class="display-6 fw-bold"><%= number_with_delimiter(@via_referral) %></div>
+      <div class="opacity-75 small">affiliates joined via a referral code</div>
+    </div>
+  </div>
+</div>
+
+<!-- Stat tiles -->
+<div class="row g-3 mb-4">
+  <% [
+       ["Ambassadors", @total_ambassadors, "bi-diagram-3", "g-indigo"],
+       ["Affiliates", @total_affiliates, "bi-people-fill", "g-violet"],
+       ["Joined via referral", @via_referral, "bi-share-fill", "g-emerald"],
+       ["Signup bonuses paid", @bonuses_paid, "bi-gift-fill", "g-amber"],
+       ["Total paid out", indian_currency(@bonus_amount_paid), "bi-cash-coin", "g-rose"]
+     ].each do |label, value, icon, grad| %>
+    <div class="col-6 col-xl">
+      <div class="rp-stat p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small fw-semibold"><%= label %></span>
+          <span class="rp-ic <%= grad %>"><i class="bi <%= icon %>"></i></span>
+        </div>
+        <h3 class="mb-0"><%= value.is_a?(Numeric) ? number_with_delimiter(value) : value %></h3>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<div class="row g-4">
+  <!-- Ambassadors list -->
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">Ambassadors &amp; their affiliate network</h5>
+        <%= form_with url: admin_referral_program_index_path, method: :get, local: true, class: "d-flex gap-2", id: "rp_search_form" do |f| %>
+          <%= f.text_field :search, value: params[:search], placeholder: "Search ambassador…",
+                           class: "form-control form-control-sm", style: "min-width: 220px;", id: "rp_search" %>
+          <% if params[:search].present? %>
+            <%= link_to "Clear", admin_referral_program_index_path, class: "btn btn-sm btn-outline-secondary" %>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="card-body p-0">
+        <% if @ambassadors.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light">
+                <tr>
+                  <th class="border-0">Ambassador</th>
+                  <th class="border-0">Referral code</th>
+                  <th class="border-0 text-center">Affiliates</th>
+                  <th class="border-0 text-center">Via referral</th>
+                  <th class="border-0 text-center">Bonuses</th>
+                  <th class="border-0"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @ambassadors.each do |amb| %>
+                  <% total = @affiliate_counts[amb.id].to_i %>
+                  <% via = @referral_counts[amb.id].to_i %>
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3"
+                             style="width: 38px; height: 38px;">
+                          <span class="text-primary fw-bold"><%= amb.display_name.to_s[0]&.upcase || "?" %></span>
+                        </div>
+                        <div>
+                          <div class="fw-semibold"><%= amb.display_name.presence || "—" %></div>
+                          <small class="text-muted"><%= amb.email %></small>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="rp-code"><%= amb.referral_code %></span></td>
+                    <td class="text-center fw-semibold"><%= total %></td>
+                    <td class="text-center">
+                      <span class="rp-pill bg-success-subtle text-success"><%= via %></span>
+                    </td>
+                    <td class="text-center">
+                      <span class="rp-pill bg-warning-subtle text-warning"><%= @bonus_counts[amb.id].to_i %></span>
+                    </td>
+                    <td class="text-end">
+                      <%= link_to admin_referral_program_path(amb), class: "btn btn-sm btn-outline-primary" do %>
+                        View tree <i class="bi bi-arrow-right ms-1"></i>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer bg-transparent border-0">
+            <%= render 'shared/pagination', records: @ambassadors %>
+          </div>
+        <% else %>
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-diagram-3 display-5 d-block mb-2"></i>
+            No ambassadors match your search.
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent referral signups -->
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">Recent referral signups</h5>
+      </div>
+      <div class="card-body">
+        <% if @recent_signups.any? %>
+          <% @recent_signups.each do |s| %>
+            <div class="rp-feed-item ps-3 py-2 mb-2 rounded">
+              <div class="d-flex justify-content-between">
+                <span class="fw-semibold"><%= s.display_name.presence || s.email %></span>
+                <small class="text-muted"><%= time_ago_in_words(s.created_at) %> ago</small>
+              </div>
+              <div class="small text-muted">
+                used <span class="rp-code"><%= s.referred_by_code %></span>
+                <span class="rp-pill <%= s.referred_by_kind == 'ambassador' ? 'bg-primary-subtle text-primary' : 'bg-info-subtle text-info' %>">
+                  <%= s.referred_by_kind&.titleize %>
+                </span>
+              </div>
+              <div class="small">
+                <i class="bi bi-diagram-3 text-muted"></i>
+                <%= @recent_ambassadors[s.distributor_id]&.display_name || "Unassigned" %>
+                <% if s.referral_bonus_credited? %>
+                  <span class="text-success ms-1"><i class="bi bi-check-circle-fill"></i> <%= indian_currency(Admin::ReferralProgramController::SIGNUP_BONUS) %></span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No referral signups yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var input = document.getElementById('rp_search');
+    var form = document.getElementById('rp_search_form');
+    var t;
+    if (input) {
+      input.addEventListener('input', function () {
+        clearTimeout(t);
+        var v = this.value;
+        t = setTimeout(function () { if (v.length >= 3 || v.length === 0) form.submit(); }, 450);
+      });
+    }
+  })();
+</script>

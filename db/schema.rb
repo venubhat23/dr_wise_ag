@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_09_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -529,11 +529,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
     t.string "password_digest"
     t.string "original_password"
     t.integer "investor_id"
+    t.string "referral_code"
     t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
     t.index ["investor_id"], name: "index_distributors_on_investor_id"
     t.index ["mobile"], name: "index_distributors_on_mobile", unique: true
+    t.index ["referral_code"], name: "index_distributors_on_referral_code", unique: true
     t.index ["role_id"], name: "index_distributors_on_role_id"
     t.index ["state_id"], name: "index_distributors_on_state_id"
     t.index ["status"], name: "index_distributors_on_status"
@@ -1912,11 +1914,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
     t.datetime "kyc_reviewed_at"
     t.text "kyc_rejection_reason"
     t.string "aadhaar_no"
+    t.string "referral_code"
+    t.string "referred_by_code"
+    t.string "referred_by_kind"
+    t.datetime "referral_bonus_credited_at"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
     t.index ["kyc_status"], name: "index_sub_agents_on_kyc_status"
     t.index ["mobile"], name: "index_sub_agents_on_mobile", unique: true
+    t.index ["referral_code"], name: "index_sub_agents_on_referral_code", unique: true
     t.index ["role_id"], name: "index_sub_agents_on_role_id"
     t.index ["status"], name: "index_sub_agents_on_status"
   end
@@ -2095,6 +2102,28 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
     t.index ["status"], name: "index_vendors_on_status"
   end
 
+  create_table "wallet_transactions", force: :cascade do |t|
+    t.bigint "wallet_id", null: false
+    t.string "txn_type", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.decimal "balance_after", precision: 12, scale: 2, null: false
+    t.text "description"
+    t.string "performed_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_wallet_transactions_on_created_at"
+    t.index ["wallet_id"], name: "index_wallet_transactions_on_wallet_id"
+  end
+
+  create_table "wallets", force: :cascade do |t|
+    t.string "owner_type", null: false
+    t.bigint "owner_id", null: false
+    t.decimal "balance", precision: 12, scale: 2, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_type", "owner_id"], name: "index_wallets_on_owner_type_and_owner_id", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agency_codes", "brokers"
@@ -2186,4 +2215,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_08_000000) do
   add_foreign_key "vendor_payouts", "leads"
   add_foreign_key "vendor_payouts", "vendors"
   add_foreign_key "vendor_products", "vendors"
+  add_foreign_key "wallet_transactions", "wallets"
 end
