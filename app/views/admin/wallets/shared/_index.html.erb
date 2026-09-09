@@ -109,6 +109,9 @@
           <tbody>
             <% @owners.each do |owner| %>
               <% wallet = @wallets_by_owner[owner.id] %>
+              <%# Self-registered affiliates stay name-less until KYC is filled in,
+                  so fall back to email, then mobile, so the row is still identifiable. %>
+              <% owner_label = owner.display_name.presence || owner.email.presence || owner.mobile.presence || "—" %>
               <tr>
                 <td>
                   <div class="d-flex align-items-center">
@@ -116,12 +119,12 @@
                       <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
                            style="width: 40px; height: 40px;">
                         <span class="text-primary fw-bold">
-                          <%= owner.display_name.present? ? owner.display_name[0].upcase : "?" %>
+                          <%= owner_label == "—" ? "?" : owner_label[0].upcase %>
                         </span>
                       </div>
                     </div>
                     <div>
-                      <h6 class="mb-0"><%= owner.display_name.presence || "—" %></h6>
+                      <h6 class="mb-0"><%= owner_label %></h6>
                       <% if owner.company_name.present? %>
                         <small class="text-muted d-block"><%= owner.company_name %></small>
                       <% end %>

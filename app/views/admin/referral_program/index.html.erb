@@ -1,11 +1,14 @@
 <style>
+  /* High specificity + !important to beat layout_fix.css `.main-content .card { background: white !important }` */
+  .main-content .card.rp-hero,
   .rp-hero {
-    border: 0;
-    border-radius: 20px;
-    color: #fff;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #d946ef 100%);
-    box-shadow: 0 18px 40px rgba(139, 92, 246, .28);
+    border: 0 !important;
+    border-radius: 20px !important;
+    color: #fff !important;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #d946ef 100%) !important;
+    box-shadow: 0 18px 40px rgba(139, 92, 246, .28) !important;
   }
+  .rp-hero h2, .rp-hero p, .rp-hero .display-6, .rp-hero .small { color: #fff !important; }
   .rp-hero .rp-flow {
     display: inline-flex; align-items: center; gap: 10px;
     background: rgba(255, 255, 255, .16);
