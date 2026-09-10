@@ -84,6 +84,11 @@ class ApplicationController < ActionController::Base
       return false
     end
 
+    # Skip authorization for the public ambassador self-registration flow
+    if self.class.name == 'AmbassadorRegistrationsController'
+      return false
+    end
+
     # Skip authorization for investor controller
     if self.class.name == 'InvestorController'
       return false

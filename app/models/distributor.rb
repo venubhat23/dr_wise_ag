@@ -30,8 +30,11 @@ class Distributor < ApplicationRecord
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Validations
-  validates :first_name, presence: true
-  validates :last_name, presence: true
+  # Self-registered ambassadors sign up with only email/mobile/password and stay
+  # inactive+pending until an admin approves their KYC, so name is only enforced
+  # once the ambassador is active or has cleared KYC (mirrors SubAgent).
+  validates :first_name, presence: true, unless: :pending_kyc_self_registration?
+  validates :last_name, presence: true, unless: :pending_kyc_self_registration?
   validates :mobile, presence: true,
             uniqueness: {
               message: "number is already registered with another ambassador",
@@ -58,14 +61,19 @@ class Distributor < ApplicationRecord
   before_validation :format_mobile_number
   before_validation :set_default_role_id, on: :create
   before_create :generate_login_credentials
+  after_commit :bust_sidebar_kyc_count_cache
 
   # Enums
   enum :status, { active: 0, inactive: 1 }
+  enum :kyc_status, { pending: 0, submitted: 1, approved: 2, rejected: 3 }, prefix: :kyc
 
   # Scopes
   scope :not_deactivated, -> { where(deactivated: false) }
   scope :deactivated, -> { where(deactivated: true) }
   scope :truly_active, -> { active.not_deactivated }
+  # Ambassadors who signed up through the public self-registration form and are
+  # awaiting / have been through admin KYC review.
+  scope :self_registered, -> { where(self_registered: true) }
 
   # Search configuration
   pg_search_scope :search_by_name_mobile_email,
@@ -110,6 +118,38 @@ class Distributor < ApplicationRecord
 
   def truly_active?
     active? && !deactivated?
+  end
+
+  # True while a self-registered ambassador is still inactive and hasn't had
+  # their KYC approved - during this window name may legitimately be blank
+  # because it is captured later during the admin KYC review.
+  def pending_kyc_self_registration?
+    self_registered? && inactive? && !kyc_approved?
+  end
+
+  # The linked Devise User account used for portal login (ambassadors are one
+  # Distributor + one User row, matched by email - see AmbassadorController).
+  def ambassador_user
+    User.find_by(email: email)
+  end
+
+  def approve_kyc!
+    transaction do
+      # Approving flips the record to active, which re-enables the name presence
+      # validation - backfill a name (from the linked User, else the email) for
+      # ambassadors that self-registered without one so approval never blocks.
+      if first_name.blank? || last_name.blank?
+        u = ambassador_user
+        self.first_name = first_name.presence || u&.first_name.presence || email.to_s.split("@").first
+        self.last_name  = last_name.presence  || u&.last_name.presence  || "Ambassador"
+      end
+      update!(kyc_status: :approved, status: :active, kyc_reviewed_at: Time.current)
+      ambassador_user&.update(status: true)
+    end
+  end
+
+  def reject_kyc!(reason)
+    update!(kyc_status: :rejected, kyc_rejection_reason: reason.presence, kyc_reviewed_at: Time.current)
   end
 
   # R2 Profile Image methods
@@ -234,10 +274,17 @@ class Distributor < ApplicationRecord
     self.role_id ||= 'distributor'
   end
 
+  def bust_sidebar_kyc_count_cache
+    Rails.cache.delete('sidebar/ambassador_kyc_pending_count')
+  rescue StandardError
+    nil
+  end
+
   def generate_login_credentials
     # Generate username based on name and ID or timestamp
     if username.blank?
-      base_username = "#{first_name.downcase}#{last_name.downcase}".gsub(/[^a-z0-9]/, '')
+      base_username = "#{first_name}#{last_name}".downcase.gsub(/[^a-z0-9]/, '')
+      base_username = email.to_s.split('@').first.to_s.downcase.gsub(/[^a-z0-9]/, '') if base_username.blank?
       timestamp = Time.current.to_i.to_s.last(4)
       self.username = "#{base_username}#{timestamp}"
     end

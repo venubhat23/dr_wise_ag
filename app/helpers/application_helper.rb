@@ -1,6 +1,24 @@
 module ApplicationHelper
   include CurrencyHelper
 
+  # Sidebar KYC badge counts (self-registered accounts awaiting admin review).
+  # Cached briefly so they don't add a query to every page load.
+  def pending_affiliate_kyc_count
+    Rails.cache.fetch('sidebar/affiliate_kyc_pending_count', expires_in: 1.minute) do
+      SubAgent.kyc_submitted.count
+    end
+  rescue StandardError
+    0
+  end
+
+  def pending_ambassador_kyc_count
+    Rails.cache.fetch('sidebar/ambassador_kyc_pending_count', expires_in: 1.minute) do
+      Distributor.self_registered.kyc_submitted.count
+    end
+  rescue StandardError
+    0
+  end
+
   # Customer avatar helpers
   def customer_initials(customer)
     if customer.customer_type == 'corporate' && customer.company_name.present?

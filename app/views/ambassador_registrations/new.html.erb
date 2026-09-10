@@ -1,0 +1,95 @@
+<% content_for :title, "Register as Ambassador - Dr WISE" %>
+
+<style>
+  /* Allow the taller registration card to scroll on short screens */
+  html, body { overflow-y: auto !important; }
+  .simple-login-wrapper { position: relative; min-height: 100vh; height: auto; }
+  .ambassador-register-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: rgba(102, 126, 234, 0.12);
+    color: #667eea;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+</style>
+
+<div class="simple-login-wrapper">
+  <div class="simple-login-container">
+    <div class="simple-login-card">
+      <!-- Flash Messages -->
+      <% if notice %>
+        <div class="alert alert-success mb-3">
+          <i class="fas fa-check-circle me-2"></i><%= notice %>
+        </div>
+      <% end %>
+
+      <% if flash[:alert].present? %>
+        <div class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i><%= flash[:alert] %>
+        </div>
+      <% end %>
+
+      <!-- Logo Section -->
+      <div class="text-center mb-4">
+        <div class="simple-logo">
+          <img src="/logo.jpeg" alt="Dr WISE" class="login-logo-img" />
+        </div>
+        <span class="ambassador-register-badge">Ambassador Sign-up</span>
+        <h2 class="simple-title">Become an Ambassador</h2>
+        <p class="simple-subtitle">Create your account, then complete KYC verification to get started.</p>
+      </div>
+
+      <%= form_with url: ambassador_registrations_path, method: :post, scope: :distributor, local: true do |f| %>
+        <div class="mb-3">
+          <%= f.label :email, "Email", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+            <%= f.email_field :email, value: params.dig(:distributor, :email), autofocus: true,
+                              autocomplete: "email", class: "form-control", placeholder: "email@example.com", required: true %>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :mobile, "Mobile Number", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
+            <%= f.telephone_field :mobile, value: params.dig(:distributor, :mobile),
+                                  autocomplete: "tel", class: "form-control", placeholder: "9XXXXXXXXX", required: true %>
+          </div>
+          <small class="text-muted">10-digit Indian mobile number</small>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :password, "Password", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            <%= f.password_field :password, autocomplete: "new-password", class: "form-control",
+                                 placeholder: "••••••••", minlength: 6, required: true %>
+          </div>
+          <small class="text-muted">At least 6 characters</small>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :password_confirmation, "Confirm Password", class: "form-label" %>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+            <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "form-control",
+                                 placeholder: "••••••••", minlength: 6, required: true %>
+          </div>
+        </div>
+
+        <%= f.submit "Create Ambassador Account", class: "btn btn-primary w-100 py-3 fs-5 fw-semibold" %>
+      <% end %>
+
+      <div class="text-center mt-4">
+        <span class="text-muted">Already have an account?</span>
+        <%= link_to "Sign in", new_user_session_path, class: "text-primary fw-semibold text-decoration-none" %>
+      </div>
+    </div>
+  </div>
+</div>

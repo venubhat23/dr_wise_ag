@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_09_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_09_140100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -498,9 +498,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_09_130000) do
   end
 
   create_table "distributors", force: :cascade do |t|
-    t.string "first_name", null: false
+    t.string "first_name"
     t.string "middle_name"
-    t.string "last_name", null: false
+    t.string "last_name"
     t.string "mobile", null: false
     t.string "email", null: false
     t.integer "role_id", null: false
@@ -530,10 +530,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_09_130000) do
     t.string "original_password"
     t.integer "investor_id"
     t.string "referral_code"
+    t.integer "kyc_status", default: 0, null: false
+    t.datetime "kyc_submitted_at"
+    t.datetime "kyc_reviewed_at"
+    t.text "kyc_rejection_reason"
+    t.boolean "self_registered", default: false, null: false
     t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
     t.index ["investor_id"], name: "index_distributors_on_investor_id"
+    t.index ["kyc_status"], name: "index_distributors_on_kyc_status"
     t.index ["mobile"], name: "index_distributors_on_mobile", unique: true
     t.index ["referral_code"], name: "index_distributors_on_referral_code", unique: true
     t.index ["role_id"], name: "index_distributors_on_role_id"

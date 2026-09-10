@@ -9,6 +9,10 @@ Rails.application.routes.draw do
     get '/users/sign_out' => 'users/sessions#destroy'
   end
 
+  # Public ambassador self-registration (linked from the sign-in page)
+  get  '/ambassadors/register', to: 'ambassador_registrations#new',    as: :new_ambassador_registration
+  post '/ambassadors/register', to: 'ambassador_registrations#create', as: :ambassador_registrations
+
   # Root route
   root to: redirect('/admin/customers')
 
@@ -273,6 +277,14 @@ Rails.application.routes.draw do
 
     # KYC Verification queue (affiliates awaiting KYC review)
     resources :kyc_verifications, only: [:index]
+
+    # Ambassador KYC verification queue
+    resources :ambassador_kyc_verifications, only: [:index] do
+      member do
+        patch :approve
+        patch :reject
+      end
+    end
 
     # Sub Agent management (legacy)
     resources :sub_agents do

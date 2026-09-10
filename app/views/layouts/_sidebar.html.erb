@@ -956,18 +956,49 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
-        <!-- KYC Verification -->
+        <!-- KYC Verification Submenu -->
         <% if show_sidebar_item?('kyc_verification') %>
-          <li class="nav-item">
-            <%= link_to admin_kyc_verifications_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/kyc_verifications')}", data: { tooltip: "KYC Verification" } do %>
+          <% kyc_menu_active = request.path.include?('/admin/kyc_verifications') || request.path.include?('/admin/ambassador_kyc_verifications') %>
+          <% ambassador_kyc_pending = pending_ambassador_kyc_count %>
+          <% affiliate_kyc_pending = pending_affiliate_kyc_count %>
+          <li class="nav-item dropdown-menu-item">
+            <div class="nav-link-modern dropdown-toggle <%= 'collapsed' unless kyc_menu_active %>" data-bs-toggle="collapse" data-bs-target="#kyc-menu" aria-expanded="<%= kyc_menu_active %>" style="cursor: pointer;" data-tooltip="KYC">
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-cyan">
                   <i class="bi bi-patch-check-fill"></i>
                 </div>
               </div>
-              <span class="nav-text">KYC Verification</span>
-              <div class="nav-indicator"></div>
-            <% end %>
+              <span class="nav-text">KYC</span>
+              <% if (ambassador_kyc_pending + affiliate_kyc_pending) > 0 %>
+                <span class="badge bg-warning text-dark ms-auto me-2"><%= ambassador_kyc_pending + affiliate_kyc_pending %></span>
+              <% end %>
+              <i class="bi bi-chevron-right dropdown-arrow <%= 'ms-auto' unless (ambassador_kyc_pending + affiliate_kyc_pending) > 0 %>"></i>
+            </div>
+            <div class="collapse submenu <%= 'show' if kyc_menu_active %>" id="kyc-menu">
+              <ul class="nav-menu submenu-list">
+                <!-- Ambassador KYC -->
+                <li class="nav-item">
+                  <%= link_to admin_ambassador_kyc_verifications_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/ambassador_kyc_verifications')}" do %>
+                    <i class="bi bi-diagram-3 text-indigo me-2"></i>
+                    <span class="nav-text">Ambassador KYC</span>
+                    <% if ambassador_kyc_pending > 0 %>
+                      <span class="badge bg-warning text-dark ms-auto"><%= ambassador_kyc_pending %></span>
+                    <% end %>
+                  <% end %>
+                </li>
+
+                <!-- Affiliate KYC -->
+                <li class="nav-item">
+                  <%= link_to admin_kyc_verifications_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/kyc_verifications')}" do %>
+                    <i class="bi bi-people text-violet me-2"></i>
+                    <span class="nav-text">Affiliate KYC</span>
+                    <% if affiliate_kyc_pending > 0 %>
+                      <span class="badge bg-warning text-dark ms-auto"><%= affiliate_kyc_pending %></span>
+                    <% end %>
+                  <% end %>
+                </li>
+              </ul>
+            </div>
           </li>
         <% end %>
 
