@@ -1,5 +1,15 @@
 <% content_for :title, "Ambassador Commission Dashboard" %>
 
+<% if @distributor.payment_required? %>
+  <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      Your <%= indian_currency(@distributor.payment_amount_due.to_i) %> registration fee is still pending.
+    </div>
+    <%= link_to "Pay Now", ambassador_kyc_payment_path, class: "btn btn-sm btn-warning" %>
+  </div>
+<% end %>
+
 <div class="row mb-4">
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center">

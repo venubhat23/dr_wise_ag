@@ -20,7 +20,6 @@ class AmbassadorKycController < ApplicationController
 
   # GET /ambassador/kyc
   def show
-    return redirect_to ambassador_kyc_payment_path if @distributor.payment_required? && (@distributor.kyc_submitted? || @distributor.kyc_approved?)
     return redirect_to ambassador_dashboard_path, notice: "Your KYC is already approved." if @distributor.kyc_approved?
 
     @submitted = @distributor.kyc_submitted?

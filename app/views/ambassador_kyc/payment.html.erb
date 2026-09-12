@@ -194,6 +194,9 @@
         <button id="payNowBtn" type="button" class="btn btn-pay-now">
           <i class="fas fa-lock me-2"></i>Pay <%= indian_currency(@amount) %> Securely
         </button>
+        <%= link_to ambassador_kyc_path, class: "btn btn-link w-100 mt-2 text-decoration-none text-muted small" do %>
+          I'll pay later
+        <% end %>
       </div>
 
       <div class="pay-trust-row fade-up d5">

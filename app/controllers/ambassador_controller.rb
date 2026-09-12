@@ -67,11 +67,14 @@ class AmbassadorController < ApplicationController
 
   # Self-registered ambassadors must finish and pass KYC before they can see the
   # dashboard - the web KYC wizard (AmbassadorKycController) handles the rest.
+  # The registration fee is not a hard gate: an ambassador who chose "Pay
+  # Later" on the payment screen still gets the dashboard once approved, with
+  # a reminder banner (see dashboard.html.erb) nudging them to pay.
   def ensure_kyc_approved
     @distributor ||= Distributor.find_by(email: current_user.email)
     return if @distributor.nil? # handled as "profile not found" in setup_ambassador_data
     return if !@distributor.self_registered?
-    return if @distributor.kyc_approved? && !@distributor.payment_required?
+    return if @distributor.kyc_approved?
 
     redirect_to ambassador_kyc_path
   end
