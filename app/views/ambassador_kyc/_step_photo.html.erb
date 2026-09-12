@@ -56,6 +56,47 @@
   </div>
 <% end %>
 
+<%# Full-screen upload loader - shown the instant the form submits and stays
+    up until the next page finishes loading (this is a plain multipart POST,
+    not AJAX, so there's no progress callback to hook into). %>
+<div id="photo-uploading-overlay" class="d-none">
+  <div class="upload-loader-card">
+    <div class="upload-spinner-ring"><i class="fas fa-image"></i></div>
+    <h3 class="h6 fw-bold mb-1 mt-3">Uploading your photo…</h3>
+    <p class="text-muted small mb-0">This will only take a moment. Please don't close this window.</p>
+  </div>
+</div>
+
+<style>
+  #photo-uploading-overlay {
+    position: fixed; inset: 0; z-index: 1060;
+    background: rgba(244, 246, 251, .88);
+    backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    animation: photoOverlayFadeIn .2s ease-out;
+  }
+  .upload-loader-card {
+    background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(31, 41, 55, .18);
+    padding: 36px 40px; text-align: center; max-width: 280px;
+    animation: photoOverlayPop .28s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .upload-spinner-ring {
+    width: 64px; height: 64px; margin: 0 auto; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4f46e5;
+    background: conic-gradient(#4f46e5 0deg 270deg, #e0e7ff 270deg 360deg);
+    animation: photoSpin 1s linear infinite;
+    position: relative;
+  }
+  .upload-spinner-ring::before {
+    content: ""; position: absolute; inset: 5px; border-radius: 50%; background: #fff;
+  }
+  .upload-spinner-ring i { position: relative; z-index: 1; animation: photoPulse 1.2s ease-in-out infinite; }
+  @keyframes photoSpin { to { transform: rotate(360deg); } }
+  @keyframes photoPulse { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+  @keyframes photoOverlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes photoOverlayPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+</style>
+
 <script>
   (function () {
     var galleryInput = document.getElementById("photo-input-gallery");
@@ -71,6 +112,12 @@
     var canvas       = document.getElementById("camera-canvas");
     var cameraError  = document.getElementById("camera-error");
     var stream       = null;
+
+    var uploadOverlay = document.getElementById("photo-uploading-overlay");
+    submitBtn.closest("form").addEventListener("submit", function () {
+      uploadOverlay.classList.remove("d-none");
+      submitBtn.disabled = true;
+    });
 
     document.getElementById("btn-choose-photo").addEventListener("click", function () { galleryInput.click(); });
     document.getElementById("btn-take-photo").addEventListener("click", openCamera);
