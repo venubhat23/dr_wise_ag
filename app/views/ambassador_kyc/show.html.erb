@@ -118,6 +118,14 @@
           Submitted <%= @distributor.kyc_submitted_at&.strftime("%d %b %Y, %I:%M %p") %>.
           Our team will verify your documents and you'll get an email once your account is activated.
         </p>
+        <div class="d-flex justify-content-center gap-2 mt-4">
+          <%= link_to ambassador_wallet_path, class: "btn btn-outline-primary btn-sm" do %>
+            <i class="fas fa-wallet me-1"></i>My Wallet
+          <% end %>
+          <%= link_to ambassador_payout_history_path, class: "btn btn-outline-primary btn-sm" do %>
+            <i class="fas fa-history me-1"></i>Payout History
+          <% end %>
+        </div>
       </div>
 
     <% elsif @review %>

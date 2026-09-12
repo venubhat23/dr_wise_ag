@@ -1,7 +1,10 @@
 class AmbassadorController < ApplicationController
   before_action :authenticate_user!
   before_action :ensure_ambassador_user
-  before_action :ensure_kyc_approved
+  # Wallet and payout history are visible even before KYC approval so a
+  # self-registered ambassador can check their Joining Credit / payout status
+  # while their KYC (and registration-fee payment) is still under review.
+  before_action :ensure_kyc_approved, except: [:wallet, :payout_history]
   before_action :setup_ambassador_data
 
   def dashboard
