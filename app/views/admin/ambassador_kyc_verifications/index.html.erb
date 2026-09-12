@@ -60,6 +60,7 @@
               <th>Email</th>
               <th>Mobile</th>
               <th>Password</th>
+              <th>Login URL</th>
               <th><%= %w[registered just_registered].include?(@tab) ? 'Registered on' : 'KYC submitted' %></th>
               <th class="text-end">Actions</th>
             </tr>
@@ -71,6 +72,7 @@
                 <td><%= distributor.email %></td>
                 <td><%= distributor.formatted_mobile %></td>
                 <td><code><%= distributor.original_password.presence || "—" %></code></td>
+                <td><%= link_to new_user_session_url, new_user_session_url, class: "small", target: "_blank", rel: "noopener" %></td>
                 <td>
                   <% ts = %w[registered just_registered].include?(@tab) ? distributor.created_at : distributor.kyc_submitted_at %>
                   <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>
