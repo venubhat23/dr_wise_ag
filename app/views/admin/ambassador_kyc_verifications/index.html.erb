@@ -15,7 +15,6 @@
 <ul class="nav nav-tabs mb-4">
   <% tabs = [
        ['just_registered', 'Just Registered'],
-       ['registered',      'Registered'],
        ['submitted',       'Awaiting Review'],
        ['approved',        'Approved'],
        ['rejected',        'Rejected']
@@ -27,7 +26,7 @@
         <%= label %>
         <% count = @tab_counts[status].to_i %>
         <% if count > 0 %>
-          <% badge_class = status == 'submitted' ? 'bg-warning text-dark' : (%w[registered just_registered].include?(status) ? 'bg-info text-dark' : 'bg-secondary') %>
+          <% badge_class = status == 'submitted' ? 'bg-warning text-dark' : (status == 'just_registered' ? 'bg-info text-dark' : 'bg-secondary') %>
           <span class="badge <%= badge_class %> ms-1"><%= count %></span>
         <% end %>
       <% end %>
@@ -38,13 +37,7 @@
 <% if @tab == 'just_registered' %>
   <div class="alert alert-info d-flex align-items-center py-2 small">
     <i class="bi bi-info-circle me-2"></i>
-    These ambassadors have just signed up and haven't started their KYC yet. They'll move to
-    <strong class="mx-1">Registered</strong> once they begin the KYC wizard, or you can approve / reject directly.
-  </div>
-<% elsif @tab == 'registered' %>
-  <div class="alert alert-info d-flex align-items-center py-2 small">
-    <i class="bi bi-info-circle me-2"></i>
-    These ambassadors have started their KYC but have not submitted it yet. Use
+    These ambassadors have signed up but not yet submitted their KYC. Use
     <strong class="mx-1">Move to Review</strong> once they have provided their details, or approve / reject directly.
   </div>
 <% end %>
@@ -61,7 +54,7 @@
               <th>Mobile</th>
               <th>Password</th>
               <th>Login URL</th>
-              <th><%= %w[registered just_registered].include?(@tab) ? 'Registered on' : 'KYC submitted' %></th>
+              <th><%= @tab == 'just_registered' ? 'Registered on' : 'KYC submitted' %></th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
@@ -74,7 +67,7 @@
                 <td><code><%= distributor.original_password.presence || "—" %></code></td>
                 <td><%= link_to new_user_session_url, new_user_session_url, class: "small", target: "_blank", rel: "noopener" %></td>
                 <td>
-                  <% ts = %w[registered just_registered].include?(@tab) ? distributor.created_at : distributor.kyc_submitted_at %>
+                  <% ts = @tab == 'just_registered' ? distributor.created_at : distributor.kyc_submitted_at %>
                   <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>
                 </td>
                 <td class="text-end">

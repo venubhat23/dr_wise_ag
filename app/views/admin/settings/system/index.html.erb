@@ -300,6 +300,51 @@
 
         <hr class="my-4">
 
+        <!-- Registration Fees Settings -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3">Registration Fees Configuration</h6>
+          <%= form_with url: admin_settings_system_path, method: :patch, local: true do |form| %>
+            <div class="bg-light rounded p-3">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="ambassador_registration_fee" class="form-label">
+                    <i class="bi bi-person-badge me-1"></i>
+                    Ambassador Registration Fee (Rs.)
+                  </label>
+                  <%= form.number_field :ambassador_registration_fee,
+                        value: @ambassador_registration_fee,
+                        step: 0.01,
+                        min: 0,
+                        class: "form-control",
+                        placeholder: "e.g., 500.00" %>
+                  <div class="form-text">Fee charged when a new ambassador registers</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="affiliate_registration_fee" class="form-label">
+                    <i class="bi bi-person-lines-fill me-1"></i>
+                    Affiliate Registration Fee (Rs.)
+                  </label>
+                  <%= form.number_field :affiliate_registration_fee,
+                        value: @affiliate_registration_fee,
+                        step: 0.01,
+                        min: 0,
+                        class: "form-control",
+                        placeholder: "e.g., 250.00" %>
+                  <div class="form-text">Fee charged when a new affiliate registers</div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <%= form.hidden_field :registration_fees_update, value: "true" %>
+                  <%= form.submit "Update Registration Fees", class: "btn btn-primary" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <hr class="my-4">
+
         <!-- Terms and Conditions Settings -->
         <div class="mb-4">
           <h6 class="text-muted mb-3">Terms and Conditions</h6>

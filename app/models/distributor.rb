@@ -174,7 +174,12 @@ class Distributor < ApplicationRecord
     SendAmbassadorKycEmailJob.perform_later(distributor_id: id, event: 'submitted')
   end
 
+  # One-time wallet credit given the first time an ambassador's KYC is approved.
+  JOINING_BONUS = BigDecimal('100')
+
   def approve_kyc!
+    already_approved = kyc_approved?
+
     transaction do
       # Approving flips the record to active, which re-enables the name presence
       # validation - backfill a name (from the linked User, else the email) for
@@ -186,6 +191,8 @@ class Distributor < ApplicationRecord
       end
       update!(kyc_status: :approved, status: :active, kyc_reviewed_at: Time.current)
       ambassador_user&.update(status: true)
+
+      wallet!.credit!(JOINING_BONUS, description: "Joining Credit") unless already_approved
     end
   end
 

@@ -36,6 +36,7 @@ Rails.application.routes.draw do
   get 'ambassador/dashboard', to: 'ambassador#dashboard'
   get 'ambassador/commission_details', to: 'ambassador#commission_details'
   get 'ambassador/payout_history', to: 'ambassador#payout_history'
+  get 'ambassador/wallet', to: 'ambassador#wallet'
 
   # Ambassador web KYC wizard (gated: dashboard is blocked until KYC is approved)
   get   'ambassador/kyc',           to: 'ambassador_kyc#show',      as: :ambassador_kyc

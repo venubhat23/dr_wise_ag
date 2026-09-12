@@ -16,12 +16,12 @@
       </button>
     </div>
 
-    <%# Hidden pickers - kept separate so "Take a photo" opens the camera directly on
-        mobile (capture attribute) while "Choose from device" opens the normal
-        gallery/file browser. Whichever one is used, the file gets copied into
-        the actual field below before submit. %>
+    <%# "Choose from device" uses a plain file picker. "Take a photo" opens a
+        live in-page camera (getUserMedia) so it also works on desktop/laptop
+        webcams, not just mobile - the capture attribute alone only works on
+        phones/tablets and desktop browsers just ignore it. Whichever one is
+        used, the resulting file gets copied into the field below before submit. %>
     <input type="file" accept="image/*" id="photo-input-gallery" class="d-none">
-    <input type="file" accept="image/*" capture="user" id="photo-input-camera" class="d-none">
     <%= file_field_tag :photo_file, accept: "image/*", id: "photo-input-final", class: "d-none" %>
 
     <div id="photo-preview-wrap" class="text-center <%= 'd-none' unless photo_doc&.document_url %>">
@@ -34,6 +34,21 @@
     </div>
   </div>
 
+  <%# Live camera overlay for "Take a photo". Hidden until opened. %>
+  <div id="camera-overlay" class="d-none"
+       style="position:fixed;inset:0;background:rgba(17,24,39,.9);z-index:1050;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;">
+    <video id="camera-video" autoplay playsinline
+           style="max-width:100%;max-height:70vh;border-radius:12px;background:#000;"></video>
+    <div class="text-danger small mt-2 d-none" id="camera-error" style="max-width:400px;text-align:center;"></div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="button" class="btn btn-outline-light" id="camera-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary px-4" id="camera-capture">
+        <i class="fas fa-camera me-1"></i> Capture
+      </button>
+    </div>
+    <canvas id="camera-canvas" class="d-none"></canvas>
+  </div>
+
   <div class="d-flex justify-content-between mt-4">
     <%= link_to "Back", ambassador_kyc_path(step: 3), class: "btn btn-outline-secondary" %>
     <%= submit_tag(photo_doc ? "Continue" : "Upload & continue", class: "btn btn-primary px-4",
@@ -44,7 +59,6 @@
 <script>
   (function () {
     var galleryInput = document.getElementById("photo-input-gallery");
-    var cameraInput  = document.getElementById("photo-input-camera");
     var finalInput   = document.getElementById("photo-input-final");
     var previewWrap  = document.getElementById("photo-preview-wrap");
     var preview      = document.getElementById("photo-preview");
@@ -52,8 +66,16 @@
     var filename     = document.getElementById("photo-filename");
     var submitBtn    = document.getElementById("photo-submit");
 
+    var overlay      = document.getElementById("camera-overlay");
+    var video        = document.getElementById("camera-video");
+    var canvas       = document.getElementById("camera-canvas");
+    var cameraError  = document.getElementById("camera-error");
+    var stream       = null;
+
     document.getElementById("btn-choose-photo").addEventListener("click", function () { galleryInput.click(); });
-    document.getElementById("btn-take-photo").addEventListener("click", function () { cameraInput.click(); });
+    document.getElementById("btn-take-photo").addEventListener("click", openCamera);
+    document.getElementById("camera-cancel").addEventListener("click", closeCamera);
+    document.getElementById("camera-capture").addEventListener("click", capturePhoto);
 
     function useFile(file) {
       if (!file) return;
@@ -74,6 +96,47 @@
     }
 
     galleryInput.addEventListener("change", function () { useFile(this.files[0]); });
-    cameraInput.addEventListener("change", function () { useFile(this.files[0]); });
+
+    function openCamera() {
+      cameraError.classList.add("d-none");
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // Very old browser / non-secure context - fall back to the plain file picker.
+        galleryInput.click();
+        return;
+      }
+
+      overlay.classList.remove("d-none");
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+        .then(function (s) {
+          stream = s;
+          video.srcObject = stream;
+        })
+        .catch(function (err) {
+          cameraError.textContent = "Couldn't access the camera (" + err.message + "). " +
+            "Check your browser's camera permission for this site, or use \"Choose from device\" instead.";
+          cameraError.classList.remove("d-none");
+        });
+    }
+
+    function closeCamera() {
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+      video.srcObject = null;
+      overlay.classList.add("d-none");
+    }
+
+    function capturePhoto() {
+      if (!video.videoWidth) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(function (blob) {
+        if (!blob) return;
+        useFile(new File([blob], "selfie-" + Date.now() + ".jpg", { type: "image/jpeg" }));
+        closeCamera();
+      }, "image/jpeg", 0.92);
+    }
   })();
 </script>

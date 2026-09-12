@@ -1,23 +1,47 @@
-<!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h2 class="mb-1"><%= @distributor.display_name %></h2>
-    <p class="text-muted mb-0">
-      <span class="badge <%= @distributor.active? ? 'bg-success' : 'bg-secondary' %>">
-        <%= @distributor.status.humanize %>
-      </span>
-      <small class="ms-2">Ambassador ID: <%= @distributor.id %></small>
-    </p>
-  </div>
-  <div>
-    <%= link_to edit_admin_distributor_path(@distributor), class: "btn btn-primary me-2" do %>
-      <i class="bi bi-pencil me-1"></i>
-      Edit
-    <% end %>
-    <%= link_to admin_distributors_path, class: "btn btn-outline-secondary" do %>
-      <i class="bi bi-arrow-left me-1"></i>
-      Back to Ambassadors
-    <% end %>
+<!-- Profile Hero -->
+<div class="ambassador-hero mb-4">
+  <div class="hero-decor hero-decor-1"></div>
+  <div class="hero-decor hero-decor-2"></div>
+  <div class="hero-content">
+    <div class="d-flex align-items-center gap-3">
+      <div class="hero-avatar">
+        <% if @distributor.has_r2_profile_image? %>
+          <%= image_tag @distributor.r2_profile_image_url, alt: @distributor.display_name %>
+        <% elsif @distributor.profile_image.attached? %>
+          <%= image_tag @distributor.profile_image_url, alt: @distributor.display_name %>
+        <% else %>
+          <span><%= @distributor.display_name.to_s.first(1).upcase.presence || "A" %></span>
+        <% end %>
+      </div>
+      <div>
+        <h2 class="hero-name mb-1"><%= @distributor.display_name %></h2>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <span class="hero-pill <%= @distributor.active? ? 'hero-pill-active' : 'hero-pill-inactive' %>">
+            <i class="bi bi-circle-fill"></i><%= @distributor.status.humanize %>
+          </span>
+          <span class="hero-meta"><i class="bi bi-hash"></i>Ambassador ID <%= @distributor.id %></span>
+          <% if @distributor.mobile.present? %>
+            <span class="hero-meta"><i class="bi bi-telephone"></i><%= @distributor.mobile %></span>
+          <% end %>
+          <span class="hero-meta"><i class="bi bi-calendar3"></i>Since <%= @distributor.created_at.strftime('%b %Y') %></span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <% if @distributor.self_registered? && (@distributor.kyc_pending? || @distributor.kyc_submitted?) %>
+        <%= button_to approve_admin_ambassador_kyc_verification_path(@distributor),
+                      method: :patch, class: "btn btn-hero-approve",
+                      form: { data: { turbo_confirm: "Approve #{@distributor.display_name}'s KYC and activate their account?" } } do %>
+          <i class="bi bi-check-circle me-1"></i>Approve
+        <% end %>
+      <% end %>
+      <%= link_to edit_admin_distributor_path(@distributor), class: "btn btn-hero-primary" do %>
+        <i class="bi bi-pencil me-1"></i>Edit
+      <% end %>
+      <%= link_to admin_distributors_path, class: "btn btn-hero-ghost" do %>
+        <i class="bi bi-arrow-left me-1"></i>Back
+      <% end %>
+    </div>
   </div>
 </div>
 
@@ -125,7 +149,7 @@
 
     <!-- Assigned Affiliates -->
     <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center header-affiliates">
         <h5 class="mb-0">
           <i class="bi bi-people me-2 text-info"></i>
           Assigned Affiliates
@@ -142,7 +166,7 @@
             <% @assigned_affiliates.each do |affiliate| %>
               <% stats = @affiliate_stats[affiliate.id] %>
               <div class="col-12 mb-4">
-                <div class="card border border-2 border-light">
+                <div class="card border-0 shadow-sm affiliate-card">
                   <div class="card-header bg-light">
                     <div class="d-flex align-items-center justify-content-between">
                       <div class="d-flex align-items-center">
@@ -166,22 +190,34 @@
 
                   <div class="card-body">
                     <!-- Performance Stats -->
-                    <div class="row mb-3">
-                      <div class="col-3 text-center">
-                        <h6 class="text-primary mb-1"><%= stats[:total_policies] %></h6>
-                        <small class="text-muted">Total Policies</small>
+                    <div class="row row-cols-2 row-cols-md-4 g-2 mb-3">
+                      <div class="col">
+                        <div class="stat-tile tile-compact tile-primary">
+                          <div class="stat-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+                          <p class="stat-value mb-0"><%= stats[:total_policies] %></p>
+                          <div class="stat-label">Total Policies</div>
+                        </div>
                       </div>
-                      <div class="col-3 text-center">
-                        <h6 class="text-success mb-1"><%= indian_currency(stats[:total_premium].to_i) %></h6>
-                        <small class="text-muted">Total Premium</small>
+                      <div class="col">
+                        <div class="stat-tile tile-compact tile-success">
+                          <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+                          <p class="stat-value mb-0"><%= indian_currency(stats[:total_premium].to_i) %></p>
+                          <div class="stat-label">Total Premium</div>
+                        </div>
                       </div>
-                      <div class="col-3 text-center">
-                        <h6 class="text-info mb-1"><%= stats[:customers_count] %></h6>
-                        <small class="text-muted">Customers</small>
+                      <div class="col">
+                        <div class="stat-tile tile-compact tile-info">
+                          <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                          <p class="stat-value mb-0"><%= stats[:customers_count] %></p>
+                          <div class="stat-label">Customers</div>
+                        </div>
                       </div>
-                      <div class="col-3 text-center">
-                        <h6 class="text-secondary mb-1"><%= indian_currency(stats[:total_commission].to_i) %></h6>
-                        <small class="text-muted">Commission</small>
+                      <div class="col">
+                        <div class="stat-tile tile-compact tile-secondary">
+                          <div class="stat-icon"><i class="bi bi-percent"></i></div>
+                          <p class="stat-value mb-0"><%= indian_currency(stats[:total_commission].to_i) %></p>
+                          <div class="stat-label">Commission</div>
+                        </div>
                       </div>
                     </div>
 
@@ -444,27 +480,40 @@
         </h6>
       </div>
       <div class="card-body">
-        <div class="row text-center">
-          <div class="col-6 mb-3">
-            <h5 class="text-info mb-1"><%= @distributor_stats[:total_affiliates] %></h5>
-            <small class="text-muted">Total Affiliates</small>
+        <div class="row row-cols-2 g-2 mb-2">
+          <div class="col">
+            <div class="stat-tile tile-info">
+              <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+              <p class="stat-value mb-0"><%= @distributor_stats[:total_affiliates] %></p>
+              <div class="stat-label">Total Affiliates</div>
+            </div>
           </div>
-          <div class="col-6 mb-3">
-            <h5 class="text-success mb-1"><%= @distributor_stats[:active_affiliates] %></h5>
-            <small class="text-muted">Active Affiliates</small>
+          <div class="col">
+            <div class="stat-tile tile-success">
+              <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+              <p class="stat-value mb-0"><%= @distributor_stats[:active_affiliates] %></p>
+              <div class="stat-label">Active Affiliates</div>
+            </div>
           </div>
-          <div class="col-6 mb-3">
-            <h5 class="text-primary mb-1"><%= @distributor_stats[:total_policies] %></h5>
-            <small class="text-muted">Total Policies</small>
+          <div class="col">
+            <div class="stat-tile tile-primary">
+              <div class="stat-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+              <p class="stat-value mb-0"><%= @distributor_stats[:total_policies] %></p>
+              <div class="stat-label">Total Policies</div>
+            </div>
           </div>
-          <div class="col-6 mb-3">
-            <h5 class="text-warning mb-1"><%= @distributor_stats[:total_customers] %></h5>
-            <small class="text-muted">Total Customers</small>
+          <div class="col">
+            <div class="stat-tile tile-warning">
+              <div class="stat-icon"><i class="bi bi-person-lines-fill"></i></div>
+              <p class="stat-value mb-0"><%= @distributor_stats[:total_customers] %></p>
+              <div class="stat-label">Total Customers</div>
+            </div>
           </div>
-          <div class="col-12">
-            <h5 class="text-success mb-1"><%= indian_currency(@distributor_stats[:total_premium].to_i) %></h5>
-            <small class="text-muted">Total Premium Generated</small>
-          </div>
+        </div>
+        <div class="stat-tile tile-success">
+          <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+          <p class="stat-value mb-0"><%= indian_currency(@distributor_stats[:total_premium].to_i) %></p>
+          <div class="stat-label">Total Premium Generated</div>
         </div>
       </div>
     </div>
@@ -478,18 +527,25 @@
         </h6>
       </div>
       <div class="card-body">
-        <div class="row text-center">
-          <div class="col-12 mb-3">
-            <h5 class="text-success mb-1"><%= indian_currency(@distributor_payout_data[:total_amount].to_i) %></h5>
-            <small class="text-muted">Total Commission Earned</small>
+        <div class="stat-tile tile-success mb-2">
+          <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+          <p class="stat-value mb-0"><%= indian_currency(@distributor_payout_data[:total_amount].to_i) %></p>
+          <div class="stat-label">Total Commission Earned</div>
+        </div>
+        <div class="row row-cols-2 g-2">
+          <div class="col">
+            <div class="stat-tile tile-primary">
+              <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+              <p class="stat-value mb-0"><%= indian_currency(@distributor_payout_data[:paid_amount].to_i) %></p>
+              <div class="stat-label">Paid Amount</div>
+            </div>
           </div>
-          <div class="col-6 mb-3">
-            <h6 class="text-primary mb-1"><%= indian_currency(@distributor_payout_data[:paid_amount].to_i) %></h6>
-            <small class="text-muted">Paid Amount</small>
-          </div>
-          <div class="col-6 mb-3">
-            <h6 class="text-warning mb-1"><%= indian_currency(@distributor_payout_data[:pending_amount].to_i) %></h6>
-            <small class="text-muted">Pending Amount</small>
+          <div class="col">
+            <div class="stat-tile tile-warning">
+              <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+              <p class="stat-value mb-0"><%= indian_currency(@distributor_payout_data[:pending_amount].to_i) %></p>
+              <div class="stat-label">Pending Amount</div>
+            </div>
           </div>
         </div>
 
@@ -651,7 +707,7 @@
         <div class="mb-3">
           <label class="form-label text-muted">Login URL</label>
           <div class="input-group">
-            <input type="text" class="form-control" value="<%= login_url %>" readonly>
+            <input type="text" class="form-control credential-input" value="<%= login_url %>" readonly>
             <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= login_url %>')">
               <i class="bi bi-clipboard"></i>
             </button>
@@ -660,7 +716,7 @@
         <div class="mb-3">
           <label class="form-label text-muted">Email</label>
           <div class="input-group">
-            <input type="text" class="form-control" value="<%= @distributor.email || 'Not provided' %>" readonly>
+            <input type="text" class="form-control credential-input" value="<%= @distributor.email || 'Not provided' %>" readonly>
             <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @distributor.email %>')">
               <i class="bi bi-clipboard"></i>
             </button>
@@ -673,7 +729,7 @@
             display_password = user&.original_password || 'Not available'
           %>
           <div class="input-group">
-            <input type="text" class="form-control" value="<%= display_password %>" readonly>
+            <input type="text" class="form-control credential-input" value="<%= display_password %>" readonly>
             <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= display_password %>')">
               <i class="bi bi-clipboard"></i>
             </button>
@@ -698,7 +754,7 @@
       </div>
       <div class="card-body">
         <div class="input-group">
-          <input type="text" class="form-control fw-bold text-uppercase bg-light" value="<%= @distributor.referral_code %>" readonly>
+          <input type="text" class="form-control credential-input fw-bold text-uppercase" value="<%= @distributor.referral_code %>" readonly>
           <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('<%= @distributor.referral_code %>')" title="Copy referral code">
             <i class="bi bi-clipboard"></i> Copy
           </button>
@@ -741,6 +797,104 @@
     entity_name: @distributor.display_name %>
 
 <style>
+/* ============ Profile hero ============ */
+.ambassador-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 28px 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 65%, #f093fb 130%);
+  color: #fff;
+  box-shadow: 0 18px 40px -14px rgba(102, 126, 234, .55);
+}
+.hero-decor { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .14); pointer-events: none; }
+.hero-decor-1 { width: 220px; height: 220px; top: -90px; right: -60px; }
+.hero-decor-2 { width: 140px; height: 140px; bottom: -70px; right: 120px; background: rgba(255, 255, 255, .08); }
+.hero-content { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.hero-avatar {
+  width: 72px; height: 72px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
+  background: rgba(255, 255, 255, .22); display: flex; align-items: center; justify-content: center;
+  font-family: "Poppins", sans-serif; font-weight: 700; font-size: 26px;
+  border: 3px solid rgba(255, 255, 255, .5);
+}
+.hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hero-name { font-family: "Poppins", sans-serif; font-weight: 700; font-size: 1.55rem; margin: 0; text-shadow: 0 2px 10px rgba(0, 0, 0, .15); }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, .22);
+  padding: 4px 12px; border-radius: 999px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+}
+.hero-pill i { font-size: 8px; }
+.hero-pill-inactive { background: rgba(0, 0, 0, .18); }
+.hero-meta { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; opacity: .92; }
+.hero-actions { display: flex; gap: 10px; }
+.btn-hero-primary { background: #fff; color: #5b4bcf; font-weight: 600; border: none; }
+.btn-hero-primary:hover { background: #f4f2ff; color: #4c3fb0; }
+.btn-hero-ghost { background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .55); color: #fff; font-weight: 600; }
+.btn-hero-ghost:hover { background: rgba(255, 255, 255, .26); color: #fff; }
+.btn-hero-approve { background: #198754; color: #fff; font-weight: 600; border: none; }
+.btn-hero-approve:hover { background: #157347; color: #fff; }
+@media (max-width: 576px) {
+  .ambassador-hero { padding: 22px 18px; border-radius: 16px; }
+  .hero-content { flex-direction: column; align-items: stretch; }
+  .hero-content > .d-flex { width: 100%; }
+  .hero-content > .d-flex > div:last-child { flex: 1 1 0%; min-width: 0; }
+  .hero-actions { width: 100%; }
+  .hero-actions .btn { flex: 1; justify-content: center; }
+}
+
+/* ============ Section header icon badges ============ */
+.card-header h5, .card-header h6 { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
+.card-header h5 > i.bi:first-child, .card-header h6 > i.bi:first-child {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px; margin-right: .1rem !important;
+  background: rgba(102, 126, 234, .12);
+  background: color-mix(in srgb, currentColor 15%, transparent);
+  font-size: .95rem;
+}
+.card-header { border-bottom: 1px solid rgba(102, 126, 234, .1); padding: 1rem 1.25rem; }
+
+/* ============ Stat tiles ============ */
+.stat-tile { border-radius: 14px; padding: 14px 12px; text-align: center; height: 100%; background: rgba(var(--stat-rgb, 102, 126, 234), .08); }
+.stat-tile .stat-icon {
+  width: 34px; height: 34px; border-radius: 9px; margin: 0 auto 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(var(--stat-rgb, 102, 126, 234), .16); color: var(--stat-color, #667eea);
+}
+.stat-tile .stat-value { font-family: "Poppins", sans-serif; font-weight: 700; font-size: 1.15rem; }
+.stat-tile .stat-label { font-size: .72rem; color: #6c757d; text-transform: uppercase; letter-spacing: .3px; font-weight: 600; }
+.stat-tile.tile-compact { padding: 10px 8px; }
+.stat-tile.tile-compact .stat-icon { width: 28px; height: 28px; margin-bottom: 5px; font-size: .8rem; }
+.stat-tile.tile-compact .stat-value { font-size: 1rem; }
+.stat-tile.tile-primary { --stat-rgb: 13, 110, 253; --stat-color: #0d6efd; }
+.stat-tile.tile-primary .stat-value { color: #0d6efd; }
+.stat-tile.tile-success { --stat-rgb: 25, 135, 84; --stat-color: #198754; }
+.stat-tile.tile-success .stat-value { color: #198754; }
+.stat-tile.tile-info { --stat-rgb: 13, 190, 220; --stat-color: #0aa2c0; }
+.stat-tile.tile-info .stat-value { color: #0aa2c0; }
+.stat-tile.tile-warning { --stat-rgb: 255, 193, 7; --stat-color: #a9790a; }
+.stat-tile.tile-warning .stat-value { color: #a9790a; }
+.stat-tile.tile-secondary { --stat-rgb: 108, 117, 125; --stat-color: #6c757d; }
+.stat-tile.tile-secondary .stat-value { color: #6c757d; }
+[data-theme="dark"] .stat-tile { background: rgba(var(--stat-rgb, 102, 126, 234), .16); }
+[data-theme="dark"] .stat-tile .stat-icon { background: rgba(var(--stat-rgb, 102, 126, 234), .26); }
+[data-theme="dark"] .stat-tile .stat-label { color: var(--text-secondary, #a0aec0); }
+
+@media (max-width: 480px) {
+  .header-affiliates { flex-wrap: wrap; gap: .5rem; }
+  .header-affiliates .btn { flex: 1 1 100%; justify-content: center; }
+}
+
+/* ============ Affiliate sub-cards ============ */
+.affiliate-card { transition: transform .2s ease, box-shadow .2s ease; }
+.affiliate-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0, 0, 0, .08) !important; }
+
+/* ============ Credential inputs ============ */
+.credential-input {
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  letter-spacing: .02em;
+  background: rgba(102, 126, 234, .05);
+}
+
 .document-thumbnail {
   width: 80px;
   height: 80px;

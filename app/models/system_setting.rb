@@ -237,6 +237,40 @@ class SystemSetting < ApplicationRecord
     end
   end
 
+  # ─── Registration Fees ────────────────────────────────────────────────────────
+
+  # Get ambassador registration fee as float
+  def self.ambassador_registration_fee
+    value = get_value('ambassador_registration_fee')
+    value ? value.to_f : 0.0
+  end
+
+  # Set ambassador registration fee
+  def self.set_ambassador_registration_fee(amount)
+    set_value(
+      'ambassador_registration_fee',
+      amount.to_s,
+      description: 'Registration fee charged to a new ambassador',
+      setting_type: 'decimal'
+    )
+  end
+
+  # Get affiliate registration fee as float
+  def self.affiliate_registration_fee
+    value = get_value('affiliate_registration_fee')
+    value ? value.to_f : 0.0
+  end
+
+  # Set affiliate registration fee
+  def self.set_affiliate_registration_fee(amount)
+    set_value(
+      'affiliate_registration_fee',
+      amount.to_s,
+      description: 'Registration fee charged to a new affiliate',
+      setting_type: 'decimal'
+    )
+  end
+
   private
 
   def clear_settings_cache

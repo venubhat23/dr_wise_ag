@@ -49,6 +49,17 @@ class AmbassadorController < ApplicationController
     @total_policies = get_total_policies_count
   end
 
+  def wallet
+    # Common data setup handled by before_action
+
+    @wallet = @distributor.wallet!
+    @transactions = @wallet.wallet_transactions.recent_first
+
+    if @transactions.respond_to?(:page)
+      @transactions = @transactions.page(params[:page]).per(15)
+    end
+  end
+
   private
 
   # Self-registered ambassadors must finish and pass KYC before they can see the

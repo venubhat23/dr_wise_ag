@@ -1815,6 +1815,19 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+
+        <!-- My Wallet -->
+        <li class="nav-item">
+          <%= link_to ambassador_wallet_path, class: "nav-link-modern #{'active' if request.path.include?('/ambassador/wallet')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-purple">
+                <i class="bi bi-piggy-bank-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">My Wallet</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
       </ul>
     </div>
     <% end %>

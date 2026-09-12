@@ -1,11 +1,9 @@
 class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
   before_action :set_distributor, only: [:approve, :reject, :mark_submitted]
 
-  # Tab key => kyc_status enum value. 'just_registered' and 'registered' are
-  # both kyc_status: pending, split further by kyc_step (see #index).
+  # Tab key => kyc_status enum value.
   TABS = {
-    'just_registered' => :pending,  # signed up, hasn't touched the KYC wizard yet
-    'registered'       => :pending,  # started the KYC wizard, not submitted yet
+    'just_registered' => :pending,   # signed up, KYC not submitted yet (wizard in progress or untouched)
     'submitted'        => :submitted, # KYC submitted, awaiting admin review
     'approved'         => :approved,
     'rejected'         => :rejected
@@ -19,25 +17,19 @@ class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
     @tab = TABS.key?(params[:status]) ? params[:status] : 'just_registered'
 
     base = Distributor.self_registered
-    just_registered = base.kyc_pending.where(kyc_step: 0)
-    in_progress      = base.kyc_pending.where.not(kyc_step: 0)
 
     @tab_counts = {
-      'just_registered' => just_registered.count,
-      'registered'      => in_progress.count,
+      'just_registered' => base.kyc_pending.count,
       'submitted'       => base.kyc_submitted.count,
       'approved'        => base.kyc_approved.count,
       'rejected'        => base.kyc_rejected.count
     }
 
-    @distributors = case @tab
-                    when 'just_registered' then just_registered
-                    when 'registered'      then in_progress
-                    else base.where(kyc_status: TABS[@tab])
-                    end.order(kyc_submitted_at: :desc, created_at: :desc)
+    @distributors = base.where(kyc_status: TABS[@tab])
+                        .order(kyc_submitted_at: :desc, created_at: :desc)
 
     # Anything that still needs an admin to act on it.
-    @pending_count = @tab_counts['just_registered'] + @tab_counts['registered'] + @tab_counts['submitted']
+    @pending_count = @tab_counts['just_registered'] + @tab_counts['submitted']
   end
 
   # PATCH /admin/ambassador_kyc_verifications/:id/mark_submitted

@@ -1,0 +1,139 @@
+<% content_for :title, "My Wallet" %>
+
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h3 mb-0 text-gray-800">
+          <i class="bi bi-wallet2 me-2 text-primary"></i>
+          My Wallet
+        </h1>
+        <p class="text-muted mt-1">Your wallet balance and transaction history</p>
+      </div>
+      <div>
+        <%= link_to ambassador_dashboard_path, class: "btn btn-outline-primary" do %>
+          Back to Dashboard
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wallet Overview Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-xl-4 col-md-6">
+    <div class="card border-left-primary shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+              Current Balance
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">
+              <%= indian_currency(@wallet.balance) %>
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-wallet2 fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4 col-md-6">
+    <div class="card border-left-success shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+              Total Credited
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">
+              <%= indian_currency(@wallet.total_credited) %>
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4 col-md-6">
+    <div class="card border-left-danger shadow h-100 py-2">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+              Total Debited
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">
+              <%= indian_currency(@wallet.total_debited) %>
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="bi bi-arrow-up-circle fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wallet Transaction History -->
+<div class="card">
+  <div class="card-header">
+    <h6 class="m-0 font-weight-bold text-primary">Wallet History</h6>
+  </div>
+  <div class="card-body">
+    <% if @transactions.any? %>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Date &amp; Time</th>
+              <th>Activity</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end">Balance After</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @transactions.each do |txn| %>
+              <tr>
+                <td><%= txn.created_at.strftime('%d %b %Y, %I:%M %p') %></td>
+                <td>
+                  <% if txn.credit? %>
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="bi bi-arrow-down-circle me-1"></i>Credit
+                    </span>
+                  <% else %>
+                    <span class="badge bg-danger-subtle text-danger">
+                      <i class="bi bi-arrow-up-circle me-1"></i>Debit
+                    </span>
+                  <% end %>
+                </td>
+                <td class="text-end fw-semibold <%= txn.credit? ? 'text-success' : 'text-danger' %>">
+                  <%= txn.credit? ? '+' : '−' %><%= indian_currency(txn.amount) %>
+                </td>
+                <td class="text-end"><%= indian_currency(txn.balance_after) %></td>
+                <td><%= txn.description.presence || "—" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if @transactions.respond_to?(:total_pages) %>
+        <%= render 'shared/pagination', records: @transactions %>
+      <% end %>
+    <% else %>
+      <div class="text-center py-4">
+        <h5>No Wallet Activity Yet</h5>
+        <p>Your wallet transactions will show up here.</p>
+      </div>
+    <% end %>
+  </div>
+</div>

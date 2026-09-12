@@ -9,6 +9,8 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
     @default_company_expenses = SystemSetting.default_company_expenses
     @terms_and_conditions = SystemSetting.terms_and_conditions
     @investment_amount = SystemSetting.investment_amount
+    @ambassador_registration_fee = SystemSetting.ambassador_registration_fee
+    @affiliate_registration_fee = SystemSetting.affiliate_registration_fee
     @company_info = SystemSetting.company_info
     @renewal_alert_days = SystemSetting.renewal_alert_days.join(', ')
     @renewal_alert_days_after_expiry = SystemSetting.renewal_alert_days_after_expiry.join(', ')
@@ -144,6 +146,26 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
         end
       else
         redirect_to admin_settings_system_path, alert: 'Please enter a valid investment amount (must be 0 or greater).'
+        return
+      end
+    end
+
+    # Handle registration fees update
+    if params[:registration_fees_update] == "true"
+      ambassador_fee = params[:ambassador_registration_fee]&.to_f
+      affiliate_fee = params[:affiliate_registration_fee]&.to_f
+
+      if ambassador_fee.present? && ambassador_fee >= 0 && affiliate_fee.present? && affiliate_fee >= 0
+        begin
+          SystemSetting.set_ambassador_registration_fee(ambassador_fee)
+          SystemSetting.set_affiliate_registration_fee(affiliate_fee)
+          success_messages << 'Registration fees updated successfully!'
+        rescue => e
+          redirect_to admin_settings_system_path, alert: "Error updating registration fees: #{e.message}"
+          return
+        end
+      else
+        redirect_to admin_settings_system_path, alert: 'Please enter valid registration fees (must be 0 or greater).'
         return
       end
     end
