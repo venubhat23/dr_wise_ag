@@ -282,6 +282,16 @@
                 <i class="fas fa-moon moon-icon"></i>
               </button>
 
+              <% if current_user.respond_to?(:ambassador?) && current_user.ambassador? %>
+                <% ambassador_wallet_distributor = Distributor.find_by(email: current_user.email) %>
+                <% if ambassador_wallet_distributor %>
+                  <%= link_to ambassador_wallet_path, class: "btn btn-outline-warning btn-sm me-2 d-flex align-items-center", title: "My Wallet" do %>
+                    <i class="bi bi-coin me-1" style="color: #d4af37;"></i>
+                    <span><%= indian_currency(ambassador_wallet_distributor.wallet!.balance) %></span>
+                  <% end %>
+                <% end %>
+              <% end %>
+
               <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
                   <i class="fas fa-user-circle me-2"></i>
