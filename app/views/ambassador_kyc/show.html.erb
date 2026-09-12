@@ -1,0 +1,139 @@
+<% content_for :title, "Complete your KYC - Dr WISE" %>
+
+<style>
+  html, body { overflow-y: auto !important; background: #f4f6fb; }
+  .kyc-wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  .kyc-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 40px rgba(31, 41, 55, .08); padding: 28px 30px; }
+  .kyc-logo { height: 44px; }
+  .kyc-steps { display: flex; gap: 8px; margin: 22px 0 26px; }
+  .kyc-steps .st { flex: 1; text-align: center; font-size: 12px; font-weight: 600; color: #9aa3b2; }
+  .kyc-steps .st .dot { width: 30px; height: 30px; line-height: 30px; border-radius: 50%; background: #eceefb;
+    color: #9aa3b2; margin: 0 auto 6px; font-size: 13px; }
+  .kyc-steps .st.done .dot { background: #22c55e; color: #fff; }
+  .kyc-steps .st.active .dot { background: #4f46e5; color: #fff; }
+  .kyc-steps .st.active { color: #4f46e5; }
+  .upload-box { border: 1.5px dashed #cbd2e0; border-radius: 12px; padding: 16px; }
+  .upload-box.filled { border-color: #22c55e; background: #f2fdf5; }
+  .ocr-result { background: #f7f8fc; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 12px; }
+  .ocr-result dt { color: #6b7280; font-weight: 500; }
+  .ocr-result dd { font-weight: 600; margin-bottom: 6px; }
+  .kyc-review-list dt { color: #6b7280; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; }
+  .kyc-review-list dd { font-weight: 600; margin-bottom: 12px; }
+</style>
+
+<div class="kyc-wrap">
+  <div class="kyc-card">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <img src="/logo.jpeg" alt="Dr WISE" class="kyc-logo">
+      <%= button_to "Sign out", destroy_user_session_path, method: :delete,
+            class: "btn btn-link btn-sm p-0 small text-muted text-decoration-none" %>
+    </div>
+
+    <h1 class="h4 fw-bold mb-1">Complete your KYC</h1>
+    <p class="text-muted small mb-0">
+      We need to verify your identity before your ambassador account is activated.
+    </p>
+
+    <% if notice %>
+      <div class="alert alert-success mt-3 mb-0"><i class="fas fa-check-circle me-2"></i><%= notice %></div>
+    <% end %>
+    <% if flash[:alert].present? %>
+      <div class="alert alert-danger mt-3 mb-0"><i class="fas fa-exclamation-triangle me-2"></i><%= flash[:alert] %></div>
+    <% end %>
+    <% if @rejected && !@submitted %>
+      <div class="alert alert-warning mt-3 mb-0">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        Your previous submission was not approved<%= ": #{@distributor.kyc_rejection_reason}" if @distributor.kyc_rejection_reason.present? %>.
+        Please review your details and submit again.
+      </div>
+    <% end %>
+
+    <% if @submitted %>
+      <%# ---------------------------------------------------------------- Pending %>
+      <div class="text-center py-5">
+        <div class="mb-3" style="font-size:44px;color:#4f46e5;"><i class="fas fa-clock"></i></div>
+        <h2 class="h5 fw-bold">Your KYC is under review</h2>
+        <p class="text-muted small mb-0">
+          Submitted <%= @distributor.kyc_submitted_at&.strftime("%d %b %Y, %I:%M %p") %>.
+          Our team will verify your documents and you'll get an email once your account is activated.
+        </p>
+      </div>
+
+    <% elsif @review %>
+      <%# ---------------------------------------------------------------- Review %>
+      <hr class="my-4">
+      <h2 class="h6 fw-bold mb-3">Review &amp; submit</h2>
+      <dl class="row kyc-review-list">
+        <div class="col-sm-6"><dt>Name</dt><dd><%= @distributor.full_name.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>Date of birth</dt><dd><%= @distributor.birth_date&.strftime("%d %b %Y") || "—" %></dd></div>
+        <div class="col-sm-6"><dt>PAN</dt><dd><%= @distributor.pan_no.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>Aadhaar</dt><dd><%= @distributor.aadhaar_no.presence || "—" %></dd></div>
+        <div class="col-12"><dt>Address</dt><dd><%= @distributor.address.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>Bank</dt><dd><%= @distributor.bank_name.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>Account number</dt><dd><%= @distributor.account_no.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>IFSC</dt><dd><%= @distributor.ifsc_code.presence || "—" %></dd></div>
+        <div class="col-sm-6"><dt>Account holder</dt><dd><%= @distributor.account_holder_name.presence || "—" %></dd></div>
+      </dl>
+
+      <div class="d-flex flex-wrap gap-2 small mb-3">
+        <span class="badge bg-light text-dark border">Aadhaar <i class="fas fa-check text-success"></i></span>
+        <span class="badge bg-light text-dark border">PAN <i class="fas fa-check text-success"></i></span>
+        <span class="badge bg-light text-dark border">Bank proof <i class="fas fa-check text-success"></i></span>
+        <span class="badge bg-light text-dark border">Photo <i class="fas fa-check text-success"></i></span>
+      </div>
+
+      <% if @missing.any? %>
+        <div class="alert alert-warning small">Still needed: <%= @missing.to_sentence %>.</div>
+      <% end %>
+
+      <div class="d-flex justify-content-between">
+        <%= link_to "Back", ambassador_kyc_path(step: 4), class: "btn btn-outline-secondary" %>
+        <%= button_to "Submit for review", ambassador_kyc_submit_path, method: :post,
+              class: "btn btn-primary px-4", disabled: @missing.any?, data: { turbo: false } %>
+      </div>
+
+    <% else %>
+      <%# ---------------------------------------------------------------- Wizard %>
+      <div class="kyc-steps">
+        <% ["ID documents", "Personal details", "Bank details", "Photo"].each_with_index do |label, i| %>
+          <% n = i + 1 %>
+          <div class="st <%= "done" if @distributor.kyc_step >= n %> <%= "active" if @step == n %>">
+            <div class="dot"><%= @distributor.kyc_step >= n ? "✓" : n %></div>
+            <%= label %>
+          </div>
+        <% end %>
+      </div>
+
+      <% case @step %>
+      <% when 1 %>
+        <%= render "step_documents" %>
+      <% when 2 %>
+        <%= render "step_personal" %>
+      <% when 3 %>
+        <%= render "step_bank" %>
+      <% when 4 %>
+        <%= render "step_photo" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  window.kycOcrUrl = "<%= ambassador_kyc_ocr_path %>";
+  window.kycCsrf = document.querySelector('meta[name="csrf-token"]').content;
+
+  // Uploads one file to the OCR endpoint and returns the parsed JSON.
+  async function kycRunOcr(documentType, file) {
+    const fd = new FormData();
+    fd.append("document_type", documentType);
+    fd.append("file", file);
+    const res = await fetch(window.kycOcrUrl, {
+      method: "POST",
+      headers: { "X-CSRF-Token": window.kycCsrf },
+      body: fd
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Upload failed. Please try again.");
+    return data;
+  }
+</script>

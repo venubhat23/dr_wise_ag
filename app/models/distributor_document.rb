@@ -8,8 +8,12 @@ class DistributorDocument < ApplicationRecord
   # Validations
   validates :document_type, presence: true
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File', 'Profile Image']
+    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Other File', 'Profile Image',
+         'Bank Statement', 'Bank Passbook', 'Profile Photo']
   }
+
+  # Document types the ambassador web KYC wizard runs OCR against.
+  KYC_OCR_TYPES = ['Aadhaar Card', 'Pancard', 'Bank Statement', 'Bank Passbook'].freeze
   validate :document_file_presence_or_r2_fields
   validate :validate_document_file_size
 
@@ -95,7 +99,39 @@ class DistributorDocument < ApplicationRecord
     file_extension == '.pdf'
   end
 
+  # Runs OCR against the just-uploaded file and records the result on the row.
+  # Must be called synchronously in the same request as the upload (the
+  # UploadedFile tempfile does not survive past the request). Never raises -
+  # a failure is stored in ocr_status/ocr_error and does not block KYC.
+  # Clears document_file first so the update doesn't re-run the R2 upload.
+  def run_ocr!(file)
+    self.document_file = nil
+    text = OcrService.extract_text(file)
+    update!(
+      ocr_text: text,
+      ocr_extracted_data: parse_ocr_fields(text),
+      ocr_status: 'success',
+      ocr_error: nil
+    )
+  rescue OcrService::ExtractionError, OcrService::ConfigurationError => e
+    Rails.logger.error "OCR failed for DistributorDocument #{id}: #{e.message}"
+    update!(ocr_status: 'failed', ocr_error: e.message)
+  end
+
+  def ocr_success?
+    ocr_status == 'success'
+  end
+
   private
+
+  def parse_ocr_fields(text)
+    case document_type
+    when 'Aadhaar Card' then OcrService::AadhaarParser.parse(text)
+    when 'Pancard' then OcrService::PanParser.parse(text)
+    when 'Bank Statement', 'Bank Passbook' then OcrService::BankParser.parse(text)
+    else {}
+    end
+  end
 
   def number_to_human_size(number)
     ActionController::Base.helpers.number_to_human_size(number)

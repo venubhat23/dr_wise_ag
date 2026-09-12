@@ -1,0 +1,63 @@
+<% pf = ->(attr) { @distributor.public_send(attr).presence || @prefill[attr.to_s] } %>
+
+<h2 class="h6 fw-bold mb-1">Step 2 · Confirm your personal details</h2>
+<p class="text-muted small">
+  We've filled in what we could read from your Aadhaar and PAN. Please check every field and
+  correct anything that's wrong before continuing.
+</p>
+
+<%= form_with url: ambassador_kyc_personal_path, method: :patch, scope: :distributor, local: true, data: { turbo: false } do |f| %>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <%= f.label :first_name, "First name", class: "form-label small fw-semibold" %>
+      <%= f.text_field :first_name, value: pf.(:first_name), class: "form-control", required: true %>
+    </div>
+    <div class="col-md-4">
+      <%= f.label :middle_name, "Middle name", class: "form-label small fw-semibold" %>
+      <%= f.text_field :middle_name, value: pf.(:middle_name), class: "form-control" %>
+    </div>
+    <div class="col-md-4">
+      <%= f.label :last_name, "Last name", class: "form-label small fw-semibold" %>
+      <%= f.text_field :last_name, value: pf.(:last_name), class: "form-control", required: true %>
+    </div>
+
+    <div class="col-md-4">
+      <%= f.label :birth_date, "Date of birth", class: "form-label small fw-semibold" %>
+      <%= f.date_field :birth_date, value: pf.(:birth_date), class: "form-control", required: true %>
+    </div>
+    <div class="col-md-4">
+      <%= f.label :gender, "Gender", class: "form-label small fw-semibold" %>
+      <%= f.select :gender, ["Male", "Female", "Other"], { include_blank: "Select", selected: pf.(:gender) },
+            class: "form-select" %>
+    </div>
+    <div class="col-md-4">
+      <%= f.label :pan_no, "PAN number", class: "form-label small fw-semibold" %>
+      <%= f.text_field :pan_no, value: pf.(:pan_no), class: "form-control text-uppercase", required: true,
+            pattern: "[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}", maxlength: 10 %>
+    </div>
+
+    <div class="col-md-6">
+      <%= f.label :aadhaar_no, "Aadhaar number", class: "form-label small fw-semibold" %>
+      <%= f.text_field :aadhaar_no, value: pf.(:aadhaar_no), class: "form-control", required: true,
+            inputmode: "numeric", pattern: "[0-9 ]{12,14}" %>
+    </div>
+
+    <div class="col-12">
+      <%= f.label :address, "Address", class: "form-label small fw-semibold" %>
+      <%= f.text_area :address, value: pf.(:address), class: "form-control", rows: 2 %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :city, "City", class: "form-label small fw-semibold" %>
+      <%= f.text_field :city, value: pf.(:city), class: "form-control" %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :state, "State", class: "form-label small fw-semibold" %>
+      <%= f.text_field :state, value: pf.(:state), class: "form-control" %>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <%= link_to "Back", ambassador_kyc_path(step: 1), class: "btn btn-outline-secondary" %>
+    <%= f.submit "Continue", class: "btn btn-primary px-4" %>
+  </div>
+<% end %>

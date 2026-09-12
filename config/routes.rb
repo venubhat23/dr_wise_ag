@@ -37,6 +37,15 @@ Rails.application.routes.draw do
   get 'ambassador/commission_details', to: 'ambassador#commission_details'
   get 'ambassador/payout_history', to: 'ambassador#payout_history'
 
+  # Ambassador web KYC wizard (gated: dashboard is blocked until KYC is approved)
+  get   'ambassador/kyc',           to: 'ambassador_kyc#show',      as: :ambassador_kyc
+  post  'ambassador/kyc/ocr',       to: 'ambassador_kyc#ocr',       as: :ambassador_kyc_ocr
+  post  'ambassador/kyc/documents', to: 'ambassador_kyc#documents', as: :ambassador_kyc_documents
+  patch 'ambassador/kyc/personal',  to: 'ambassador_kyc#personal',  as: :ambassador_kyc_personal
+  patch 'ambassador/kyc/bank',      to: 'ambassador_kyc#bank',      as: :ambassador_kyc_bank
+  patch 'ambassador/kyc/photo',     to: 'ambassador_kyc#photo',     as: :ambassador_kyc_photo
+  post  'ambassador/kyc/submit',    to: 'ambassador_kyc#submit',    as: :ambassador_kyc_submit
+
   # Investor Dashboard
   get 'investor/dashboard', to: 'investor#dashboard'
   get 'investor/profit_summary', to: 'investor#profit_summary'
@@ -283,6 +292,7 @@ Rails.application.routes.draw do
       member do
         patch :approve
         patch :reject
+        patch :mark_submitted
       end
     end
 

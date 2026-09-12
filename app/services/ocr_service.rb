@@ -326,4 +326,50 @@ class OcrService
       }.compact
     end
   end
+
+  # Best-effort field extraction from a bank passbook / statement photo or PDF.
+  # IFSC has a fixed format so it is reliable; account number and bank/holder
+  # name are inferred from nearby label text and are only used to pre-fill the
+  # bank step - the ambassador is always shown the values to correct.
+  module BankParser
+    # RBI IFSC: 4 letters, a 0, then 6 alphanumerics.
+    IFSC_PATTERN = /\b([A-Z]{4}0[A-Z0-9]{6})\b/
+    # Indian bank account numbers run 9-18 digits; allow spaced groups too.
+    ACCOUNT_LABEL_PATTERN = /(?:A\/?C|ACCOUNT)\s*(?:NO|NUMBER|#)?\s*[:\-]?\s*([0-9][0-9 ]{7,25}[0-9])/i
+    ACCOUNT_BARE_PATTERN = /\b(\d{9,18})\b/
+    NAME_LABEL_PATTERN = /\A(?:NAME|ACCOUNT HOLDER|CUSTOMER NAME|A\/C HOLDER)\b/i
+    BANK_LINE_PATTERN = /\b([A-Z][A-Za-z& ]*BANK(?:\s+(?:OF\s+[A-Z]+|LTD\.?|LIMITED))?)\b/i
+
+    def self.parse(text)
+      raw = text.to_s
+      upcased = raw.upcase
+      lines = LabelScanner.lines(raw)
+
+      {
+        "ifsc_code" => upcased[IFSC_PATTERN, 1],
+        "account_no" => account_number(raw),
+        "account_holder_name" => holder_name(lines),
+        "bank_name" => raw[BANK_LINE_PATTERN, 1]&.squeeze(" ")&.strip&.titleize
+      }.compact
+    end
+
+    def self.account_number(text)
+      labelled = text[ACCOUNT_LABEL_PATTERN, 1]
+      return labelled.gsub(/\s+/, "") if labelled
+
+      # Fall back to the longest bare digit run that isn't an IFSC-adjacent
+      # token; the account number is almost always the longest number printed.
+      text.scan(ACCOUNT_BARE_PATTERN).flatten.max_by(&:length)
+    end
+
+    def self.holder_name(lines)
+      idx = lines.index { |l| l.match?(NAME_LABEL_PATTERN) }
+      return nil unless idx
+
+      same_line = lines[idx].sub(NAME_LABEL_PATTERN, "").sub(/\A\s*[:\-]\s*/, "").strip
+      candidate = same_line.presence || lines[idx + 1]
+      return nil if candidate.blank? || candidate.match?(/\d/)
+      candidate if candidate.match?(/\A[A-Za-z .]{3,}\z/)
+    end
+  end
 end

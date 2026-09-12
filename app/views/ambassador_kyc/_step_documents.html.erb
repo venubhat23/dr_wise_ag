@@ -1,0 +1,45 @@
+<% aadhaar_doc = @distributor.kyc_document("Aadhaar Card") %>
+<% pan_doc     = @distributor.kyc_document("Pancard") %>
+
+<h2 class="h6 fw-bold mb-1">Step 1 · Upload your ID documents</h2>
+<p class="text-muted small">
+  Upload a clear photo or PDF of each card, then press <strong>Validate</strong>. We'll read the
+  details off the card so you don't have to type them.
+</p>
+
+<%= render "ocr_upload",
+      id: "aadhaar",
+      document_type: "Aadhaar Card",
+      title: "Aadhaar card",
+      hint: "Front side showing your name, photo and Aadhaar number.",
+      doc: aadhaar_doc,
+      fields: { "name" => "Name", "dob" => "Date of birth", "gender" => "Gender",
+                "aadhaar_number" => "Aadhaar number", "address" => "Address" } %>
+
+<%= render "ocr_upload",
+      id: "pan",
+      document_type: "Pancard",
+      title: "PAN card",
+      hint: "The card showing your name, father's name and PAN.",
+      doc: pan_doc,
+      fields: { "name" => "Name", "dob" => "Date of birth", "pan_number" => "PAN number" } %>
+
+<%= form_with url: ambassador_kyc_documents_path, method: :post, local: true, data: { turbo: false } do %>
+  <button type="submit" id="kyc-docs-continue" class="btn btn-primary w-100 py-2 mt-2"
+          <%= "disabled" unless aadhaar_doc && pan_doc %>>
+    Continue
+  </button>
+  <p class="text-muted small text-center mt-2 mb-0" id="kyc-docs-hint"
+     <%= "hidden" if aadhaar_doc && pan_doc %>>Validate both cards to continue.</p>
+<% end %>
+
+<script>
+  window.kycUploaded = { aadhaar: <%= aadhaar_doc ? "true" : "false" %>, pan: <%= pan_doc ? "true" : "false" %> };
+  window.kycMarkUploaded = function (id) {
+    window.kycUploaded[id] = true;
+    if (window.kycUploaded.aadhaar && window.kycUploaded.pan) {
+      document.getElementById("kyc-docs-continue").disabled = false;
+      document.getElementById("kyc-docs-hint").hidden = true;
+    }
+  };
+</script>

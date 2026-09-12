@@ -1,6 +1,7 @@
 class AmbassadorController < ApplicationController
   before_action :authenticate_user!
   before_action :ensure_ambassador_user
+  before_action :ensure_kyc_approved
   before_action :setup_ambassador_data
 
   def dashboard
@@ -50,9 +51,19 @@ class AmbassadorController < ApplicationController
 
   private
 
+  # Self-registered ambassadors must finish and pass KYC before they can see the
+  # dashboard - the web KYC wizard (AmbassadorKycController) handles the rest.
+  def ensure_kyc_approved
+    @distributor ||= Distributor.find_by(email: current_user.email)
+    return if @distributor.nil? # handled as "profile not found" in setup_ambassador_data
+    return if @distributor.kyc_approved? || !@distributor.self_registered?
+
+    redirect_to ambassador_kyc_path
+  end
+
   def setup_ambassador_data
     @ambassador = current_user
-    @distributor = Distributor.find_by(email: @ambassador.email)
+    @distributor ||= Distributor.find_by(email: @ambassador.email)
 
     if @distributor.nil?
       redirect_to root_path, alert: 'Ambassador profile not found.'

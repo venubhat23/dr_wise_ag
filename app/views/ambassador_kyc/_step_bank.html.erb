@@ -1,0 +1,118 @@
+<% bank_doc = @distributor.kyc_bank_document %>
+
+<h2 class="h6 fw-bold mb-1">Step 3 · Bank account details</h2>
+<p class="text-muted small">
+  Upload the first page of your bank passbook or a recent statement and press <strong>Validate</strong> —
+  we'll try to read your account number and IFSC. Please confirm or fix them below.
+</p>
+
+<div class="upload-box mb-3 <%= 'filled' if bank_doc %>">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <div class="fw-semibold">Bank passbook / statement</div>
+      <div class="text-muted small">Page showing your name, account number and IFSC.</div>
+    </div>
+    <span class="badge bg-success <%= 'd-none' unless bank_doc %>" id="badge-bank">
+      <i class="fas fa-check me-1"></i>Uploaded
+    </span>
+  </div>
+
+  <div class="row g-2 mt-1">
+    <div class="col-sm-4">
+      <select class="form-select form-select-sm" id="bank-doctype">
+        <option value="Bank Passbook">Passbook</option>
+        <option value="Bank Statement">Statement</option>
+      </select>
+    </div>
+    <div class="col-sm-6">
+      <input type="file" class="form-control form-control-sm" id="file-bank" accept="image/*,application/pdf">
+    </div>
+    <div class="col-sm-2">
+      <button type="button" class="btn btn-sm btn-outline-primary w-100" id="btn-bank">Validate</button>
+    </div>
+  </div>
+  <div class="text-danger small mt-2 d-none" id="err-bank"></div>
+  <div class="text-success small mt-2 d-none" id="ok-bank"></div>
+</div>
+
+<%= form_with url: ambassador_kyc_bank_path, method: :patch, scope: :distributor, local: true, data: { turbo: false } do |f| %>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <%= f.label :account_holder_name, "Account holder name", class: "form-label small fw-semibold" %>
+      <%= f.text_field :account_holder_name,
+            value: @distributor.account_holder_name.presence || @distributor.full_name.presence,
+            class: "form-control", id: "distributor_account_holder_name", required: true %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :bank_name, "Bank name", class: "form-label small fw-semibold" %>
+      <%= f.text_field :bank_name, class: "form-control", id: "distributor_bank_name", required: true %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :account_no, "Account number", class: "form-label small fw-semibold" %>
+      <%= f.text_field :account_no, class: "form-control", id: "distributor_account_no", required: true,
+            inputmode: "numeric" %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :ifsc_code, "IFSC code", class: "form-label small fw-semibold" %>
+      <%= f.text_field :ifsc_code, class: "form-control text-uppercase", id: "distributor_ifsc_code", required: true,
+            pattern: "[A-Za-z]{4}0[A-Za-z0-9]{6}", maxlength: 11 %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :account_type, "Account type", class: "form-label small fw-semibold" %>
+      <%= f.select :account_type, ["Savings", "Current", "Salary"],
+            { include_blank: "Select", selected: @distributor.account_type }, class: "form-select" %>
+    </div>
+    <div class="col-md-6">
+      <%= f.label :upi_id, "UPI ID (optional)", class: "form-label small fw-semibold" %>
+      <%= f.text_field :upi_id, class: "form-control" %>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <%= link_to "Back", ambassador_kyc_path(step: 2), class: "btn btn-outline-secondary" %>
+    <%= f.submit "Continue", class: "btn btn-primary px-4" %>
+  </div>
+<% end %>
+
+<script>
+  (function () {
+    var btn = document.getElementById("btn-bank");
+    var err = document.getElementById("err-bank");
+    var ok = document.getElementById("ok-bank");
+    var map = {
+      account_no: "distributor_account_no",
+      ifsc_code: "distributor_ifsc_code",
+      account_holder_name: "distributor_account_holder_name",
+      bank_name: "distributor_bank_name"
+    };
+
+    btn.addEventListener("click", async function () {
+      err.classList.add("d-none"); ok.classList.add("d-none");
+      var file = document.getElementById("file-bank").files[0];
+      if (!file) { err.textContent = "Please choose a file first."; err.classList.remove("d-none"); return; }
+
+      btn.disabled = true; btn.textContent = "Reading…";
+      try {
+        var type = document.getElementById("bank-doctype").value;
+        var data = await kycRunOcr(type, file);
+        var extracted = data.extracted || {};
+        var filled = [];
+        Object.keys(map).forEach(function (k) {
+          var el = document.getElementById(map[k]);
+          if (el && extracted[k] && !el.value) { el.value = extracted[k]; filled.push(k.replace(/_/g, " ")); }
+        });
+        document.getElementById("badge-bank").classList.remove("d-none");
+        ok.textContent = filled.length
+          ? "Read from your document: " + filled.join(", ") + ". Please double-check the values."
+          : "Uploaded. We couldn't read the details automatically — please type them in.";
+        ok.classList.remove("d-none");
+        btn.textContent = "Re-validate";
+      } catch (e) {
+        err.textContent = e.message; err.classList.remove("d-none");
+        btn.textContent = "Validate";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  })();
+</script>

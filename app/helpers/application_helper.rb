@@ -13,7 +13,8 @@ module ApplicationHelper
 
   def pending_ambassador_kyc_count
     Rails.cache.fetch('sidebar/ambassador_kyc_pending_count', expires_in: 1.minute) do
-      Distributor.self_registered.kyc_submitted.count
+      # Registered-but-not-submitted + submitted-awaiting-review: both need an admin.
+      Distributor.self_registered.where(kyc_status: [:pending, :submitted]).count
     end
   rescue StandardError
     0

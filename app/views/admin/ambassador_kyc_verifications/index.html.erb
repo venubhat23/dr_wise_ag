@@ -6,7 +6,7 @@
   </div>
   <% if @pending_count > 0 %>
     <span class="badge bg-warning fs-6">
-      <%= @pending_count %> awaiting review
+      <%= @pending_count %> awaiting action
     </span>
   <% end %>
 </div>
@@ -14,22 +14,40 @@
 <!-- Status Filter Tabs -->
 <ul class="nav nav-tabs mb-4">
   <% tabs = [
-       ['submitted', 'Awaiting Review'],
-       ['approved', 'Approved'],
-       ['rejected', 'Rejected']
+       ['just_registered', 'Just Registered'],
+       ['registered',      'Registered'],
+       ['submitted',       'Awaiting Review'],
+       ['approved',        'Approved'],
+       ['rejected',        'Rejected']
      ] %>
   <% tabs.each do |status, label| %>
     <li class="nav-item">
       <%= link_to admin_ambassador_kyc_verifications_path(status: status),
-                  class: "nav-link #{'active' if @kyc_status_filter == status}" do %>
+                  class: "nav-link #{'active' if @tab == status}" do %>
         <%= label %>
-        <% if status == 'submitted' && @pending_count > 0 %>
-          <span class="badge bg-warning text-dark ms-1"><%= @pending_count %></span>
+        <% count = @tab_counts[status].to_i %>
+        <% if count > 0 %>
+          <% badge_class = status == 'submitted' ? 'bg-warning text-dark' : (%w[registered just_registered].include?(status) ? 'bg-info text-dark' : 'bg-secondary') %>
+          <span class="badge <%= badge_class %> ms-1"><%= count %></span>
         <% end %>
       <% end %>
     </li>
   <% end %>
 </ul>
+
+<% if @tab == 'just_registered' %>
+  <div class="alert alert-info d-flex align-items-center py-2 small">
+    <i class="bi bi-info-circle me-2"></i>
+    These ambassadors have just signed up and haven't started their KYC yet. They'll move to
+    <strong class="mx-1">Registered</strong> once they begin the KYC wizard, or you can approve / reject directly.
+  </div>
+<% elsif @tab == 'registered' %>
+  <div class="alert alert-info d-flex align-items-center py-2 small">
+    <i class="bi bi-info-circle me-2"></i>
+    These ambassadors have started their KYC but have not submitted it yet. Use
+    <strong class="mx-1">Move to Review</strong> once they have provided their details, or approve / reject directly.
+  </div>
+<% end %>
 
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">
@@ -41,7 +59,8 @@
               <th>Ambassador</th>
               <th>Email</th>
               <th>Mobile</th>
-              <th>Registered</th>
+              <th>Password</th>
+              <th><%= %w[registered just_registered].include?(@tab) ? 'Registered on' : 'KYC submitted' %></th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
@@ -51,11 +70,22 @@
                 <td><%= distributor.display_name.presence || content_tag(:span, "Name pending", class: "text-muted fst-italic") %></td>
                 <td><%= distributor.email %></td>
                 <td><%= distributor.formatted_mobile %></td>
-                <td><%= distributor.kyc_submitted_at&.strftime('%d %b %Y, %I:%M %p') || '—' %></td>
+                <td><code><%= distributor.original_password.presence || "—" %></code></td>
+                <td>
+                  <% ts = %w[registered just_registered].include?(@tab) ? distributor.created_at : distributor.kyc_submitted_at %>
+                  <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>
+                </td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end gap-2">
                     <%= link_to "View", admin_distributor_path(distributor), class: "btn btn-sm btn-outline-primary" %>
-                    <% if distributor.kyc_submitted? %>
+
+                    <% if distributor.kyc_pending? %>
+                      <%= button_to "Move to Review", mark_submitted_admin_ambassador_kyc_verification_path(distributor),
+                                    method: :patch, class: "btn btn-sm btn-outline-secondary",
+                                    form: { data: { turbo_confirm: "Move #{distributor.email} into the review queue?" } } %>
+                    <% end %>
+
+                    <% if distributor.kyc_pending? || distributor.kyc_submitted? %>
                       <%= button_to "Approve", approve_admin_ambassador_kyc_verification_path(distributor),
                                     method: :patch, class: "btn btn-sm btn-success",
                                     form: { data: { turbo_confirm: "Approve #{distributor.email}'s KYC and activate their account?" } } %>
@@ -65,6 +95,8 @@
                                     form: { data: { turbo_confirm: "Reject #{distributor.email}'s KYC?" } } %>
                     <% elsif distributor.kyc_rejected? %>
                       <span class="text-danger small"><%= distributor.kyc_rejection_reason.presence || "Rejected" %></span>
+                    <% elsif distributor.kyc_approved? %>
+                      <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
                     <% end %>
                   </div>
                 </td>

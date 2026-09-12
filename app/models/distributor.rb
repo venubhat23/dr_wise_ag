@@ -133,6 +133,49 @@ class Distributor < ApplicationRecord
     User.find_by(email: email)
   end
 
+  # ---- Ambassador web KYC wizard --------------------------------------------
+  # Steps: 1 documents (Aadhaar + PAN), 2 personal details, 3 bank details,
+  # 4 photo, then submit for admin review. kyc_step holds the furthest step
+  # completed; the AmbassadorKycController drives the screens off it.
+
+  # Most recent uploaded document of a given type (ambassadors can re-upload).
+  def kyc_document(type)
+    distributor_documents.where(document_type: type).order(:created_at, :id).last
+  end
+
+  def kyc_bank_document
+    kyc_document('Bank Statement') || kyc_document('Bank Passbook')
+  end
+
+  # Human-readable list of everything still missing before KYC can be submitted.
+  def kyc_missing_items
+    items = []
+    items << 'your Aadhaar card' unless kyc_document('Aadhaar Card')
+    items << 'your PAN card' unless kyc_document('Pancard')
+    items << 'your full name' if first_name.blank? || last_name.blank?
+    items << 'your PAN number' if pan_no.blank?
+    items << 'your date of birth' if birth_date.blank?
+    items << 'your bank account number' if account_no.blank?
+    items << 'your IFSC code' if ifsc_code.blank?
+    items << 'a bank statement or passbook' unless kyc_bank_document
+    items << 'a photo of yourself' unless kyc_document('Profile Photo')
+    items
+  end
+
+  def kyc_ready_to_submit?
+    kyc_missing_items.empty?
+  end
+
+  # Moves the ambassador into the admin "Awaiting Review" queue. Skips records
+  # already submitted or approved so re-saving doesn't reset the timestamp or
+  # re-send the notification (mirrors the affiliate mobile flow).
+  def submit_kyc!
+    return if kyc_submitted? || kyc_approved?
+
+    update!(kyc_status: :submitted, kyc_submitted_at: Time.current, kyc_rejection_reason: nil)
+    SendAmbassadorKycEmailJob.perform_later(distributor_id: id, event: 'submitted')
+  end
+
   def approve_kyc!
     transaction do
       # Approving flips the record to active, which re-enables the name presence

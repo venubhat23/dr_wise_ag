@@ -1,0 +1,94 @@
+<%#
+  Reusable "upload a document + Validate (OCR)" widget.
+  locals: id, document_type, title, hint, doc (DistributorDocument or nil), fields (Hash ocr_key => label)
+%>
+<div class="upload-box mb-3 <%= 'filled' if doc %>" id="box-<%= id %>">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <div class="fw-semibold"><%= title %></div>
+      <div class="text-muted small"><%= hint %></div>
+    </div>
+    <span class="badge bg-success <%= 'd-none' unless doc %>" id="badge-<%= id %>">
+      <i class="fas fa-check me-1"></i>Uploaded
+    </span>
+  </div>
+
+  <div class="d-flex gap-2 mt-2">
+    <input type="file" class="form-control form-control-sm" id="file-<%= id %>"
+           accept="image/*,application/pdf">
+    <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" id="btn-<%= id %>">
+      Validate
+    </button>
+  </div>
+
+  <div class="text-danger small mt-2 d-none" id="err-<%= id %>"></div>
+
+  <div class="ocr-result <%= 'd-none' unless doc&.ocr_extracted_data.present? %>" id="res-<%= id %>">
+    <div class="text-muted small mb-2" id="resnote-<%= id %>">
+      <% if doc&.ocr_status == "failed" %>
+        We couldn't read this card automatically — you can still type the details on the next step.
+      <% else %>
+        Please check these details on the next step and correct anything that's wrong.
+      <% end %>
+    </div>
+    <dl class="row mb-0" id="resfields-<%= id %>">
+      <% (doc&.ocr_extracted_data || {}).slice(*fields.keys).each do |k, v| %>
+        <dt class="col-5"><%= fields[k] %></dt>
+        <dd class="col-7"><%= v %></dd>
+      <% end %>
+    </dl>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var id = "<%= id %>";
+    var docType = "<%= document_type %>";
+    var labels = <%= raw fields.to_json %>;
+    var btn = document.getElementById("btn-" + id);
+    var fileInput = document.getElementById("file-" + id);
+    var err = document.getElementById("err-" + id);
+    var res = document.getElementById("res-" + id);
+    var resFields = document.getElementById("resfields-" + id);
+    var resNote = document.getElementById("resnote-" + id);
+    var badge = document.getElementById("badge-" + id);
+    var box = document.getElementById("box-" + id);
+
+    btn.addEventListener("click", async function () {
+      err.classList.add("d-none");
+      var file = fileInput.files[0];
+      if (!file) { err.textContent = "Please choose a file first."; err.classList.remove("d-none"); return; }
+
+      btn.disabled = true;
+      btn.textContent = "Reading…";
+      try {
+        var data = await kycRunOcr(docType, file);
+        var extracted = data.extracted || {};
+        resFields.innerHTML = "";
+        Object.keys(labels).forEach(function (k) {
+          if (!extracted[k]) return;
+          resFields.insertAdjacentHTML("beforeend",
+            '<dt class="col-5"></dt><dd class="col-7"></dd>');
+          var dt = resFields.lastElementChild.previousElementSibling;
+          var dd = resFields.lastElementChild;
+          dt.textContent = labels[k];
+          dd.textContent = extracted[k];
+        });
+        resNote.textContent = data.ocr_status === "failed"
+          ? "We couldn't read this card automatically — you can still type the details on the next step."
+          : "Please check these details on the next step and correct anything that's wrong.";
+        res.classList.remove("d-none");
+        badge.classList.remove("d-none");
+        box.classList.add("filled");
+        btn.textContent = "Re-validate";
+        if (window.kycMarkUploaded) window.kycMarkUploaded(id);
+      } catch (e) {
+        err.textContent = e.message;
+        err.classList.remove("d-none");
+        btn.textContent = "Validate";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  })();
+</script>

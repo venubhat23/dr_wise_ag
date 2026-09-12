@@ -5,7 +5,8 @@
 # same way AmbassadorController links them.
 #
 # The account can log in immediately; the Distributor lands in the admin
-# "Ambassador KYC Verification" queue (kyc_status: submitted) for review.
+# "Ambassador KYC Verification" queue under the "Registered" tab
+# (kyc_status: pending) until they submit their KYC details.
 class AmbassadorRegistrationsController < ApplicationController
   skip_before_action :authenticate_user!
   layout "devise"
@@ -53,8 +54,7 @@ class AmbassadorRegistrationsController < ApplicationController
         username: email.split("@").first,
         status: :inactive,
         self_registered: true,
-        kyc_status: :submitted,
-        kyc_submitted_at: Time.current
+        kyc_status: :pending
       )
       @distributor.role_id = "distributor"
       @distributor.save!
@@ -78,7 +78,7 @@ class AmbassadorRegistrationsController < ApplicationController
     end
 
     redirect_to new_user_session_path,
-                notice: "Registration successful! You can now sign in. Your KYC is pending review by our team."
+                notice: "Registration successful! You can now sign in. Please complete your KYC so our team can verify your account."
   rescue ActiveRecord::RecordInvalid => e
     render_error(e.record.errors.full_messages.to_sentence.presence || "Registration could not be completed.")
   end
