@@ -20,6 +20,7 @@ class AmbassadorKycController < ApplicationController
 
   # GET /ambassador/kyc
   def show
+    return redirect_to ambassador_kyc_payment_path if @distributor.payment_required? && (@distributor.kyc_submitted? || @distributor.kyc_approved?)
     return redirect_to ambassador_dashboard_path, notice: "Your KYC is already approved." if @distributor.kyc_approved?
 
     @submitted = @distributor.kyc_submitted?
@@ -121,7 +122,61 @@ class AmbassadorKycController < ApplicationController
 
     @distributor.submit_kyc!
     session.delete(:kyc_ocr)
-    redirect_to ambassador_kyc_path, notice: "Thanks! Your KYC has been submitted for review."
+
+    if @distributor.payment_required?
+      redirect_to ambassador_kyc_payment_path
+    else
+      redirect_to ambassador_kyc_path, notice: "Thanks! Your KYC has been submitted for review."
+    end
+  end
+
+  # GET /ambassador/kyc/payment - registration-fee payment screen (Razorpay
+  # Checkout). Amount comes from SystemSetting.ambassador_registration_fee.
+  def payment
+    return redirect_to ambassador_kyc_path unless @distributor.payment_required?
+
+    @amount = @distributor.payment_amount_due
+  end
+
+  # POST /ambassador/kyc/payment/order (AJAX) - creates the Razorpay order the
+  # Checkout widget needs before it can open.
+  def create_payment_order
+    return render json: { error: "Payment already completed." }, status: :unprocessable_entity unless @distributor.payment_required?
+
+    order = RazorpayService.create_order(
+      amount_rupees: @distributor.payment_amount_due,
+      receipt: "ambassador_kyc_#{@distributor.id}"
+    )
+    @distributor.update_column(:razorpay_order_id, order["id"])
+
+    render json: {
+      order_id: order["id"],
+      amount: order["amount"],
+      currency: order["currency"],
+      key: RAZORPAY_CONFIG[:key_id],
+      name: "Dr WISE",
+      description: "Ambassador registration fee",
+      prefill: { name: @distributor.display_name, email: @distributor.email, contact: @distributor.mobile }
+    }
+  rescue RazorpayService::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
+  # POST /ambassador/kyc/payment/verify (AJAX) - verifies the Checkout
+  # signature and marks the fee as paid.
+  def verify_payment
+    order_id   = params[:razorpay_order_id]
+    payment_id = params[:razorpay_payment_id]
+    signature  = params[:razorpay_signature]
+
+    unless order_id.present? && order_id == @distributor.razorpay_order_id &&
+           RazorpayService.verify_signature(order_id: order_id, payment_id: payment_id, signature: signature)
+      return render json: { error: "Payment verification failed." }, status: :unprocessable_entity
+    end
+
+    @distributor.mark_payment_paid!(order_id: order_id, payment_id: payment_id, amount: @distributor.payment_amount_due)
+    flash[:notice] = "Payment received. Thanks! Your KYC has been submitted for review."
+    render json: { redirect_to: ambassador_kyc_path }
   end
 
   private

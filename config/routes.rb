@@ -47,6 +47,11 @@ Rails.application.routes.draw do
   patch 'ambassador/kyc/photo',     to: 'ambassador_kyc#photo',     as: :ambassador_kyc_photo
   post  'ambassador/kyc/submit',    to: 'ambassador_kyc#submit',    as: :ambassador_kyc_submit
 
+  # Registration-fee payment step (shown right after KYC submit, via Razorpay)
+  get  'ambassador/kyc/payment',        to: 'ambassador_kyc#payment',              as: :ambassador_kyc_payment
+  post 'ambassador/kyc/payment/order',  to: 'ambassador_kyc#create_payment_order', as: :ambassador_kyc_payment_order
+  post 'ambassador/kyc/payment/verify', to: 'ambassador_kyc#verify_payment',       as: :ambassador_kyc_payment_verify
+
   # Investor Dashboard
   get 'investor/dashboard', to: 'investor#dashboard'
   get 'investor/profit_summary', to: 'investor#profit_summary'

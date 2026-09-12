@@ -53,7 +53,7 @@
               <th>Email</th>
               <th>Mobile</th>
               <th>Password</th>
-              <th>Login URL</th>
+              <th>Payment Paid</th>
               <th><%= @tab == 'just_registered' ? 'Registered on' : 'KYC submitted' %></th>
               <th class="text-end">Actions</th>
             </tr>
@@ -65,7 +65,15 @@
                 <td><%= distributor.email %></td>
                 <td><%= distributor.formatted_mobile %></td>
                 <td><code><%= distributor.original_password.presence || "—" %></code></td>
-                <td><%= link_to new_user_session_url, new_user_session_url, class: "small", target: "_blank", rel: "noopener" %></td>
+                <td>
+                  <% if distributor.payment_paid? %>
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle-fill me-1"></i>Paid</span>
+                  <% elsif distributor.payment_required? %>
+                    <span class="badge bg-warning-subtle text-warning"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                  <% else %>
+                    <span class="badge bg-secondary-subtle text-secondary">—</span>
+                  <% end %>
+                </td>
                 <td>
                   <% ts = @tab == 'just_registered' ? distributor.created_at : distributor.kyc_submitted_at %>
                   <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>

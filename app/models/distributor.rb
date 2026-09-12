@@ -200,6 +200,29 @@ class Distributor < ApplicationRecord
     update!(kyc_status: :rejected, kyc_rejection_reason: reason.presence, kyc_reviewed_at: Time.current)
   end
 
+  # ---- KYC registration-fee payment (Razorpay) -------------------------------
+  # Shown right after #submit_kyc!. Amount is whatever the admin has configured
+  # in Settings > Registration Fees (SystemSetting.ambassador_registration_fee).
+  # A fee of 0 means no payment is collected.
+
+  def payment_amount_due
+    SystemSetting.ambassador_registration_fee.to_d
+  end
+
+  def payment_required?
+    self_registered? && !payment_paid? && payment_amount_due > 0
+  end
+
+  def mark_payment_paid!(order_id:, payment_id:, amount:)
+    update!(
+      payment_paid: true,
+      payment_paid_at: Time.current,
+      payment_amount: amount,
+      razorpay_order_id: order_id,
+      razorpay_payment_id: payment_id
+    )
+  end
+
   # R2 Profile Image methods
   def r2_profile_image
     if distributor_documents.loaded?

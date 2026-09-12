@@ -67,7 +67,8 @@ class AmbassadorController < ApplicationController
   def ensure_kyc_approved
     @distributor ||= Distributor.find_by(email: current_user.email)
     return if @distributor.nil? # handled as "profile not found" in setup_ambassador_data
-    return if @distributor.kyc_approved? || !@distributor.self_registered?
+    return if !@distributor.self_registered?
+    return if @distributor.kyc_approved? && !@distributor.payment_required?
 
     redirect_to ambassador_kyc_path
   end
