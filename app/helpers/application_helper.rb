@@ -498,4 +498,32 @@ module ApplicationHelper
     (life_counts[sub_agent_id] || 0) +
     (motor_counts[sub_agent_id] || 0)
   end
+
+  # File icon helpers for document previews
+  def get_file_icon_class(content_type)
+    return 'bi bi-file-earmark text-muted' unless content_type
+
+    case content_type.downcase
+    when /pdf/
+      'bi bi-file-earmark-pdf text-danger'
+    when /image/
+      'bi bi-file-earmark-image text-info'
+    when /word|document/
+      'bi bi-file-earmark-word text-primary'
+    when /excel|spreadsheet/
+      'bi bi-file-earmark-excel text-success'
+    when /powerpoint|presentation/
+      'bi bi-file-earmark-ppt text-warning'
+    when /text/
+      'bi bi-file-earmark-text text-secondary'
+    when /zip|rar|archive/
+      'bi bi-file-earmark-zip text-dark'
+    else
+      'bi bi-file-earmark text-muted'
+    end
+  end
+
+  def get_file_icon_class_r2(content_type)
+    get_file_icon_class(content_type)
+  end
 end

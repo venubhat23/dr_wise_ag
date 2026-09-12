@@ -12,6 +12,18 @@
   .kyc-steps .st.done .dot { background: #22c55e; color: #fff; }
   .kyc-steps .st.active .dot { background: #4f46e5; color: #fff; }
   .kyc-steps .st.active { color: #4f46e5; }
+  /* simple_login.css strips the border off every .form-control for the
+     login page's look; restore a visible border here so empty fields
+     (Aadhaar, City, State, etc. that OCR didn't prefill) aren't invisible
+     white-on-white boxes on this page. */
+  .kyc-card .form-control, .kyc-card .form-select {
+    border: 1px solid #d7dbe6 !important;
+    border-radius: 8px;
+  }
+  .kyc-card .form-control:focus, .kyc-card .form-select:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 .2rem rgba(79, 70, 229, .15) !important;
+  }
   .upload-box { border: 1.5px dashed #cbd2e0; border-radius: 12px; padding: 16px; }
   .upload-box.filled { border-color: #22c55e; background: #f2fdf5; }
   .ocr-result { background: #f7f8fc; border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 12px; }

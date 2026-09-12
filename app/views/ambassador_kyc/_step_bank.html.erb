@@ -1,9 +1,10 @@
 <% bank_doc = @distributor.kyc_bank_document %>
 
-<h2 class="h6 fw-bold mb-1">Step 3 · Bank account details</h2>
+<h2 class="h6 fw-bold mb-1">Step 3 · Bank account details <span class="text-muted fw-normal">(optional)</span></h2>
 <p class="text-muted small">
-  Upload the first page of your bank passbook or a recent statement and press <strong>Validate</strong> —
-  we'll try to read your account number and IFSC. Please confirm or fix them below.
+  Optional — you can add this later. If you'd like to add it now, upload the first page of your bank
+  passbook or a recent statement and press <strong>Validate</strong> — we'll try to read your account
+  number and IFSC. Please confirm or fix them below.
 </p>
 
 <div class="upload-box mb-3 <%= 'filled' if bank_doc %>">
@@ -41,20 +42,20 @@
       <%= f.label :account_holder_name, "Account holder name", class: "form-label small fw-semibold" %>
       <%= f.text_field :account_holder_name,
             value: @distributor.account_holder_name.presence || @distributor.full_name.presence,
-            class: "form-control", id: "distributor_account_holder_name", required: true %>
+            class: "form-control", id: "distributor_account_holder_name" %>
     </div>
     <div class="col-md-6">
       <%= f.label :bank_name, "Bank name", class: "form-label small fw-semibold" %>
-      <%= f.text_field :bank_name, class: "form-control", id: "distributor_bank_name", required: true %>
+      <%= f.text_field :bank_name, class: "form-control", id: "distributor_bank_name" %>
     </div>
     <div class="col-md-6">
       <%= f.label :account_no, "Account number", class: "form-label small fw-semibold" %>
-      <%= f.text_field :account_no, class: "form-control", id: "distributor_account_no", required: true,
+      <%= f.text_field :account_no, class: "form-control", id: "distributor_account_no",
             inputmode: "numeric" %>
     </div>
     <div class="col-md-6">
       <%= f.label :ifsc_code, "IFSC code", class: "form-label small fw-semibold" %>
-      <%= f.text_field :ifsc_code, class: "form-control text-uppercase", id: "distributor_ifsc_code", required: true,
+      <%= f.text_field :ifsc_code, class: "form-control text-uppercase", id: "distributor_ifsc_code",
             pattern: "[A-Za-z]{4}0[A-Za-z0-9]{6}", maxlength: 11 %>
     </div>
     <div class="col-md-6">
@@ -70,7 +71,10 @@
 
   <div class="d-flex justify-content-between mt-4">
     <%= link_to "Back", ambassador_kyc_path(step: 2), class: "btn btn-outline-secondary" %>
-    <%= f.submit "Continue", class: "btn btn-primary px-4" %>
+    <div class="d-flex gap-2">
+      <%= f.submit "Skip for now", name: "skip", class: "btn btn-outline-secondary px-3" %>
+      <%= f.submit "Continue", class: "btn btn-primary px-4" %>
+    </div>
   </div>
 <% end %>
 

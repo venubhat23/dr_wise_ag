@@ -148,6 +148,7 @@ class Distributor < ApplicationRecord
   end
 
   # Human-readable list of everything still missing before KYC can be submitted.
+  # Bank details (step 3) are optional and intentionally not checked here.
   def kyc_missing_items
     items = []
     items << 'your Aadhaar card' unless kyc_document('Aadhaar Card')
@@ -155,9 +156,6 @@ class Distributor < ApplicationRecord
     items << 'your full name' if first_name.blank? || last_name.blank?
     items << 'your PAN number' if pan_no.blank?
     items << 'your date of birth' if birth_date.blank?
-    items << 'your bank account number' if account_no.blank?
-    items << 'your IFSC code' if ifsc_code.blank?
-    items << 'a bank statement or passbook' unless kyc_bank_document
     items << 'a photo of yourself' unless kyc_document('Profile Photo')
     items
   end

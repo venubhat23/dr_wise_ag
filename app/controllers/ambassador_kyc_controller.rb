@@ -85,13 +85,9 @@ class AmbassadorKycController < ApplicationController
   end
 
   # PATCH /ambassador/kyc/bank
+  # Bank details are optional - the ambassador can fill in nothing and just
+  # continue; whatever they did provide is still saved.
   def bank
-    if @distributor.kyc_bank_document.nil?
-      @distributor.assign_attributes(bank_params)
-      @distributor.errors.add(:base, "Please upload and validate a bank passbook or statement.")
-      return rerender_step(3)
-    end
-
     if @distributor.update(bank_params)
       advance_step_to(3)
       redirect_to ambassador_kyc_path(step: 4)
