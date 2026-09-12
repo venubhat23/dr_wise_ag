@@ -49,9 +49,20 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   # Lets the app submit the (optionally user-corrected) OCR-extracted fields
   # as the affiliate's actual profile data, instead of the user re-typing
   # name/DOB/address/PAN/Aadhaar by hand after Upload KYC Documents.
+  #
+  # Also accepts an optional `photo` file (multipart/form-data, same as the
+  # web ambassador KYC wizard's photo step) and saves it as a
+  # SubAgentDocument (document_type "Profile Image").
   def update_details
     permitted = params.permit(:first_name, :middle_name, :last_name, :birth_date,
                                :gender, :address, :city, :state, :pan_no, :aadhaar_no)
+    photo = params[:photo] || params[:profile_photo]
+    photo_document = nil
+
+    if photo.present?
+      photo_document = create_photo_document(photo)
+      return render_error('Failed to upload photo', :unprocessable_entity) unless photo_document
+    end
 
     if @sub_agent.update(permitted)
       mark_kyc_submitted!
@@ -67,6 +78,7 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
         state: @sub_agent.state,
         pan_no: @sub_agent.pan_no,
         aadhaar_no: @sub_agent.aadhaar_no,
+        photo_url: photo_document&.r2_public_url || @sub_agent.r2_profile_image_url,
         kyc_status: @sub_agent.kyc_status,
         kyc_submitted_at: @sub_agent.kyc_submitted_at,
         kyc_reviewed_at: @sub_agent.kyc_reviewed_at,
@@ -108,6 +120,13 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
 
     document.run_ocr!(file)
     document
+  end
+
+  # A selfie/profile photo isn't an ID document, so unlike create_document
+  # this skips OCR (mirrors the web ambassador KYC wizard's photo step).
+  def create_photo_document(file)
+    document = @sub_agent.sub_agent_documents.build(document_type: 'Profile Image')
+    document.upload_to_r2(file) ? document : nil
   end
 
   def document_response(doc)

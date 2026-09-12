@@ -5,22 +5,75 @@
   A recent, clear photo of your face in good light. This is used to verify your identity.
 </p>
 
-<% if photo_doc&.document_url %>
-  <div class="mb-3">
-    <img src="<%= photo_doc.document_url %>" alt="Your photo"
-         style="height:120px;width:120px;object-fit:cover;border-radius:12px;border:1px solid #e5e7eb;">
-    <div class="text-muted small mt-1">Current photo — upload again to replace it.</div>
-  </div>
-<% end %>
-
 <%= form_with url: ambassador_kyc_photo_path, method: :patch, multipart: true, local: true, data: { turbo: false } do %>
-  <div class="upload-box mb-3 <%= 'filled' if photo_doc %>">
-    <%= file_field_tag :photo_file, accept: "image/*", class: "form-control",
-          required: photo_doc.nil? %>
+  <div class="upload-box mb-3 <%= 'filled' if photo_doc %>" id="photo-upload-box">
+    <div class="d-flex gap-2 mb-2">
+      <button type="button" class="btn btn-outline-primary btn-sm flex-fill" id="btn-choose-photo">
+        <i class="fas fa-folder-open me-1"></i> Choose from device
+      </button>
+      <button type="button" class="btn btn-outline-primary btn-sm flex-fill" id="btn-take-photo">
+        <i class="fas fa-camera me-1"></i> Take a photo
+      </button>
+    </div>
+
+    <%# Hidden pickers - kept separate so "Take a photo" opens the camera directly on
+        mobile (capture attribute) while "Choose from device" opens the normal
+        gallery/file browser. Whichever one is used, the file gets copied into
+        the actual field below before submit. %>
+    <input type="file" accept="image/*" id="photo-input-gallery" class="d-none">
+    <input type="file" accept="image/*" capture="user" id="photo-input-camera" class="d-none">
+    <%= file_field_tag :photo_file, accept: "image/*", id: "photo-input-final", class: "d-none" %>
+
+    <div id="photo-preview-wrap" class="text-center <%= 'd-none' unless photo_doc&.document_url %>">
+      <img id="photo-preview" src="<%= photo_doc&.document_url %>"
+           style="max-height:160px;border-radius:12px;border:1px solid #e5e7eb;">
+      <div class="text-muted small mt-1" id="photo-filename"><%= 'Current photo' if photo_doc %></div>
+    </div>
+    <div class="text-muted small text-center <%= 'd-none' if photo_doc&.document_url %>" id="photo-placeholder">
+      No photo selected yet.
+    </div>
   </div>
 
   <div class="d-flex justify-content-between mt-4">
     <%= link_to "Back", ambassador_kyc_path(step: 3), class: "btn btn-outline-secondary" %>
-    <%= submit_tag(photo_doc ? "Continue" : "Upload & continue", class: "btn btn-primary px-4") %>
+    <%= submit_tag(photo_doc ? "Continue" : "Upload & continue", class: "btn btn-primary px-4",
+          id: "photo-submit", disabled: photo_doc.nil?) %>
   </div>
 <% end %>
+
+<script>
+  (function () {
+    var galleryInput = document.getElementById("photo-input-gallery");
+    var cameraInput  = document.getElementById("photo-input-camera");
+    var finalInput   = document.getElementById("photo-input-final");
+    var previewWrap  = document.getElementById("photo-preview-wrap");
+    var preview      = document.getElementById("photo-preview");
+    var placeholder  = document.getElementById("photo-placeholder");
+    var filename     = document.getElementById("photo-filename");
+    var submitBtn    = document.getElementById("photo-submit");
+
+    document.getElementById("btn-choose-photo").addEventListener("click", function () { galleryInput.click(); });
+    document.getElementById("btn-take-photo").addEventListener("click", function () { cameraInput.click(); });
+
+    function useFile(file) {
+      if (!file) return;
+
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      finalInput.files = dt.files;
+
+      var reader = new FileReader();
+      reader.onload = function (e) { preview.src = e.target.result; };
+      reader.readAsDataURL(file);
+
+      previewWrap.classList.remove("d-none");
+      placeholder.classList.add("d-none");
+      filename.textContent = file.name;
+      submitBtn.disabled = false;
+      document.getElementById("photo-upload-box").classList.add("filled");
+    }
+
+    galleryInput.addEventListener("change", function () { useFile(this.files[0]); });
+    cameraInput.addEventListener("change", function () { useFile(this.files[0]); });
+  })();
+</script>
