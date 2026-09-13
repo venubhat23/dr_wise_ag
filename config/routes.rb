@@ -36,7 +36,8 @@ Rails.application.routes.draw do
   get 'ambassador/dashboard', to: 'ambassador#dashboard'
   get 'ambassador/commission_details', to: 'ambassador#commission_details'
   get 'ambassador/payout_history', to: 'ambassador#payout_history'
-  get 'ambassador/wallet', to: 'ambassador#wallet'
+  get  'ambassador/wallet', to: 'ambassador#wallet'
+  post 'ambassador/wallet/withdrawal', to: 'ambassador#request_withdrawal', as: :ambassador_wallet_withdrawal
 
   # Ambassador web KYC wizard (gated: dashboard is blocked until KYC is approved)
   get   'ambassador/kyc',           to: 'ambassador_kyc#show',      as: :ambassador_kyc
@@ -299,6 +300,14 @@ Rails.application.routes.draw do
         patch :approve
         patch :reject
         patch :mark_submitted
+      end
+    end
+
+    # Ambassador / Affiliate wallet withdrawal requests
+    resources :withdrawal_requests, only: [:index] do
+      member do
+        patch :approve
+        patch :reject
       end
     end
 
@@ -924,6 +933,12 @@ Rails.application.routes.draw do
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'
         get 'agent/commission_summary', to: 'agent#commission_summary'
+
+        # Wallet & Withdrawal Request APIs (Ambassador / Affiliate)
+        get  'wallet/summary',             to: 'wallet#summary'
+        get  'wallet/transactions',        to: 'wallet#transactions'
+        get  'wallet/withdrawal_requests', to: 'wallet#withdrawal_requests'
+        post 'wallet/withdraw',            to: 'wallet#withdraw'
 
         # Banner APIs
         resources :banners, only: [:index, :show] do

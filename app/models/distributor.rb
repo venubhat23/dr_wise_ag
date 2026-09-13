@@ -17,6 +17,7 @@ class Distributor < ApplicationRecord
   has_many :assigned_sub_agents, through: :distributor_assignments, source: :sub_agent
   has_many :sub_agents, dependent: :nullify
   has_one :wallet, as: :owner, dependent: :destroy
+  has_many :withdrawal_requests, as: :owner, dependent: :destroy
   has_one_attached :upload_main_document
   has_one_attached :profile_image
 

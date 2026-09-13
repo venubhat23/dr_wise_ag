@@ -124,14 +124,6 @@
             <%= link_to "Pay Now", ambassador_kyc_payment_path, class: "btn btn-sm btn-warning" %>
           </div>
         <% end %>
-        <div class="d-flex justify-content-center gap-2 mt-4">
-          <%= link_to ambassador_wallet_path, class: "btn btn-outline-primary btn-sm" do %>
-            <i class="fas fa-wallet me-1"></i>My Wallet
-          <% end %>
-          <%= link_to ambassador_payout_history_path, class: "btn btn-outline-primary btn-sm" do %>
-            <i class="fas fa-history me-1"></i>Payout History
-          <% end %>
-        </div>
       </div>
 
     <% elsif @review %>

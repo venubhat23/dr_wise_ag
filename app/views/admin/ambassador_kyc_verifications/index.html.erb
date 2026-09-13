@@ -37,8 +37,7 @@
 <% if @tab == 'just_registered' %>
   <div class="alert alert-info d-flex align-items-center py-2 small">
     <i class="bi bi-info-circle me-2"></i>
-    These ambassadors have signed up but not yet submitted their KYC. Use
-    <strong class="mx-1">Move to Review</strong> once they have provided their details, or approve / reject directly.
+    These ambassadors have signed up but not yet submitted their KYC. You can approve / reject them directly.
   </div>
 <% end %>
 
@@ -80,22 +79,25 @@
                 </td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end gap-2">
-                    <%= link_to "View", admin_distributor_path(distributor), class: "btn btn-sm btn-outline-primary" %>
-
-                    <% if distributor.kyc_pending? %>
-                      <%= button_to "Move to Review", mark_submitted_admin_ambassador_kyc_verification_path(distributor),
-                                    method: :patch, class: "btn btn-sm btn-outline-secondary",
-                                    form: { data: { turbo_confirm: "Move #{distributor.email} into the review queue?" } } %>
+                    <%= link_to admin_distributor_path(distributor), class: "btn btn-sm btn-outline-primary",
+                                data: { bs_toggle: "tooltip" }, title: "View" do %>
+                      <i class="bi bi-eye"></i>
                     <% end %>
 
                     <% if distributor.kyc_pending? || distributor.kyc_submitted? %>
-                      <%= button_to "Approve", approve_admin_ambassador_kyc_verification_path(distributor),
+                      <%= button_to approve_admin_ambassador_kyc_verification_path(distributor),
                                     method: :patch, class: "btn btn-sm btn-success",
-                                    form: { data: { turbo_confirm: "Approve #{distributor.email}'s KYC and activate their account?" } } %>
-                      <%= button_to "Reject", reject_admin_ambassador_kyc_verification_path(distributor,
+                                    data: { bs_toggle: "tooltip" }, title: "Approve",
+                                    form: { data: { turbo_confirm: "Approve #{distributor.email}'s KYC and activate their account?" } } do %>
+                        <i class="bi bi-check-lg"></i>
+                      <% end %>
+                      <%= button_to reject_admin_ambassador_kyc_verification_path(distributor,
                                       kyc_rejection_reason: "Rejected by admin"),
                                     method: :patch, class: "btn btn-sm btn-outline-danger",
-                                    form: { data: { turbo_confirm: "Reject #{distributor.email}'s KYC?" } } %>
+                                    data: { bs_toggle: "tooltip" }, title: "Reject",
+                                    form: { data: { turbo_confirm: "Reject #{distributor.email}'s KYC?" } } do %>
+                        <i class="bi bi-x-lg"></i>
+                      <% end %>
                     <% elsif distributor.kyc_rejected? %>
                       <span class="text-danger small"><%= distributor.kyc_rejection_reason.presence || "Rejected" %></span>
                     <% elsif distributor.kyc_approved? %>

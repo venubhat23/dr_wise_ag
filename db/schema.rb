@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_12_090000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_13_060000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -2141,6 +2141,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_12_090000) do
     t.index ["owner_type", "owner_id"], name: "index_wallets_on_owner_type_and_owner_id", unique: true
   end
 
+  create_table "withdrawal_requests", force: :cascade do |t|
+    t.string "owner_type", null: false
+    t.bigint "owner_id", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.text "reason", null: false
+    t.integer "status", default: 0, null: false
+    t.text "rejection_reason"
+    t.datetime "reviewed_at"
+    t.string "reviewed_by"
+    t.bigint "wallet_transaction_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_type", "owner_id"], name: "index_withdrawal_requests_on_owner_type_and_owner_id"
+    t.index ["status"], name: "index_withdrawal_requests_on_status"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agency_codes", "brokers"
@@ -2233,4 +2249,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_12_090000) do
   add_foreign_key "vendor_payouts", "vendors"
   add_foreign_key "vendor_products", "vendors"
   add_foreign_key "wallet_transactions", "wallets"
+  add_foreign_key "withdrawal_requests", "wallet_transactions"
 end

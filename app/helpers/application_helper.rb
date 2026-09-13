@@ -20,6 +20,14 @@ module ApplicationHelper
     0
   end
 
+  def pending_withdrawal_requests_count
+    Rails.cache.fetch('sidebar/withdrawal_requests_pending_count', expires_in: 1.minute) do
+      WithdrawalRequest.pending.count
+    end
+  rescue StandardError
+    0
+  end
+
   # Customer avatar helpers
   def customer_initials(customer)
     if customer.customer_type == 'corporate' && customer.company_name.present?

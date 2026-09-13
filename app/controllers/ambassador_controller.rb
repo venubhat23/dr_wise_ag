@@ -4,7 +4,7 @@ class AmbassadorController < ApplicationController
   # Wallet and payout history are visible even before KYC approval so a
   # self-registered ambassador can check their Joining Credit / payout status
   # while their KYC (and registration-fee payment) is still under review.
-  before_action :ensure_kyc_approved, except: [:wallet, :payout_history]
+  before_action :ensure_kyc_approved, except: [:wallet, :payout_history, :request_withdrawal]
   before_action :setup_ambassador_data
 
   def dashboard
@@ -61,9 +61,29 @@ class AmbassadorController < ApplicationController
     if @transactions.respond_to?(:page)
       @transactions = @transactions.page(params[:page]).per(15)
     end
+
+    @withdrawal_requests = @distributor.withdrawal_requests.recent_first.limit(10)
+    @pending_withdrawal_request = @distributor.withdrawal_requests.pending.first
+    @withdrawal_request = WithdrawalRequest.new
+  end
+
+  def request_withdrawal
+    # Common data setup handled by before_action
+    withdrawal_request = @distributor.withdrawal_requests.new(withdrawal_request_params)
+
+    if withdrawal_request.save
+      redirect_to ambassador_wallet_path,
+                  notice: "Withdrawal request for #{helpers.indian_currency(withdrawal_request.amount)} submitted. We'll review it shortly."
+    else
+      redirect_to ambassador_wallet_path, alert: withdrawal_request.errors.full_messages.to_sentence
+    end
   end
 
   private
+
+  def withdrawal_request_params
+    params.require(:withdrawal_request).permit(:amount, :reason)
+  end
 
   # Self-registered ambassadors must finish and pass KYC before they can see the
   # dashboard - the web KYC wizard (AmbassadorKycController) handles the rest.

@@ -35,6 +35,7 @@ class SubAgent < ApplicationRecord
   has_one :assigned_distributor, through: :distributor_assignment, source: :distributor
   belongs_to :distributor, optional: true
   has_one :wallet, as: :owner, dependent: :destroy
+  has_many :withdrawal_requests, as: :owner, dependent: :destroy
   has_one_attached :upload_main_document
   has_one_attached :profile_image
   has_many :customers, foreign_key: 'sub_agent_id'

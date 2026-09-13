@@ -10,11 +10,58 @@
         </h1>
         <p class="text-muted mt-1">Your wallet balance and transaction history</p>
       </div>
-      <div>
+      <div class="d-flex gap-2">
+        <% if @pending_withdrawal_request %>
+          <span class="btn btn-outline-warning disabled">
+            <i class="bi bi-hourglass-split me-1"></i>
+            Withdrawal of <%= indian_currency(@pending_withdrawal_request.amount) %> pending review
+          </span>
+        <% else %>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawalModal">
+            <i class="bi bi-cash-coin me-1"></i>Withdrawal
+          </button>
+        <% end %>
         <%= link_to ambassador_dashboard_path, class: "btn btn-outline-primary" do %>
           Back to Dashboard
         <% end %>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Withdrawal Request Modal -->
+<div class="modal fade" id="withdrawalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with model: @withdrawal_request, url: ambassador_wallet_withdrawal_path, method: :post, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-cash-coin me-2"></i>Request Withdrawal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">Available balance</span>
+            <strong><i class="bi bi-coin me-1" style="color: #d4af37;"></i><%= indian_currency(@wallet.balance) %></strong>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Amount to withdraw</label>
+            <%= form.number_field :amount, class: "form-control", min: WithdrawalRequest::MIN_AMOUNT,
+                  max: @wallet.balance, step: "0.01", required: true,
+                  placeholder: "Minimum #{indian_currency(WithdrawalRequest::MIN_AMOUNT)}" %>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Reason</label>
+            <%= form.text_area :reason, class: "form-control", rows: 3, required: true,
+                  placeholder: "e.g. Bank transfer for personal use" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Submit Request", class: "btn btn-primary" %>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>
@@ -137,3 +184,46 @@
     <% end %>
   </div>
 </div>
+
+<!-- Withdrawal Request History -->
+<% if @withdrawal_requests.any? %>
+  <div class="card mt-4">
+    <div class="card-header">
+      <h6 class="m-0 font-weight-bold text-primary">My Withdrawal Requests</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Requested on</th>
+              <th class="text-end">Amount</th>
+              <th>Reason</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @withdrawal_requests.each do |wr| %>
+              <tr>
+                <td><%= wr.created_at.strftime('%d %b %Y, %I:%M %p') %></td>
+                <td class="text-end fw-semibold"><%= indian_currency(wr.amount) %></td>
+                <td><%= wr.reason %></td>
+                <td>
+                  <% if wr.pending? %>
+                    <span class="badge bg-warning-subtle text-warning"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                  <% elsif wr.approved? %>
+                    <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+                  <% else %>
+                    <span class="badge bg-danger-subtle text-danger" title="<%= wr.rejection_reason %>">
+                      <i class="bi bi-x-circle-fill me-1"></i>Rejected
+                    </span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>

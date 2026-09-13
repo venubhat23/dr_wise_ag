@@ -674,9 +674,14 @@ body.sidebar-collapsed .main-content {
 }
 
 .submenu-link.active {
-  background: rgba(59, 130, 246, 0.15) !important;
-  color: #3b82f6 !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+}
+
+.submenu-link.active i {
+  color: #ffffff !important;
 }
 
 .submenu-bullet {
@@ -686,9 +691,25 @@ body.sidebar-collapsed .main-content {
   transition: color 0.2s ease !important;
 }
 
-.submenu-link:hover .submenu-bullet,
-.submenu-link.active .submenu-bullet {
+.submenu-link:hover .submenu-bullet {
   color: #3b82f6 !important;
+}
+
+.submenu-link.active .submenu-bullet {
+  color: #ffffff !important;
+}
+
+.dropdown-toggle.parent-active {
+  background: rgba(102, 126, 234, 0.12) !important;
+}
+
+.dropdown-toggle.parent-active .nav-text {
+  color: #4c51bf !important;
+  font-weight: 600 !important;
+}
+
+.dropdown-toggle.parent-active .dropdown-arrow {
+  color: #4c51bf !important;
 }
 
 /* Insurance submenu icons styling */
@@ -831,7 +852,27 @@ body.sidebar-collapsed .main-content {
 }
 
 [data-theme="dark"] .submenu-link.active {
-  background: rgba(99, 102, 241, 0.2) !important;
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.45) !important;
+}
+
+[data-theme="dark"] .submenu-link.active i,
+[data-theme="dark"] .submenu-link.active .submenu-bullet {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .dropdown-toggle.parent-active {
+  background: rgba(99, 102, 241, 0.18) !important;
+}
+
+[data-theme="dark"] .dropdown-toggle.parent-active .nav-text {
+  color: #a5b4fc !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="dark"] .dropdown-toggle.parent-active .dropdown-arrow {
   color: #a5b4fc !important;
 }
 
@@ -962,7 +1003,7 @@ body.sidebar-collapsed .main-content {
           <% ambassador_kyc_pending = pending_ambassador_kyc_count %>
           <% affiliate_kyc_pending = pending_affiliate_kyc_count %>
           <li class="nav-item dropdown-menu-item">
-            <div class="nav-link-modern dropdown-toggle <%= 'collapsed' unless kyc_menu_active %>" data-bs-toggle="collapse" data-bs-target="#kyc-menu" aria-expanded="<%= kyc_menu_active %>" style="cursor: pointer;" data-tooltip="KYC">
+            <div class="nav-link-modern dropdown-toggle <%= kyc_menu_active ? 'parent-active' : 'collapsed' %>" data-bs-toggle="collapse" data-bs-target="#kyc-menu" aria-expanded="<%= kyc_menu_active %>" style="cursor: pointer;" data-tooltip="KYC">
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-cyan">
                   <i class="bi bi-patch-check-fill"></i>
@@ -1431,6 +1472,16 @@ body.sidebar-collapsed .main-content {
                 <%= link_to admin_wallets_ambassador_wallets_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/wallets/ambassador_wallets')}" do %>
                   <i class="bi bi-diagram-3 text-indigo me-2"></i>
                   <span class="nav-text">Ambassador eWallet</span>
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to admin_withdrawal_requests_path, class: "nav-link-modern submenu-link #{'active' if request.path.include?('/admin/withdrawal_requests')}" do %>
+                  <i class="bi bi-cash-coin text-amber me-2"></i>
+                  <span class="nav-text">Withdrawal Requests</span>
+                  <% count = pending_withdrawal_requests_count %>
+                  <% if count > 0 %>
+                    <span class="badge bg-warning text-dark ms-auto"><%= count %></span>
+                  <% end %>
                 <% end %>
               </li>
             </ul>

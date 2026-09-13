@@ -1,0 +1,127 @@
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Withdrawal Requests</h2>
+    <p class="text-muted mb-0">Review and process ambassador / affiliate wallet withdrawal requests</p>
+  </div>
+  <% if @tab_counts['pending'] > 0 %>
+    <span class="badge bg-warning fs-6">
+      <%= @tab_counts['pending'] %> awaiting review
+    </span>
+  <% end %>
+</div>
+
+<!-- Status Filter Tabs -->
+<ul class="nav nav-tabs mb-4">
+  <% tabs = [
+       ['pending',  'Pending'],
+       ['approved', 'Approved'],
+       ['rejected', 'Rejected']
+     ] %>
+  <% tabs.each do |status, label| %>
+    <li class="nav-item">
+      <%= link_to admin_withdrawal_requests_path(status: status),
+                  class: "nav-link #{'active' if @tab == status}" do %>
+        <%= label %>
+        <% count = @tab_counts[status].to_i %>
+        <% if count > 0 %>
+          <span class="badge <%= status == 'pending' ? 'bg-warning text-dark' : 'bg-secondary' %> ms-1"><%= count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <% if @withdrawal_requests.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Requester</th>
+              <th>Email</th>
+              <th>Amount</th>
+              <th>Reason</th>
+              <th><%= @tab == 'pending' ? 'Requested on' : 'Reviewed on' %></th>
+              <% if @tab == 'rejected' %>
+                <th>Rejection reason</th>
+              <% end %>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @withdrawal_requests.each do |wr| %>
+              <tr>
+                <td>
+                  <%= wr.owner_label %>
+                  <span class="badge bg-info-subtle text-info ms-1"><%= wr.owner_kind %></span>
+                </td>
+                <td><%= wr.owner.email %></td>
+                <td class="fw-semibold"><%= indian_currency(wr.amount) %></td>
+                <td><%= truncate(wr.reason, length: 60) %></td>
+                <td>
+                  <% ts = @tab == 'pending' ? wr.created_at : wr.reviewed_at %>
+                  <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>
+                </td>
+                <% if @tab == 'rejected' %>
+                  <td class="text-danger small"><%= wr.rejection_reason %></td>
+                <% end %>
+                <td class="text-end">
+                  <% if wr.pending? %>
+                    <div class="d-flex justify-content-end gap-2">
+                      <%= button_to approve_admin_withdrawal_request_path(wr),
+                                    method: :patch, class: "btn btn-sm btn-success",
+                                    data: { bs_toggle: "tooltip" }, title: "Approve",
+                                    form: { data: { turbo_confirm: "Approve #{wr.owner_label}'s withdrawal of #{indian_currency(wr.amount)}? This will deduct the amount from their wallet." } } do %>
+                        <i class="bi bi-check-lg"></i>
+                      <% end %>
+
+                      <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal<%= wr.id %>" title="Reject">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+
+                      <div class="modal fade" id="rejectModal<%= wr.id %>" tabindex="-1">
+                        <div class="modal-dialog">
+                          <div class="modal-content">
+                            <%= form_with url: reject_admin_withdrawal_request_path(wr), method: :patch, local: true do |form| %>
+                              <div class="modal-header">
+                                <h5 class="modal-title">Reject Withdrawal Request</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                              </div>
+                              <div class="modal-body">
+                                <p>Reject <strong><%= wr.owner_label %></strong>'s withdrawal request of
+                                  <strong><%= indian_currency(wr.amount) %></strong>?</p>
+                                <label class="form-label">Reason (optional)</label>
+                                <%= form.text_area :rejection_reason, class: "form-control", rows: 2, placeholder: "Rejected by admin" %>
+                              </div>
+                              <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <%= form.submit "Reject", class: "btn btn-danger" %>
+                              </div>
+                            <% end %>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <% elsif wr.approved? %>
+                    <span class="text-success small"><i class="bi bi-check-circle-fill me-1"></i>Paid out</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-transparent border-0">
+        <%= render 'shared/pagination', records: @withdrawal_requests %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-cash-coin fs-1 text-muted"></i>
+        <h6 class="text-muted mt-3">No withdrawal requests in this status</h6>
+      </div>
+    <% end %>
+  </div>
+</div>
