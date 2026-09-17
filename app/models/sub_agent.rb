@@ -197,6 +197,31 @@ class SubAgent < ApplicationRecord
     update!(kyc_status: :rejected, kyc_rejection_reason: reason, kyc_reviewed_at: Time.current)
   end
 
+  # ---- KYC registration-fee payment (Razorpay) -------------------------------
+  # Mirrors Distributor's ambassador registration-fee payment. Amount is
+  # whatever the admin has configured in Settings > Registration Fees
+  # (SystemSetting.affiliate_registration_fee). A fee of 0 means no payment
+  # is collected. Only ever required for mobile self-registrations, never for
+  # affiliates created directly by an admin.
+
+  def payment_amount_due
+    SystemSetting.affiliate_registration_fee.to_d
+  end
+
+  def payment_required?
+    self_registered? && !payment_paid? && payment_amount_due > 0
+  end
+
+  def mark_payment_paid!(order_id:, payment_id:, amount:)
+    update!(
+      payment_paid: true,
+      payment_paid_at: Time.current,
+      payment_amount: amount,
+      razorpay_order_id: order_id,
+      razorpay_payment_id: payment_id
+    )
+  end
+
   # A submission only counts as complete once both required documents are present -
   # used to decide when to flip kyc_status from pending/rejected to submitted.
   def kyc_documents_complete?

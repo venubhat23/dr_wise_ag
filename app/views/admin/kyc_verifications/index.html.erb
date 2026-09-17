@@ -41,19 +41,43 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
-              <th>Affiliate</th>
+              <% unless @kyc_status_filter == 'just_registered' %>
+                <th>Affiliate</th>
+              <% end %>
               <th>Email</th>
               <th>Mobile</th>
+              <% if @kyc_status_filter == 'just_registered' %>
+                <th>Password</th>
+              <% end %>
+              <th>Referred By</th>
               <th><%= @kyc_status_filter == 'just_registered' ? 'Registered' : 'Submitted' %></th>
-              <th class="text-end">Actions</th>
+              <th class="text-end">Action</th>
             </tr>
           </thead>
           <tbody>
             <% @sub_agents.each do |sub_agent| %>
               <tr>
-                <td><%= sub_agent.display_name %></td>
+                <% unless @kyc_status_filter == 'just_registered' %>
+                  <td><%= sub_agent.display_name %></td>
+                <% end %>
                 <td><%= sub_agent.email %></td>
                 <td><%= sub_agent.mobile %></td>
+                <% if @kyc_status_filter == 'just_registered' %>
+                  <td><%= sub_agent.original_password %></td>
+                <% end %>
+                <td>
+                  <% if sub_agent.referred_by_code.present? %>
+                    <span class="badge bg-info text-dark"><%= sub_agent.referred_by_code %></span>
+                    <div class="small text-muted">
+                      <%= sub_agent.referred_by_kind&.capitalize %> referral
+                      <% if sub_agent.ambassador.present? %>
+                        &middot; <%= sub_agent.ambassador.display_name %>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <span class="text-muted">Direct signup</span>
+                  <% end %>
+                </td>
                 <td>
                   <% ts = @kyc_status_filter == 'just_registered' ? sub_agent.created_at : sub_agent.kyc_submitted_at %>
                   <%= ts&.strftime('%d %b %Y, %I:%M %p') || '—' %>

@@ -6,7 +6,8 @@ class SubAgentDocument < ApplicationRecord
   # Validations
   validates :document_type, presence: true
   validates :document_type, inclusion: {
-    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Profile Image', 'Other File']
+    in: ['Aadhaar Card', 'Pancard', 'Driving License', 'Mediclaim', 'RC Book', 'Profile Image', 'Other File',
+         'Bank Statement', 'Bank Passbook']
   }
 
   # Custom validation for file presence (either ActiveStorage or R2)
@@ -154,6 +155,8 @@ class SubAgentDocument < ApplicationRecord
       OcrService::AadhaarParser.parse(text)
     when "Pancard"
       OcrService::PanParser.parse(text)
+    when "Bank Statement", "Bank Passbook"
+      OcrService::BankParser.parse(text)
     else
       {}
     end

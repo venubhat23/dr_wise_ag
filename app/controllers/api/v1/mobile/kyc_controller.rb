@@ -1,6 +1,8 @@
 class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   before_action :authenticate_pending_sub_agent!
 
+  BANK_DOCUMENT_TYPES = ['Bank Statement', 'Bank Passbook'].freeze
+
   # GET /api/v1/mobile/kyc/status
   def status
     documents = @sub_agent.sub_agent_documents.where(document_type: ['Aadhaar Card', 'Pancard'])
@@ -15,12 +17,13 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   end
 
   # POST /api/v1/mobile/kyc/documents
-  # Accepts aadhaar_file and/or pan_file (multipart). Both are required
-  # before kyc_status can move to "submitted"; either can be sent alone to
-  # fill in a still-missing document, or resent after a rejection.
+  # Accepts aadhaar_file, pan_file, and/or bank_file (multipart). Aadhaar and
+  # PAN are required before kyc_status can move to "submitted"; bank_file is
+  # always optional and never gates submission. Any of the three can be sent
+  # alone to fill in a still-missing document, or resent after a rejection.
   def upload_documents
-    if params[:aadhaar_file].blank? && params[:pan_file].blank?
-      return render_error('Please attach an aadhaar_file and/or pan_file', :unprocessable_entity)
+    if params[:aadhaar_file].blank? && params[:pan_file].blank? && params[:bank_file].blank?
+      return render_error('Please attach an aadhaar_file, pan_file, and/or bank_file', :unprocessable_entity)
     end
 
     uploaded = []
@@ -34,6 +37,15 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     if params[:pan_file].present?
       document = create_document('Pancard', params[:pan_file])
       return render_error('Failed to upload PAN document', :unprocessable_entity) unless document
+      uploaded << document
+    end
+
+    if params[:bank_file].present?
+      bank_document_type = params[:bank_document_type].to_s
+      bank_document_type = 'Bank Passbook' unless BANK_DOCUMENT_TYPES.include?(bank_document_type)
+
+      document = create_document(bank_document_type, params[:bank_file])
+      return render_error('Failed to upload bank document', :unprocessable_entity) unless document
       uploaded << document
     end
 
@@ -55,7 +67,9 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   # SubAgentDocument (document_type "Profile Image").
   def update_details
     permitted = params.permit(:first_name, :middle_name, :last_name, :birth_date,
-                               :gender, :address, :city, :state, :pan_no, :aadhaar_no)
+                               :gender, :address, :city, :state, :pan_no, :aadhaar_no,
+                               :bank_name, :account_no, :ifsc_code, :account_holder_name,
+                               :account_type, :upi_id)
     photo = params[:photo] || params[:profile_photo]
     photo_document = nil
 
@@ -78,6 +92,12 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
         state: @sub_agent.state,
         pan_no: @sub_agent.pan_no,
         aadhaar_no: @sub_agent.aadhaar_no,
+        bank_name: @sub_agent.bank_name,
+        account_no: @sub_agent.account_no,
+        ifsc_code: @sub_agent.ifsc_code,
+        account_holder_name: @sub_agent.account_holder_name,
+        account_type: @sub_agent.account_type,
+        upi_id: @sub_agent.upi_id,
         photo_url: photo_document&.r2_public_url || @sub_agent.r2_profile_image_url,
         kyc_status: @sub_agent.kyc_status,
         kyc_submitted_at: @sub_agent.kyc_submitted_at,
@@ -87,6 +107,68 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     else
       render_error(@sub_agent.errors.full_messages.join(', '), :unprocessable_entity)
     end
+  end
+
+  # GET /api/v1/mobile/kyc/payment/status
+  # Lets the app decide on open/resume whether to show the registration-fee
+  # payment screen (SystemSetting.affiliate_registration_fee; 0 = no fee).
+  def payment_status
+    render_success({
+      payment_required: @sub_agent.payment_required?,
+      payment_paid: @sub_agent.payment_paid,
+      amount_due: @sub_agent.payment_amount_due
+    })
+  end
+
+  # POST /api/v1/mobile/kyc/payment/order
+  # Creates a Razorpay order for the affiliate registration fee. The app hands
+  # order_id/key/amount straight to Razorpay's native Checkout SDK.
+  def create_payment_order
+    unless @sub_agent.payment_required?
+      return render_error('Payment not required', :unprocessable_entity)
+    end
+
+    order = RazorpayService.create_order(
+      amount_rupees: @sub_agent.payment_amount_due,
+      receipt: "affiliate_kyc_#{@sub_agent.id}_#{Time.current.to_i}"
+    )
+    @sub_agent.update_column(:razorpay_order_id, order['id'])
+
+    render_success({
+      order_id: order['id'],
+      amount: order['amount'],
+      currency: order['currency'],
+      key: RAZORPAY_CONFIG[:key_id],
+      name: 'Dr WISE',
+      description: 'Affiliate registration fee',
+      prefill: { name: @sub_agent.display_name, email: @sub_agent.email, contact: @sub_agent.mobile }
+    }, 'Payment order created')
+  rescue RazorpayService::Error => e
+    render_error("Unable to create payment order: #{e.message}", :unprocessable_entity)
+  end
+
+  # POST /api/v1/mobile/kyc/payment/verify
+  # Verifies the signature Razorpay's Checkout SDK returns on successful
+  # payment (same three values as the web ambassador flow's callback), then
+  # marks the fee as paid. Does not block kyc_status - payment is tracked and
+  # surfaced to the admin, not a hard gate on submission/approval.
+  def verify_payment
+    order_id   = params[:razorpay_order_id]
+    payment_id = params[:razorpay_payment_id]
+    signature  = params[:razorpay_signature]
+
+    unless order_id.present? && order_id == @sub_agent.razorpay_order_id &&
+           RazorpayService.verify_signature(order_id: order_id, payment_id: payment_id, signature: signature)
+      return render_error('Payment verification failed', :unprocessable_entity)
+    end
+
+    @sub_agent.mark_payment_paid!(order_id: order_id, payment_id: payment_id, amount: @sub_agent.payment_amount_due)
+
+    render_success({
+      payment_paid: true,
+      payment_paid_at: @sub_agent.payment_paid_at,
+      kyc_status: @sub_agent.kyc_status
+    }, 'Payment verified successfully')
   end
 
   private

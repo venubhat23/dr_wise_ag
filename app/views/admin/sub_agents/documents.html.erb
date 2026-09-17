@@ -133,6 +133,93 @@
   </div>
 <% end %>
 
+<!-- Submitted KYC Details -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-person-vcard me-2 text-primary"></i>
+    <h5 class="mb-0">Submitted KYC Details</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <table class="table table-borderless table-sm mb-0">
+          <tr>
+            <th class="text-muted" width="45%">Full Name:</th>
+            <td><%= [@sub_agent.first_name, @sub_agent.middle_name, @sub_agent.last_name].compact_blank.join(' ').presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Date of Birth:</th>
+            <td><%= @sub_agent.birth_date&.strftime('%d %b %Y') || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Gender:</th>
+            <td><%= @sub_agent.gender.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Address:</th>
+            <td><%= @sub_agent.address.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">City / State:</th>
+            <td><%= [@sub_agent.city, @sub_agent.state].compact_blank.join(', ').presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">PAN Number:</th>
+            <td><%= @sub_agent.pan_no.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Aadhaar Number:</th>
+            <td><%= @sub_agent.aadhaar_no.presence || 'Not provided' %></td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-borderless table-sm mb-0">
+          <tr>
+            <th class="text-muted" width="45%">Bank Name:</th>
+            <td><%= @sub_agent.bank_name.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Account Number:</th>
+            <td><%= @sub_agent.account_no.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">IFSC Code:</th>
+            <td><%= @sub_agent.ifsc_code.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Account Holder:</th>
+            <td><%= @sub_agent.account_holder_name.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Account Type:</th>
+            <td><%= @sub_agent.account_type.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">UPI ID:</th>
+            <td><%= @sub_agent.upi_id.presence || 'Not provided' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Registration Fee:</th>
+            <td>
+              <% if @sub_agent.payment_paid? %>
+                <span class="badge bg-success">Paid</span>
+                ₹<%= number_with_precision(@sub_agent.payment_amount, precision: 2) %>
+                on <%= @sub_agent.payment_paid_at&.strftime('%d %b %Y') %>
+              <% elsif @sub_agent.payment_required? %>
+                <span class="badge bg-warning text-dark">Pending</span>
+                ₹<%= number_with_precision(@sub_agent.payment_amount_due, precision: 2) %> due
+              <% else %>
+                <span class="text-muted">Not required</span>
+              <% end %>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- KYC Review Section -->
 <% kyc_docs = @documents.select { |d| ['Aadhaar Card', 'Pancard'].include?(d.document_type) } %>
 <div class="card border-0 shadow-sm mb-4">
@@ -203,6 +290,53 @@
     <% end %>
   </div>
 </div>
+
+<!-- Bank Document Review Section (optional upload) -->
+<% bank_docs = @documents.select { |d| ['Bank Statement', 'Bank Passbook'].include?(d.document_type) } %>
+<% if bank_docs.any? %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-bank me-2 text-success"></i>
+      <h5 class="mb-0">Bank Document <span class="text-muted small fw-normal">(optional)</span></h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <% bank_docs.each do |document| %>
+          <div class="col-md-6 mb-3">
+            <div class="border rounded p-3 h-100">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0"><%= document.document_type %></h6>
+                <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
+                  OCR: <%= document.ocr_status %>
+                </span>
+              </div>
+              <% if document.has_file? %>
+                <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary mb-2" do %>
+                  <i class="bi bi-eye me-1"></i>View Image
+                <% end %>
+              <% end %>
+              <% if document.ocr_extracted_data.present? %>
+                <dl class="row mb-0 small">
+                  <% document.ocr_extracted_data.each do |key, value| %>
+                    <dt class="col-5 text-muted"><%= key.humanize %></dt>
+                    <dd class="col-7"><%= value %></dd>
+                  <% end %>
+                </dl>
+              <% end %>
+              <% if document.ocr_text.present? %>
+                <p class="text-muted small mb-1 mt-2">Full text read off the document:</p>
+                <pre class="small bg-light border rounded p-2 mb-0" style="max-height: 160px; overflow-y: auto; white-space: pre-wrap;"><%= document.ocr_text %></pre>
+              <% end %>
+              <% if document.ocr_status == 'failed' && document.ocr_error.present? %>
+                <p class="text-danger small mb-0 mt-2">OCR error: <%= document.ocr_error %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
 
 <!-- Additional Documents Section -->
 <% if @documents.any? %>

@@ -662,7 +662,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       distributor_id: referral.ambassador&.id,
       referred_by_code: referral_code.presence&.upcase,
       status: :inactive,
-      kyc_status: :pending
+      kyc_status: :pending,
+      self_registered: true
     )
 
     if sub_agent.save
@@ -696,7 +697,10 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             ambassador_name: referral.ambassador&.display_name,
             signup_bonus: bonus_credited ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
             wallet_balance: sub_agent.wallet&.balance.to_f
-          }
+          },
+          payment_required: sub_agent.payment_required?,
+          payment_paid: sub_agent.payment_paid,
+          payment_amount_due: sub_agent.payment_amount_due.to_f
         }
       }
     else
@@ -999,6 +1003,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           signup_bonus_received: sub_agent.referral_bonus_credited?,
           wallet_balance: sub_agent.wallet&.balance.to_f
         },
+        payment_required: sub_agent.payment_required?,
+        payment_paid: sub_agent.payment_paid,
+        payment_amount_due: sub_agent.payment_amount_due.to_f,
         password_reset_days: get_sub_agent_password_reset_days(sub_agent),
         password_reset_required: get_sub_agent_password_reset_required(sub_agent),
         commission_earned: format_indian_amount(sub_agent_stats[:commission_earned]),

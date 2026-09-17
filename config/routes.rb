@@ -930,6 +930,11 @@ Rails.application.routes.draw do
         post 'kyc/documents', to: 'kyc#upload_documents'
         patch 'kyc/details', to: 'kyc#update_details'
 
+        # Sub Agent KYC registration-fee payment APIs (Razorpay)
+        get  'kyc/payment/status', to: 'kyc#payment_status'
+        post 'kyc/payment/order',  to: 'kyc#create_payment_order'
+        post 'kyc/payment/verify', to: 'kyc#verify_payment'
+
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'
         get 'agent/commission_summary', to: 'agent#commission_summary'
