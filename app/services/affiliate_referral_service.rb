@@ -50,7 +50,7 @@ class AffiliateReferralService
       return Resolution.new(success: true, ambassador: ambassador, referrer: referrer, kind: 'affiliate')
     end
 
-    Resolution.new(success: false, error: 'Invalid referral code.')
+    Resolution.new(success: false, error: 'Ambassador referral code not matching. Please check the code and try again.')
   end
 
   # Map a freshly-created affiliate under the resolved Ambassador.

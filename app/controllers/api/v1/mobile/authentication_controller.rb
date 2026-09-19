@@ -681,7 +681,11 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       token = generate_token(sub_agent, 'sub_agent')
       render json: {
         success: true,
-        message: 'Registration successful. Please upload your Aadhaar and PAN documents to complete KYC.',
+        message: [
+          'Registration successful.',
+          ("You have been referred under Ambassador #{referral.ambassador.display_name}." if referral.ambassador),
+          'Please upload your Aadhaar and PAN documents to complete KYC.'
+        ].compact.join(' '),
         data: {
           token: token,
           sub_agent_id: sub_agent.id,
@@ -695,6 +699,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             code_type: referral.kind,
             ambassador_id: referral.ambassador&.id,
             ambassador_name: referral.ambassador&.display_name,
+            referred_under_ambassador: referral.ambassador&.display_name,
             signup_bonus: 0.0,
             signup_bonus_pending: referral.bonus_eligible? ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
             signup_bonus_note: referral.bonus_eligible? ? 'Credited to your inactive wallet once your KYC is approved; it becomes withdrawable after you create your first policy.' : nil,
