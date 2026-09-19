@@ -1,4 +1,6 @@
 class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
+  include KycQueueTools
+
   before_action :set_distributor, only: [:approve, :reject, :mark_submitted]
 
   # Tab key => kyc_status enum value.
@@ -25,11 +27,39 @@ class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
       'rejected'        => base.kyc_rejected.count
     }
 
-    @distributors = base.where(kyc_status: TABS[@tab])
+    @distributors = apply_kyc_search(base.where(kyc_status: TABS[@tab]))
                         .order(kyc_submitted_at: :desc, created_at: :desc)
 
     # Anything that still needs an admin to act on it.
     @pending_count = @tab_counts['just_registered'] + @tab_counts['submitted']
+  end
+
+  # POST /admin/ambassador_kyc_verifications/bulk_action
+  # params: ids[], bulk_action (approve|reject), reason (reject only), status, q
+  def bulk_action
+    ids = Array(params[:ids]).reject(&:blank?)
+    action = params[:bulk_action].to_s
+    back = admin_ambassador_kyc_verifications_path(status: params[:status].presence, q: params[:q].presence)
+
+    if ids.empty? || !%w[approve reject].include?(action)
+      return redirect_to back, alert: 'Select at least one ambassador first.'
+    end
+
+    reason = params[:reason].presence || 'Rejected by admin'
+    result = run_bulk(Distributor.self_registered.where(id: ids)) do |distributor|
+      next :skip unless distributor.kyc_pending? || distributor.kyc_submitted?
+
+      if action == 'approve'
+        distributor.approve_kyc!
+        SendAmbassadorKycEmailJob.perform_later(distributor_id: distributor.id, event: 'approved')
+      else
+        distributor.reject_kyc!(reason)
+        SendAmbassadorKycEmailJob.perform_later(distributor_id: distributor.id, event: 'rejected')
+      end
+    end
+
+    flash_type = result[:failed].any? || result[:done].zero? ? :alert : :notice
+    redirect_to back, flash_type => bulk_flash(result, action == 'approve' ? 'approved' : 'rejected')
   end
 
   # PATCH /admin/ambassador_kyc_verifications/:id/mark_submitted

@@ -70,6 +70,12 @@ class AmbassadorController < ApplicationController
     @withdrawal_request = WithdrawalRequest.new
   end
 
+  # Affiliates mapped under this ambassador with just their policy counts.
+  # Stats come from setup_ambassador_data (one batched pass for all affiliates).
+  def referred_business
+    @referred_affiliates = @assigned_affiliates.to_a
+  end
+
   def request_withdrawal
     # Common data setup handled by before_action
     withdrawal_request = @distributor.withdrawal_requests.new(withdrawal_request_params)

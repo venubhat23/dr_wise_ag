@@ -1,0 +1,119 @@
+<%# Floating bulk approve / reject bar + reject-reason modal.
+    Checkboxes in the table use  class="kyc-row-check" form="kyc_bulk_form"  and the
+    header one uses  id="kyc_select_all".
+    locals: url, status, q, noun (e.g. "affiliate"), default_reason %>
+<%= form_with url: url, method: :post, local: true, id: "kyc_bulk_form" do %>
+  <%= hidden_field_tag :status, status %>
+  <%= hidden_field_tag :q, q %>
+  <%= hidden_field_tag :bulk_action, "", id: "kyc_bulk_action" %>
+  <%= hidden_field_tag :reason, "", id: "kyc_bulk_reason" %>
+<% end %>
+
+<style>
+  .kyc-bulk-bar {
+    position: fixed; left: 50%; bottom: 24px; z-index: 1040;
+    transform: translate(-50%, 140%); transition: transform .25s ease;
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: center;
+    padding: .75rem 1.25rem; border-radius: 999px; color: #fff;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+    max-width: calc(100vw - 24px);
+  }
+  .kyc-bulk-bar.show { transform: translate(-50%, 0); }
+  .kyc-bulk-bar .count-pill {
+    background: rgba(255,255,255,.15); border-radius: 999px; padding: .2rem .75rem; font-weight: 600;
+  }
+  tr.kyc-row-selected > td { background-color: rgba(13,110,253,.07) !important; }
+</style>
+
+<div class="kyc-bulk-bar" id="kyc_bulk_bar" role="toolbar" aria-label="Bulk actions">
+  <span class="count-pill"><i class="bi bi-check2-square me-1"></i><span id="kyc_bulk_count">0</span> selected</span>
+  <button type="button" class="btn btn-success btn-sm rounded-pill px-3" id="kyc_bulk_approve">
+    <i class="bi bi-check-lg me-1"></i>Approve
+  </button>
+  <button type="button" class="btn btn-danger btn-sm rounded-pill px-3" id="kyc_bulk_reject">
+    <i class="bi bi-x-lg me-1"></i>Reject
+  </button>
+  <button type="button" class="btn btn-link btn-sm text-white-50 text-decoration-none" id="kyc_bulk_clear">Clear</button>
+</div>
+
+<div class="modal fade" id="kyc_bulk_reject_modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-x-octagon text-danger me-2"></i>Reject <span id="kyc_reject_count"></span> <%= noun %>(s)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <label for="kyc_reject_reason_input" class="form-label">Reason <span class="text-muted small">(shared with everyone selected)</span></label>
+        <textarea id="kyc_reject_reason_input" class="form-control" rows="3"><%= default_reason %></textarea>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="kyc_reject_confirm">Reject selected</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('kyc_bulk_form');
+  var bar = document.getElementById('kyc_bulk_bar');
+  if (!form || !bar) return;
+
+  var checks = Array.prototype.slice.call(document.querySelectorAll('.kyc-row-check'));
+  var selectAll = document.getElementById('kyc_select_all');
+  var countEl = document.getElementById('kyc_bulk_count');
+  var noun = <%= raw json_escape(noun.to_json) %>;
+
+  function selected() { return checks.filter(function (c) { return c.checked; }); }
+
+  function refresh() {
+    var n = selected().length;
+    countEl.textContent = n;
+    bar.classList.toggle('show', n > 0);
+    checks.forEach(function (c) {
+      var row = c.closest('tr');
+      if (row) row.classList.toggle('kyc-row-selected', c.checked);
+    });
+    if (selectAll) {
+      selectAll.checked = n > 0 && n === checks.length;
+      selectAll.indeterminate = n > 0 && n < checks.length;
+    }
+  }
+
+  checks.forEach(function (c) { c.addEventListener('change', refresh); });
+  if (selectAll) selectAll.addEventListener('change', function () {
+    checks.forEach(function (c) { c.checked = selectAll.checked; });
+    refresh();
+  });
+
+  document.getElementById('kyc_bulk_clear').addEventListener('click', function () {
+    checks.forEach(function (c) { c.checked = false; });
+    refresh();
+  });
+
+  function submitWith(action, reason) {
+    document.getElementById('kyc_bulk_action').value = action;
+    document.getElementById('kyc_bulk_reason').value = reason || '';
+    form.submit();
+  }
+
+  document.getElementById('kyc_bulk_approve').addEventListener('click', function () {
+    var n = selected().length;
+    if (n && confirm('Approve ' + n + ' ' + noun + '(s) and activate their accounts?')) submitWith('approve');
+  });
+
+  var modalEl = document.getElementById('kyc_bulk_reject_modal');
+  document.getElementById('kyc_bulk_reject').addEventListener('click', function () {
+    document.getElementById('kyc_reject_count').textContent = selected().length;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  });
+  document.getElementById('kyc_reject_confirm').addEventListener('click', function () {
+    submitWith('reject', document.getElementById('kyc_reject_reason_input').value.trim());
+  });
+
+  refresh();
+})();
+</script>

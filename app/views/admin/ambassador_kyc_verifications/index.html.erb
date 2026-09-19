@@ -41,6 +41,11 @@
   </div>
 <% end %>
 
+<%= render 'admin/shared/kyc_search', path: admin_ambassador_kyc_verifications_path, status: @tab,
+           noun: 'ambassadors', q: @q, total: @distributors.size %>
+
+<% bulk_enabled = %w[just_registered submitted].include?(@tab) %>
+
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">
     <% if @distributors.any? %>
@@ -48,6 +53,11 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
+              <% if bulk_enabled %>
+                <th style="width: 40px;">
+                  <input type="checkbox" class="form-check-input" id="kyc_select_all" title="Select all">
+                </th>
+              <% end %>
               <th>Ambassador</th>
               <th>Email</th>
               <th>Mobile</th>
@@ -60,6 +70,12 @@
           <tbody>
             <% @distributors.each do |distributor| %>
               <tr>
+                <% if bulk_enabled %>
+                  <td>
+                    <input type="checkbox" class="form-check-input kyc-row-check" name="ids[]"
+                           value="<%= distributor.id %>" form="kyc_bulk_form">
+                  </td>
+                <% end %>
                 <td><%= distributor.display_name.presence || content_tag(:span, "Name pending", class: "text-muted fst-italic") %></td>
                 <td><%= distributor.email %></td>
                 <td><%= distributor.formatted_mobile %></td>
@@ -113,8 +129,15 @@
     <% else %>
       <div class="text-center py-5">
         <i class="bi bi-patch-check fs-1 text-muted"></i>
-        <h6 class="text-muted mt-3">No ambassadors in this status</h6>
+        <h6 class="text-muted mt-3">
+          <%= @q.present? ? "No ambassadors match “#{@q}” in this status" : "No ambassadors in this status" %>
+        </h6>
       </div>
     <% end %>
   </div>
 </div>
+
+<% if bulk_enabled && @distributors.any? %>
+  <%= render 'admin/shared/kyc_bulk_bar', url: bulk_action_admin_ambassador_kyc_verifications_path,
+             status: @tab, q: @q, noun: 'ambassador', default_reason: 'Rejected by admin' %>
+<% end %>

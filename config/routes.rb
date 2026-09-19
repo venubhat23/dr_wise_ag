@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   get 'ambassador/commission_details', to: 'ambassador#commission_details'
   get 'ambassador/payout_history', to: 'ambassador#payout_history'
   get  'ambassador/wallet', to: 'ambassador#wallet'
+  get  'ambassador/referred_business', to: 'ambassador#referred_business', as: :ambassador_referred_business
   post 'ambassador/wallet/withdrawal', to: 'ambassador#request_withdrawal', as: :ambassador_wallet_withdrawal
 
   # Ambassador web KYC wizard (gated: dashboard is blocked until KYC is approved)
@@ -292,10 +293,13 @@ Rails.application.routes.draw do
     end
 
     # KYC Verification queue (affiliates awaiting KYC review)
-    resources :kyc_verifications, only: [:index]
+    resources :kyc_verifications, only: [:index] do
+      collection { post :bulk_action }
+    end
 
     # Ambassador KYC verification queue
     resources :ambassador_kyc_verifications, only: [:index] do
+      collection { post :bulk_action }
       member do
         patch :approve
         patch :reject

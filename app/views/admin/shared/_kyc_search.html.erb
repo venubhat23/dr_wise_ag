@@ -1,0 +1,24 @@
+<%# Search box for a KYC queue tab. locals: path, status, noun, q, total %>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-3">
+    <%= form_with url: path, method: :get, local: true, class: "d-flex flex-wrap gap-2 align-items-center" do |f| %>
+      <%= hidden_field_tag :status, status if status.present? %>
+      <div class="input-group flex-grow-1" style="max-width: 520px;">
+        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+        <%= text_field_tag :q, q, class: "form-control border-start-0",
+                           placeholder: "Search #{noun} by name, email or mobile…", autocomplete: "off" %>
+        <% if q.present? %>
+          <%= link_to (status.present? ? "#{path}?#{{ status: status }.to_query}" : path), class: "btn btn-outline-secondary", title: "Clear search" do %>
+            <i class="bi bi-x-lg"></i>
+          <% end %>
+        <% end %>
+        <button type="submit" class="btn btn-primary px-4">Search</button>
+      </div>
+      <% if q.present? %>
+        <span class="text-muted small">
+          <strong><%= total %></strong> result<%= 's' unless total == 1 %> for “<%= q %>”
+        </span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

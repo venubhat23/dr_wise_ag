@@ -1879,6 +1879,19 @@ body.sidebar-collapsed .main-content {
             <div class="nav-indicator"></div>
           <% end %>
         </li>
+
+        <!-- Referred Business -->
+        <li class="nav-item">
+          <%= link_to ambassador_referred_business_path, class: "nav-link-modern #{'active' if request.path.include?('/ambassador/referred_business')}" do %>
+            <div class="nav-icon-modern">
+              <div class="icon-bg gradient-blue">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+            <span class="nav-text">Referred Business</span>
+            <div class="nav-indicator"></div>
+          <% end %>
+        </li>
       </ul>
     </div>
     <% end %>
