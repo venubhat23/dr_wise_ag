@@ -58,7 +58,16 @@
                   <span class="badge bg-info-subtle text-info ms-1"><%= wr.owner_kind %></span>
                 </td>
                 <td><%= wr.owner.email %></td>
-                <td class="fw-semibold"><%= indian_currency(wr.amount) %></td>
+                <td class="fw-semibold">
+                  <%= indian_currency(wr.amount) %>
+                  <% owner_wallet = wr.owner.wallet %>
+                  <% if owner_wallet && wr.pending? %>
+                    <div class="small fw-normal">
+                      <span class="text-success"><i class="bi bi-unlock"></i> Active <%= indian_currency(owner_wallet.balance) %></span><br>
+                      <span class="text-warning"><i class="bi bi-lock"></i> Inactive <%= indian_currency(owner_wallet.inactive_balance) %></span>
+                    </div>
+                  <% end %>
+                </td>
                 <td><%= truncate(wr.reason, length: 60) %></td>
                 <td>
                   <% ts = @tab == 'pending' ? wr.created_at : wr.reviewed_at %>

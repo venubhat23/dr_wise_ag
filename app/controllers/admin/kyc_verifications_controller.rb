@@ -10,7 +10,7 @@ class Admin::KycVerificationsController < Admin::ApplicationController
       SubAgent.where(kyc_status: @kyc_status_filter)
     end
 
-    @sub_agents = scope.order(kyc_submitted_at: :desc, created_at: :desc)
+    @sub_agents = scope.includes(:sub_agent_documents).order(kyc_submitted_at: :desc, created_at: :desc)
 
     @pending_count = SubAgent.kyc_submitted.count
     @just_registered_count = SubAgent.kyc_pending.count

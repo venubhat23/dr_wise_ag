@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_17_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -2125,6 +2125,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_17_100000) do
     t.index ["status"], name: "index_vendors_on_status"
   end
 
+  create_table "wallet_holds", force: :cascade do |t|
+    t.bigint "wallet_id", null: false
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.string "kind", null: false
+    t.text "description"
+    t.bigint "trigger_sub_agent_id"
+    t.string "status", default: "locked", null: false
+    t.datetime "released_at"
+    t.bigint "wallet_transaction_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["trigger_sub_agent_id", "status"], name: "index_wallet_holds_on_trigger_sub_agent_id_and_status"
+    t.index ["wallet_id", "status"], name: "index_wallet_holds_on_wallet_id_and_status"
+    t.index ["wallet_id"], name: "index_wallet_holds_on_wallet_id"
+  end
+
   create_table "wallet_transactions", force: :cascade do |t|
     t.bigint "wallet_id", null: false
     t.string "txn_type", null: false
@@ -2254,6 +2270,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_17_100000) do
   add_foreign_key "vendor_payouts", "leads"
   add_foreign_key "vendor_payouts", "vendors"
   add_foreign_key "vendor_products", "vendors"
+  add_foreign_key "wallet_holds", "wallets"
   add_foreign_key "wallet_transactions", "wallets"
   add_foreign_key "withdrawal_requests", "wallet_transactions"
 end

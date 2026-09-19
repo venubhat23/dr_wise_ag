@@ -37,15 +37,21 @@ module WalletManagement
                         .where(owner_type: owner_class.name, owner_id: @owners.map(&:id))
                         .index_by(&:owner_id)
 
+    wallet_ids = @wallets_by_owner.values.map(&:id)
+    @inactive_by_wallet = WalletHold.locked.where(wallet_id: wallet_ids).group(:wallet_id).sum(:amount)
+
     totals = Wallet.where(owner_type: owner_class.name)
     @total_wallets     = totals.count
     @total_balance     = totals.sum(:balance)
+    @total_inactive_balance = WalletHold.locked.where(wallet_id: totals.select(:id)).sum(:amount)
     @wallets_with_funds = totals.where('balance > 0').count
   end
 
   def show
     @wallet = @owner.wallet!
     @transactions = paginate_records(@wallet.wallet_transactions.recent_first)
+    @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
+    @inactive_balance = @locked_holds.sum(&:amount)
   end
 
   def add_funds

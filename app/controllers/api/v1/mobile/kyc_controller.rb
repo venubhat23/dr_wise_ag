@@ -41,10 +41,7 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     end
 
     if params[:bank_file].present?
-      bank_document_type = params[:bank_document_type].to_s
-      bank_document_type = 'Bank Passbook' unless BANK_DOCUMENT_TYPES.include?(bank_document_type)
-
-      document = create_document(bank_document_type, params[:bank_file])
+      document = create_document(bank_document_type_param, params[:bank_file])
       return render_error('Failed to upload bank document', :unprocessable_entity) unless document
       uploaded << document
     end
@@ -62,23 +59,49 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   # as the affiliate's actual profile data, instead of the user re-typing
   # name/DOB/address/PAN/Aadhaar by hand after Upload KYC Documents.
   #
-  # Also accepts an optional `photo` file (multipart/form-data, same as the
-  # web ambassador KYC wizard's photo step) and saves it as a
-  # SubAgentDocument (document_type "Profile Image").
+  # Also accepts the KYC files in the same multipart/form-data request, so the
+  # app can submit everything in one call (all optional, any subset works):
+  #   aadhaar_file             -> SubAgentDocument "Aadhaar Card" (OCR'd)
+  #   pan_file                 -> SubAgentDocument "Pancard" (OCR'd)
+  #   photo / profile_photo    -> SubAgentDocument "Profile Image" (no OCR)
+  #   bank_file                -> SubAgentDocument "Bank Statement" or
+  #                               "Bank Passbook" per bank_document_type
+  #                               (default "Bank Passbook"; OCR'd)
+  # Files are only stored once the details themselves pass validation, so a
+  # rejected request never leaves orphan documents behind.
   def update_details
     permitted = params.permit(:first_name, :middle_name, :last_name, :birth_date,
                                :gender, :address, :city, :state, :pan_no, :aadhaar_no,
                                :bank_name, :account_no, :ifsc_code, :account_holder_name,
                                :account_type, :upi_id)
-    photo = params[:photo] || params[:profile_photo]
-    photo_document = nil
 
+    @sub_agent.assign_attributes(permitted)
+    unless @sub_agent.valid?
+      return render_error(@sub_agent.errors.full_messages.join(', '), :unprocessable_entity)
+    end
+
+    uploaded = {}
+    {
+      aadhaar_file: ['Aadhaar Card', 'Aadhaar document'],
+      pan_file: ['Pancard', 'PAN document'],
+      bank_file: [bank_document_type_param, 'bank document']
+    }.each do |param_key, (document_type, label)|
+      next if params[param_key].blank?
+
+      document = create_document(document_type, params[param_key])
+      return render_error("Failed to upload #{label}", :unprocessable_entity) unless document
+      uploaded[param_key] = document
+    end
+
+    photo = params[:photo] || params[:profile_photo]
     if photo.present?
       photo_document = create_photo_document(photo)
       return render_error('Failed to upload photo', :unprocessable_entity) unless photo_document
+      uploaded[:photo] = photo_document
     end
+    photo_document = uploaded[:photo]
 
-    if @sub_agent.update(permitted)
+    if @sub_agent.save
       mark_kyc_submitted!
 
       render_success({
@@ -99,6 +122,7 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
         account_type: @sub_agent.account_type,
         upi_id: @sub_agent.upi_id,
         photo_url: photo_document&.r2_public_url || @sub_agent.r2_profile_image_url,
+        documents: uploaded.values.map { |doc| document_response(doc) },
         kyc_status: @sub_agent.kyc_status,
         kyc_submitted_at: @sub_agent.kyc_submitted_at,
         kyc_reviewed_at: @sub_agent.kyc_reviewed_at,
@@ -194,6 +218,11 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       kyc_rejection_reason: nil
     )
     SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'submitted')
+  end
+
+  def bank_document_type_param
+    type = params[:bank_document_type].to_s
+    BANK_DOCUMENT_TYPES.include?(type) ? type : 'Bank Passbook'
   end
 
   def create_document(document_type, file)

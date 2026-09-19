@@ -193,7 +193,7 @@ class Distributor < ApplicationRecord
       update!(kyc_status: :approved, status: :active, kyc_reviewed_at: Time.current)
       ambassador_user&.update(status: true)
 
-      wallet!.credit!(JOINING_BONUS, description: "Joining Credit") unless already_approved
+      wallet!.lock_credit!(JOINING_BONUS, description: "Joining Credit", kind: 'joining_credit') unless already_approved
     end
   end
 

@@ -237,9 +237,11 @@
             <div class="border rounded p-3 h-100">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <h6 class="mb-0"><%= document.document_type %></h6>
-                <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
-                  OCR: <%= document.ocr_status %>
-                </span>
+                <% if document.ocr_status.present? %>
+                  <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
+                    OCR: <%= document.ocr_status %>
+                  </span>
+                <% end %>
               </div>
               <% if document.has_file? %>
                 <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary mb-2" do %>
@@ -291,6 +293,34 @@
   </div>
 </div>
 
+<!-- Profile Photo Section -->
+<% photo_docs = @documents.select { |d| d.document_type == 'Profile Image' && d.has_file? } %>
+<% if photo_docs.any? %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center">
+      <i class="bi bi-person-circle me-2 text-primary"></i>
+      <h5 class="mb-0">Profile Photo</h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-3">
+        <% photo_docs.each do |document| %>
+          <div class="border rounded p-2 text-center">
+            <% if document.is_image? %>
+              <%= link_to document.document_url, target: '_blank', rel: 'noopener' do %>
+                <img src="<%= document.document_url %>" alt="Profile photo" class="rounded" style="max-height: 180px; max-width: 180px; object-fit: cover;">
+              <% end %>
+            <% end %>
+            <div class="small text-muted mt-1">Uploaded <%= document.created_at.strftime('%d %b %Y, %I:%M %p') %></div>
+            <%= link_to document.document_url, target: '_blank', rel: 'noopener', class: "btn btn-sm btn-outline-primary mt-1" do %>
+              <i class="bi bi-eye me-1"></i>View
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <!-- Bank Document Review Section (optional upload) -->
 <% bank_docs = @documents.select { |d| ['Bank Statement', 'Bank Passbook'].include?(d.document_type) } %>
 <% if bank_docs.any? %>
@@ -306,9 +336,11 @@
             <div class="border rounded p-3 h-100">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <h6 class="mb-0"><%= document.document_type %></h6>
-                <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
-                  OCR: <%= document.ocr_status %>
-                </span>
+                <% if document.ocr_status.present? %>
+                  <span class="badge bg-<%= { 'success' => 'success', 'failed' => 'danger', 'pending' => 'secondary' }[document.ocr_status] %>">
+                    OCR: <%= document.ocr_status %>
+                  </span>
+                <% end %>
               </div>
               <% if document.has_file? %>
                 <%= link_to document.document_url, target: '_blank', class: "btn btn-sm btn-outline-primary mb-2" do %>
@@ -371,10 +403,10 @@
                     <i class="bi bi-clock me-1"></i>
                     Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
                   </small>
-                  <% if document.document_file.attached? %>
+                  <% if document.has_file? %>
                     <small class="text-muted d-block">
                       <i class="bi bi-hdd me-1"></i>
-                      Size: <%= number_to_human_size(document.document_file.byte_size) %>
+                      Size: <%= document.document_size %>
                     </small>
                   <% end %>
                 </div>
@@ -388,6 +420,11 @@
                     <%= link_to rails_blob_path(document.document_file, disposition: "attachment"),
                                class: "btn btn-sm btn-outline-secondary flex-fill" do %>
                       <i class="bi bi-download me-1"></i>Download
+                    <% end %>
+                  <% elsif document.has_r2_file? && document.document_url.present? %>
+                    <%= link_to document.document_url, target: '_blank', rel: 'noopener',
+                               class: "btn btn-sm btn-outline-primary flex-fill" do %>
+                      <i class="bi bi-eye me-1"></i>View
                     <% end %>
                   <% end %>
                   <%= link_to admin_sub_agent_sub_agent_document_path(@sub_agent, document),

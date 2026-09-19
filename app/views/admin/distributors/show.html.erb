@@ -812,7 +812,9 @@
         </div>
         <small class="text-muted d-block mt-2">
           A new affiliate who signs up with this code is mapped directly under this ambassador and receives a
-          <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> welcome bonus. The ambassador is not credited.
+          <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> welcome bonus. This ambassador is credited
+          <%= indian_currency(AffiliateReferralService::REFERRAL_REWARD) %> per referred affiliate. Both amounts sit in the
+          inactive wallet and unlock when that affiliate creates their first policy.
         </small>
       </div>
     </div>

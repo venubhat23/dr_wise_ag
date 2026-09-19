@@ -31,8 +31,9 @@
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Balance Held</h6>
+            <h6 class="text-muted mb-2">Total Active Balance</h6>
             <h3 class="mb-0 text-success"><%= indian_currency(@total_balance) %></h3>
+            <small class="text-warning"><i class="bi bi-lock"></i> <%= indian_currency(@total_inactive_balance) %> inactive (locked)</small>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
             <i class="bi bi-cash-stack text-success fs-4"></i>
@@ -144,6 +145,10 @@
                 </td>
                 <td class="text-end fw-semibold">
                   <%= indian_currency(wallet&.balance || 0) %>
+                  <% locked = @inactive_by_wallet[wallet&.id].to_d %>
+                  <% if locked > 0 %>
+                    <div><small class="text-warning"><i class="bi bi-lock"></i> <%= indian_currency(locked) %> inactive</small></div>
+                  <% end %>
                 </td>
                 <td class="text-end">
                   <%= link_to wallet_entity_path(owner), class: "btn btn-sm btn-outline-primary", title: "Manage wallet" do %>

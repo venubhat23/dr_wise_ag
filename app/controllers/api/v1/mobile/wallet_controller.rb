@@ -8,10 +8,19 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
   def summary
     wallet = @owner.wallet!
     pending_request = @owner.withdrawal_requests.pending.first
+    locked_holds = wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
+    inactive_total = locked_holds.sum(&:amount)
 
     render_success(
+      # `balance` is the ACTIVE (withdrawable) wallet - kept under the old key
+      # so existing app builds keep working.
       balance: wallet.balance.to_f,
       balance_formatted: format_indian_amount(wallet.balance),
+      active_balance: wallet.balance.to_f,
+      active_balance_formatted: format_indian_amount(wallet.balance),
+      inactive_balance: inactive_total.to_f,
+      inactive_balance_formatted: format_indian_amount(inactive_total),
+      inactive_holds: locked_holds.map { |hold| hold_json(hold) },
       total_credited: wallet.total_credited.to_f,
       total_debited: wallet.total_debited.to_f,
       min_withdrawal_amount: WithdrawalRequest::MIN_AMOUNT.to_f,
@@ -44,6 +53,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
 
     render_success(
       withdrawal_requests: records.map { |wr| withdrawal_request_json(wr) },
+      wallet: wallet_balances_json,
       pagination: pagination_meta(page, per_page, total_count)
     )
   end
@@ -58,12 +68,12 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
 
     if withdrawal_request.save
       render_success(
-        { withdrawal_request: withdrawal_request_json(withdrawal_request) },
+        { withdrawal_request: withdrawal_request_json(withdrawal_request), wallet: wallet_balances_json },
         'Withdrawal request submitted. We will review it shortly.'
       )
     else
       render_error('Withdrawal request could not be submitted', :unprocessable_entity,
-                    withdrawal_request.errors.full_messages)
+                    withdrawal_request.errors.full_messages + ["Active wallet: #{format_indian_amount(@owner.wallet!.balance)}, Inactive wallet: #{format_indian_amount(@owner.wallet!.inactive_balance)}"])
     end
   end
 
@@ -124,6 +134,30 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
       balance_after: txn.balance_after.to_f,
       description: txn.description,
       created_at: txn.created_at.iso8601
+    }
+  end
+
+  # Active (withdrawable) + inactive (locked) balances, shown next to withdrawals.
+  def wallet_balances_json
+    wallet = @owner.wallet!
+    inactive = wallet.inactive_balance
+    {
+      active_balance: wallet.balance.to_f,
+      active_balance_formatted: format_indian_amount(wallet.balance),
+      inactive_balance: inactive.to_f,
+      inactive_balance_formatted: format_indian_amount(inactive),
+      min_withdrawal_amount: WithdrawalRequest::MIN_AMOUNT.to_f
+    }
+  end
+
+  def hold_json(hold)
+    {
+      id: hold.id,
+      amount: hold.amount.to_f,
+      kind: hold.kind,
+      description: hold.description,
+      unlock_condition: hold.unlock_condition,
+      created_at: hold.created_at.iso8601
     }
   end
 

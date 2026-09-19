@@ -226,7 +226,7 @@
           When someone signs up with this code, the new affiliate is mapped under
           <strong><%= @sub_agent.ambassador&.display_name || 'this affiliate\'s ambassador' %></strong>
           (not under this affiliate) and gets a <%= indian_currency(AffiliateReferralService::SIGNUP_BONUS) %> bonus.
-          This affiliate is not credited.
+          This affiliate is not credited. The bonus is added to the new affiliate's inactive wallet when their KYC is approved, and unlocks after they create their first policy.
         </small>
       </div>
       <div class="col-md-6">

@@ -191,6 +191,18 @@ class SubAgent < ApplicationRecord
 
   def approve_kyc!
     update!(kyc_status: :approved, status: :active, kyc_reviewed_at: Time.current)
+    credit_referral_signup_bonus
+  end
+
+  # A referred affiliate (signed up with an ambassador/affiliate code) gets the
+  # signup bonus in their INACTIVE wallet once KYC is approved. Idempotent, and
+  # a wallet problem must never undo the approval itself.
+  def credit_referral_signup_bonus
+    return if referred_by_code.blank? || ambassador.blank?
+
+    AffiliateReferralService.credit_signup_bonus!(self, code: referred_by_code)
+  rescue => e
+    Rails.logger.error "[ReferralProgram] signup bonus failed for SubAgent##{id}: #{e.message}"
   end
 
   def reject_kyc!(reason)

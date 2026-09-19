@@ -60,7 +60,7 @@ class WithdrawalRequest < ApplicationRecord
     return if owner.blank? || amount.blank?
 
     available = owner.wallet&.balance || 0
-    errors.add(:amount, 'cannot exceed your available wallet balance') if amount > available
+    errors.add(:amount, 'cannot exceed your active wallet balance (inactive wallet money cannot be withdrawn)') if amount > available
   end
 
   def no_other_pending_request

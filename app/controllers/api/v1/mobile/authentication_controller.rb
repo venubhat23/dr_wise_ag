@@ -667,12 +667,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
     )
 
     if sub_agent.save
-      bonus_credited = false
       begin
         AffiliateReferralService.attribute!(sub_agent, referral)
+        # The affiliate's own signup bonus is credited (to the inactive wallet)
+        # when admin approves their KYC - see SubAgent#approve_kyc!.
         if referral.bonus_eligible?
-          AffiliateReferralService.credit_signup_bonus!(sub_agent, code: referral_code)
-          bonus_credited = sub_agent.reload.referral_bonus_credited?
+          AffiliateReferralService.credit_referral_reward!(referral.ambassador, sub_agent)
         end
       rescue => e
         Rails.logger.error "[ReferralProgram] post-signup step failed for SubAgent##{sub_agent.id}: #{e.message}"
@@ -695,8 +695,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             code_type: referral.kind,
             ambassador_id: referral.ambassador&.id,
             ambassador_name: referral.ambassador&.display_name,
-            signup_bonus: bonus_credited ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
-            wallet_balance: sub_agent.wallet&.balance.to_f
+            signup_bonus: 0.0,
+            signup_bonus_pending: referral.bonus_eligible? ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
+            signup_bonus_note: referral.bonus_eligible? ? 'Credited to your inactive wallet once your KYC is approved; it becomes withdrawable after you create your first policy.' : nil,
+            wallet_balance: sub_agent.wallet&.balance.to_f,
+            active_balance: sub_agent.wallet&.balance.to_f,
+            inactive_balance: sub_agent.wallet&.inactive_balance.to_f
           },
           payment_required: sub_agent.payment_required?,
           payment_paid: sub_agent.payment_paid,
@@ -905,7 +909,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           referral_program: ambassador_record && {
             my_referral_code: ambassador_record.referral_code,
             affiliates_count: ambassador_record.sub_agents.count,
-            wallet_balance: ambassador_record.wallet&.balance.to_f
+            wallet_balance: ambassador_record.wallet&.balance.to_f,
+            active_balance: ambassador_record.wallet&.balance.to_f,
+            inactive_balance: ambassador_record.wallet&.inactive_balance.to_f
           },
           commission_earned: format_indian_amount(agent_stats[:commission_earned]),
           customers_count: agent_stats[:customers_count],
@@ -1001,7 +1007,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           ambassador_id: sub_agent.ambassador_id,
           ambassador_name: sub_agent.ambassador&.display_name,
           signup_bonus_received: sub_agent.referral_bonus_credited?,
-          wallet_balance: sub_agent.wallet&.balance.to_f
+          wallet_balance: sub_agent.wallet&.balance.to_f,
+          active_balance: sub_agent.wallet&.balance.to_f,
+          inactive_balance: sub_agent.wallet&.inactive_balance.to_f
         },
         payment_required: sub_agent.payment_required?,
         payment_paid: sub_agent.payment_paid,

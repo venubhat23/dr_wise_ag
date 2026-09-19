@@ -285,9 +285,15 @@
               <% if current_user.respond_to?(:ambassador?) && current_user.ambassador? %>
                 <% ambassador_wallet_distributor = Distributor.find_by(email: current_user.email) %>
                 <% if ambassador_wallet_distributor %>
-                  <%= link_to ambassador_wallet_path, class: "btn btn-outline-warning btn-sm me-2 d-flex align-items-center", title: "My Wallet" do %>
-                    <i class="bi bi-coin me-1" style="color: #d4af37;"></i>
-                    <span><%= indian_currency(ambassador_wallet_distributor.wallet!.balance) %></span>
+                  <% header_wallet = ambassador_wallet_distributor.wallet! %>
+                  <%= link_to ambassador_wallet_path, class: "btn btn-outline-warning btn-sm me-2 d-flex align-items-center gap-2", title: "Active wallet can be withdrawn. Inactive wallet unlocks when your referred affiliates create their first policy." do %>
+                    <span class="d-flex align-items-center text-success" title="Active wallet (withdrawable)">
+                      <i class="bi bi-unlock me-1"></i><small class="me-1">Active</small><strong><%= indian_currency(header_wallet.balance) %></strong>
+                    </span>
+                    <span class="text-muted">|</span>
+                    <span class="d-flex align-items-center text-warning" title="Inactive wallet (locked)">
+                      <i class="bi bi-lock me-1"></i><small class="me-1">Inactive</small><strong><%= indian_currency(header_wallet.inactive_balance) %></strong>
+                    </span>
                   <% end %>
                 <% end %>
               <% end %>

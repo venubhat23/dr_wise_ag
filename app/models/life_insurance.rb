@@ -3,6 +3,7 @@ class LifeInsurance < ApplicationRecord
   include InsuranceCompanyConstants
   include DashboardOptimizable
   include ClearsAnalyticsCache
+  include UnlocksWalletOnPolicy
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count

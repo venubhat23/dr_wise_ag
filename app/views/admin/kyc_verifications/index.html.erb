@@ -49,6 +49,9 @@
               <% if @kyc_status_filter == 'just_registered' %>
                 <th>Password</th>
               <% end %>
+              <% unless @kyc_status_filter == 'just_registered' %>
+                <th>Documents</th>
+              <% end %>
               <th>Referred By</th>
               <th><%= @kyc_status_filter == 'just_registered' ? 'Registered' : 'Submitted' %></th>
               <th class="text-end">Action</th>
@@ -64,6 +67,33 @@
                 <td><%= sub_agent.mobile %></td>
                 <% if @kyc_status_filter == 'just_registered' %>
                   <td><%= sub_agent.original_password %></td>
+                <% end %>
+                <% unless @kyc_status_filter == 'just_registered' %>
+                  <td>
+                    <%# Latest upload per slot; docs are preloaded in the controller. %>
+                    <% kyc_doc_slots = [
+                         ['Aadhaar', ['Aadhaar Card'], 'bi-person-vcard'],
+                         ['PAN', ['Pancard'], 'bi-credit-card-2-front'],
+                         ['Photo', ['Profile Image'], 'bi-person-circle'],
+                         ['Bank', ['Bank Statement', 'Bank Passbook'], 'bi-bank']
+                       ] %>
+                    <div class="d-flex flex-wrap gap-1">
+                      <% kyc_doc_slots.each do |label, types, icon| %>
+                        <% doc = sub_agent.sub_agent_documents.select { |d| types.include?(d.document_type) && d.has_file? }.max_by(&:created_at) %>
+                        <% if doc %>
+                          <%= link_to doc.document_url, target: '_blank', rel: 'noopener',
+                                      class: "badge text-bg-success text-decoration-none",
+                                      title: "View #{doc.document_type}" do %>
+                            <i class="bi <%= icon %> me-1"></i><%= label %>
+                          <% end %>
+                        <% else %>
+                          <span class="badge text-bg-light text-muted border" title="<%= label %> not uploaded">
+                            <i class="bi <%= icon %> me-1"></i><%= label %>
+                          </span>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </td>
                 <% end %>
                 <td>
                   <% if sub_agent.referred_by_code.present? %>

@@ -62,6 +62,9 @@ class AmbassadorController < ApplicationController
       @transactions = @transactions.page(params[:page]).per(15)
     end
 
+    @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
+    @inactive_balance = @locked_holds.sum(&:amount)
+
     @withdrawal_requests = @distributor.withdrawal_requests.recent_first.limit(10)
     @pending_withdrawal_request = @distributor.withdrawal_requests.pending.first
     @withdrawal_request = WithdrawalRequest.new
