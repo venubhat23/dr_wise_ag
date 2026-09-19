@@ -46,9 +46,7 @@
               <% end %>
               <th>Email</th>
               <th>Mobile</th>
-              <% if @kyc_status_filter == 'just_registered' %>
-                <th>Password</th>
-              <% end %>
+              <th>Password</th>
               <% unless @kyc_status_filter == 'just_registered' %>
                 <th>Documents</th>
               <% end %>
@@ -65,9 +63,7 @@
                 <% end %>
                 <td><%= sub_agent.email %></td>
                 <td><%= sub_agent.mobile %></td>
-                <% if @kyc_status_filter == 'just_registered' %>
-                  <td><%= sub_agent.original_password %></td>
-                <% end %>
+                <td><code><%= sub_agent.original_password.presence || "—" %></code></td>
                 <% unless @kyc_status_filter == 'just_registered' %>
                   <td>
                     <%# Latest upload per slot; docs are preloaded in the controller. %>

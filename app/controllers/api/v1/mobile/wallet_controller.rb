@@ -39,6 +39,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
 
     render_success(
       transactions: records.map { |txn| transaction_json(txn) },
+      wallet: wallet_balances_json,
       pagination: pagination_meta(page, per_page, total_count)
     )
   end
@@ -155,6 +156,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
       id: hold.id,
       amount: hold.amount.to_f,
       kind: hold.kind,
+      status: hold.status,
       description: hold.description,
       unlock_condition: hold.unlock_condition,
       created_at: hold.created_at.iso8601
