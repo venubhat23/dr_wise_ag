@@ -23,6 +23,11 @@ class Wallet < ApplicationRecord
     balance
   end
 
+  # Active + inactive - everything the owner has earned, withdrawable or not.
+  def total_balance
+    balance + inactive_balance
+  end
+
   # Money that is still locked (the INACTIVE wallet), waiting for its unlock rule.
   def inactive_balance
     wallet_holds.locked.sum(:amount)

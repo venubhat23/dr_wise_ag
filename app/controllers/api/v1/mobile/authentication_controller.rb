@@ -703,7 +703,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             signup_bonus: 0.0,
             signup_bonus_pending: referral.bonus_eligible? ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
             signup_bonus_note: referral.bonus_eligible? ? 'Credited to your inactive wallet once your KYC is approved; it becomes withdrawable after you create your first policy.' : nil,
-            wallet_balance: sub_agent.wallet&.balance.to_f,
+            wallet_balance: sub_agent.wallet&.total_balance.to_f,
             active_balance: sub_agent.wallet&.balance.to_f,
             inactive_balance: sub_agent.wallet&.inactive_balance.to_f
           },
@@ -914,7 +914,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           referral_program: ambassador_record && {
             my_referral_code: ambassador_record.referral_code,
             affiliates_count: ambassador_record.sub_agents.count,
-            wallet_balance: ambassador_record.wallet&.balance.to_f,
+            wallet_balance: ambassador_record.wallet&.total_balance.to_f,
             active_balance: ambassador_record.wallet&.balance.to_f,
             inactive_balance: ambassador_record.wallet&.inactive_balance.to_f
           },
@@ -1012,7 +1012,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           ambassador_id: sub_agent.ambassador_id,
           ambassador_name: sub_agent.ambassador&.display_name,
           signup_bonus_received: sub_agent.referral_bonus_credited?,
-          wallet_balance: sub_agent.wallet&.balance.to_f,
+          wallet_balance: sub_agent.wallet&.total_balance.to_f,
           active_balance: sub_agent.wallet&.balance.to_f,
           inactive_balance: sub_agent.wallet&.inactive_balance.to_f
         },
