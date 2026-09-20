@@ -43,7 +43,9 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
     #    becomes a ledger credit ("Unlocked: ...") and drops out of this list
     #  * withdrawal requests still pending or rejected - an approved request is
     #    already in the ledger as a debit, so it is not repeated here
-    locked_holds = wallet.wallet_holds.locked.recent_first.to_a
+    @wallet = wallet
+    @all_holds = wallet.wallet_holds.includes(:wallet_transaction).to_a
+    locked_holds = @all_holds.select(&:locked?).sort_by { |h| [h.created_at, h.id] }.reverse
     open_requests = @owner.withdrawal_requests.where(status: %i[pending rejected]).recent_first.to_a
     total_count = scope.count + locked_holds.size + open_requests.size
     ledger = scope.limit(page * per_page).to_a
@@ -152,7 +154,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
       id: txn.id,
       txn_type: txn.txn_type,
       amount: txn.debit? ? -txn.amount.to_f : txn.amount.to_f,
-      balance_after: txn.balance_after.to_f,
+      **balance_after_fields(txn.balance_after, inactive_balance_at(txn.created_at)),
       description: txn.description,
       wallet_type: 'active',
       status: 'completed',
@@ -160,15 +162,40 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
     }
   end
 
+  # `balance_after` is the running TOTAL wallet (active + inactive) once the row
+  # has happened; the two parts are given alongside it.
+  def balance_after_fields(active, inactive)
+    {
+      balance_after: (active + inactive).to_f,
+      active_balance_after: active.to_f,
+      inactive_balance_after: inactive.to_f
+    }
+  end
+
+  # Money that was locked in the inactive wallet at moment `time`: holds created
+  # by then and not yet released (a hold is released by its unlock ledger credit).
+  def inactive_balance_at(time)
+    @all_holds.sum(0) do |hold|
+      released_at = hold.wallet_transaction&.created_at || hold.released_at
+      hold.created_at <= time && (released_at.nil? || released_at > time) ? hold.amount : 0
+    end
+  end
+
+  # Active wallet balance at moment `time` = the last ledger row up to then.
+  def active_balance_at(time)
+    @wallet.wallet_transactions.where(created_at: ..time).recent_first.pick(:balance_after) || 0
+  end
+
   # A pending/rejected withdrawal request in the transaction-history shape. No
-  # money has moved (approval is what debits the ledger), so `balance_after` is null.
+  # money has moved (approval is what debits the ledger), so the balance is
+  # unchanged by this row.
   def withdrawal_transaction_json(wr)
     {
       id: nil,
       withdrawal_request_id: wr.id,
       txn_type: 'withdrawal_request',
       amount: -wr.amount.to_f,
-      balance_after: nil,
+      **balance_after_fields(active_balance_at(wr.created_at), inactive_balance_at(wr.created_at)),
       description: "Withdrawal request: #{wr.reason}",
       wallet_type: 'active',
       status: wr.status,
@@ -178,14 +205,14 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
   end
 
   # A locked hold rendered in the transaction-history shape. It has no ledger
-  # row yet, so `id` is null and `balance_after` is null.
+  # row yet, so `id` is null; it raises the inactive part of the balance.
   def locked_hold_transaction_json(hold)
     {
       id: nil,
       hold_id: hold.id,
       txn_type: 'credit',
       amount: hold.amount.to_f,
-      balance_after: nil,
+      **balance_after_fields(active_balance_at(hold.created_at), inactive_balance_at(hold.created_at)),
       description: hold.description,
       wallet_type: 'inactive',
       status: 'locked',
