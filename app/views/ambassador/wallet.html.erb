@@ -57,7 +57,14 @@
             <label class="form-label">Amount to withdraw</label>
             <%= form.number_field :amount, class: "form-control", min: WithdrawalRequest::MIN_AMOUNT,
                   max: @wallet.balance, step: "0.01", required: true,
-                  placeholder: "Minimum #{indian_currency(WithdrawalRequest::MIN_AMOUNT)}" %>
+                  placeholder: "Minimum #{indian_currency(WithdrawalRequest::MIN_AMOUNT)}",
+                  disabled: @wallet.balance < WithdrawalRequest::MIN_AMOUNT %>
+            <small class="<%= @wallet.balance < WithdrawalRequest::MIN_AMOUNT ? 'text-danger' : 'text-muted' %>">
+              Minimum withdrawal is <%= indian_currency(WithdrawalRequest::MIN_AMOUNT) %>.
+              <% if @wallet.balance < WithdrawalRequest::MIN_AMOUNT %>
+                Your active wallet needs at least this much to request a withdrawal.
+              <% end %>
+            </small>
           </div>
 
           <div class="mb-2">
@@ -68,7 +75,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <%= form.submit "Submit Request", class: "btn btn-primary" %>
+          <%= form.submit "Submit Request", class: "btn btn-primary", disabled: @wallet.balance < WithdrawalRequest::MIN_AMOUNT %>
         </div>
       <% end %>
     </div>
@@ -113,26 +120,6 @@
           </div>
           <div class="col-auto">
             <i class="bi bi-lock fa-2x text-gray-300"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-xl-4 col-md-6">
-    <div class="card border-left-success shadow h-100 py-2">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-              Total Credited (Active)
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">
-              <i class="bi bi-coin me-1" style="color: #d4af37;"></i><%= indian_currency(@wallet.total_credited) %>
-            </div>
-          </div>
-          <div class="col-auto">
-            <i class="bi bi-arrow-down-circle fa-2x text-gray-300"></i>
           </div>
         </div>
       </div>

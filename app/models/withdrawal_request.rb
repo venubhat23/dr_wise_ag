@@ -4,7 +4,7 @@ class WithdrawalRequest < ApplicationRecord
 
   enum :status, { pending: 0, approved: 1, rejected: 2 }
 
-  MIN_AMOUNT = 100
+  MIN_AMOUNT = 1000
 
   validates :amount, numericality: { greater_than_or_equal_to: MIN_AMOUNT },
                       allow_nil: true
