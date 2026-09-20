@@ -112,8 +112,8 @@
                     <span class="badge bg-info text-dark"><%= sub_agent.referred_by_code %></span>
                     <div class="small text-muted">
                       <%= sub_agent.referred_by_kind&.capitalize %> referral
-                      <% if sub_agent.ambassador.present? %>
-                        &middot; <%= sub_agent.ambassador.display_name %>
+                      <% if (ambassador = sub_agent.ambassador).present? %>
+                        &middot; <%= link_to ambassador.display_name, admin_distributor_path(ambassador) %>
                       <% end %>
                     </div>
                   <% else %>
