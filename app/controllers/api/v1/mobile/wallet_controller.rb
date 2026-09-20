@@ -151,7 +151,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
     {
       id: txn.id,
       txn_type: txn.txn_type,
-      amount: txn.amount.to_f,
+      amount: txn.debit? ? -txn.amount.to_f : txn.amount.to_f,
       balance_after: txn.balance_after.to_f,
       description: txn.description,
       wallet_type: 'active',
@@ -167,7 +167,7 @@ class Api::V1::Mobile::WalletController < Api::V1::Mobile::BaseController
       id: nil,
       withdrawal_request_id: wr.id,
       txn_type: 'withdrawal_request',
-      amount: wr.amount.to_f,
+      amount: -wr.amount.to_f,
       balance_after: nil,
       description: "Withdrawal request: #{wr.reason}",
       wallet_type: 'active',
