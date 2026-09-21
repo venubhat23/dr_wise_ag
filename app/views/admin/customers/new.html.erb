@@ -1502,7 +1502,11 @@ document.addEventListener('DOMContentLoaded', function() {
         <button type="button" class="btn btn-sm btn-outline-danger remove-btn remove-family-member">
           <i class="bi bi-trash"></i>
         </button>
-        <h6 class="mb-3">Family Member ${familyMemberIndex + 1}</h6>
+        <h6 class="mb-2">Family Member ${familyMemberIndex + 1}</h6>
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input use-as-nominee" id="use_as_nominee_${familyMemberIndex}">
+          <label class="form-check-label" for="use_as_nominee_${familyMemberIndex}">Use as Nominee (fills the Nominee Details below automatically)</label>
+        </div>
 
         <div class="row">
           <div class="col-md-4">
@@ -1599,6 +1603,61 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
     familyMembersContainer.insertAdjacentHTML('beforeend', familyMemberHtml);
     familyMemberIndex++;
+  });
+
+  // "Use as Nominee": copy a family member's name / relationship / DOB into the
+  // Nominee Details section and keep it in sync while the box stays ticked, so
+  // the same person isn't typed twice. Only one member can be the nominee.
+  const NOMINEE_RELATIONS = ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister'];
+
+  function nomineeRelationFor(member) {
+    const rel = member.querySelector('[name*="[relationship]"]')?.value || '';
+    const gender = member.querySelector('[name*="[gender]"]')?.value || '';
+    if (NOMINEE_RELATIONS.includes(rel)) return rel;
+    if (rel === 'husband' || rel === 'wife') return 'spouse';
+    if (rel === 'child') return gender === 'female' ? 'daughter' : gender === 'male' ? 'son' : 'other';
+    return rel ? 'other' : '';
+  }
+
+  function fillNomineeFrom(member) {
+    const value = name => member.querySelector(`[name*="[${name}]"]`)?.value.trim() || '';
+    const fullName = [value('first_name'), value('middle_name'), value('last_name')].filter(Boolean).join(' ');
+    const nameField = document.getElementById('nominee_name_field');
+    const relField = document.getElementById('nominee_relationship_select');
+    const dobField = document.getElementById('nominee_dob_field');
+    if (nameField) nameField.value = fullName;
+    if (relField) relField.value = nomineeRelationFor(member);
+    if (dobField) dobField.value = value('birth_date');
+  }
+
+  function setNomineeLocked(locked) {
+    ['nominee_name_field', 'nominee_relationship_select', 'nominee_dob_field'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('bg-light', locked);
+      el.style.pointerEvents = locked ? 'none' : '';
+      el.tabIndex = locked ? -1 : 0;
+    });
+  }
+
+  familyMembersContainer?.addEventListener('change', function(e) {
+    const member = e.target.closest('.family-member-entry');
+    if (!member) return;
+
+    if (e.target.classList.contains('use-as-nominee')) {
+      familyMembersContainer.querySelectorAll('.use-as-nominee').forEach(box => {
+        if (box !== e.target) box.checked = false;
+      });
+      if (e.target.checked) fillNomineeFrom(member);
+      setNomineeLocked(e.target.checked);
+    } else if (member.querySelector('.use-as-nominee')?.checked) {
+      fillNomineeFrom(member);
+    }
+  });
+
+  familyMembersContainer?.addEventListener('input', function(e) {
+    const member = e.target.closest('.family-member-entry');
+    if (member && member.querySelector('.use-as-nominee')?.checked) fillNomineeFrom(member);
   });
 
   // Corporate document management
@@ -1894,7 +1953,9 @@ document.addEventListener('DOMContentLoaded', function() {
       e.target.closest('.document-entry').remove();
     }
     if (e.target.closest('.remove-family-member')) {
-      e.target.closest('.family-member-entry').remove();
+      const member = e.target.closest('.family-member-entry');
+      if (member.querySelector('.use-as-nominee')?.checked) setNomineeLocked(false);
+      member.remove();
     }
     if (e.target.closest('.remove-corporate-member')) {
       e.target.closest('.corporate-member-entry').remove();

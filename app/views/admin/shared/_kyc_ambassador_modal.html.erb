@@ -1,0 +1,83 @@
+<%# Shown when approving affiliate(s) that aren't mapped to any Ambassador: pick one
+    (searchable dropdown) to connect them, or approve without connecting.
+    locals: options - [[label, distributor_id], ...] %>
+<%= render 'admin/shared/select2_assets' %>
+
+<%= form_with url: "#", method: :patch, local: true, id: "kyc_single_approve_form" do %>
+  <%= hidden_field_tag :assigned_distributor_id, "", id: "kyc_single_assign" %>
+<% end %>
+
+<div class="modal fade" id="kyc_ambassador_modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-diagram-3 text-primary me-2"></i>Not mapped to an ambassador</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3" id="kyc_ambassador_msg"></p>
+        <label for="kyc_ambassador_select" class="form-label">Connect to ambassador</label>
+        <%= select_tag :kyc_ambassador_select,
+                       options_for_select([['-- Select ambassador --', '']] + options),
+                       class: "form-select", id: "kyc_ambassador_select" %>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" id="kyc_ambassador_skip">Approve without ambassador</button>
+        <button type="button" class="btn btn-success" id="kyc_ambassador_confirm" disabled>Connect &amp; Approve</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modalEl = document.getElementById('kyc_ambassador_modal');
+  var $select = jQuery('#kyc_ambassador_select');
+  var confirmBtn = document.getElementById('kyc_ambassador_confirm');
+  var msg = document.getElementById('kyc_ambassador_msg');
+  var singleForm = document.getElementById('kyc_single_approve_form');
+  var mode = null; // 'single' | 'bulk'
+
+  $select.select2({ theme: 'bootstrap-5', dropdownParent: jQuery(modalEl), width: '100%',
+                    placeholder: 'Search ambassador by name or email...' });
+  $select.on('change', function () { confirmBtn.disabled = !$select.val(); });
+
+  function open(newMode, text) {
+    mode = newMode;
+    msg.textContent = text;
+    $select.val('').trigger('change');
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+
+  function finish(ambassadorId) {
+    if (mode === 'single') {
+      document.getElementById('kyc_single_assign').value = ambassadorId;
+      singleForm.submit();
+    } else {
+      document.getElementById('kyc_bulk_assign').value = ambassadorId;
+      document.getElementById('kyc_bulk_action').value = 'approve';
+      document.getElementById('kyc_bulk_form').submit();
+    }
+  }
+
+  confirmBtn.addEventListener('click', function () { finish($select.val()); });
+  document.getElementById('kyc_ambassador_skip').addEventListener('click', function () { finish(''); });
+
+  document.querySelectorAll('.js-approve-unmapped').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      singleForm.action = btn.dataset.url;
+      open('single', (btn.dataset.name || 'This affiliate') + ' is not mapped to any ambassador. Select one to connect them, then approve.');
+    });
+  });
+
+  // Called by the bulk bar before it approves; returns true when it took over.
+  window.kycBeforeBulkApprove = function (checked) {
+    var unmapped = checked.filter(function (c) { return c.dataset.unmapped === '1'; }).length;
+    if (!unmapped) return false;
+    open('bulk', unmapped + ' of the ' + checked.length + ' selected affiliate(s) are not mapped to any ambassador. ' +
+                 'Select one to connect them to (already-mapped affiliates keep their ambassador), then approve.');
+    return true;
+  };
+})();
+</script>

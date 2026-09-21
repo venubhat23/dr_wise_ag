@@ -326,6 +326,8 @@ Rails.application.routes.draw do
         patch :activate
         patch :approve_kyc
         patch :reject_kyc
+        get :kyc
+        post :submit_kyc
         get :distributor
         get :documents
         post :create_missing_payouts
@@ -362,6 +364,8 @@ Rails.application.routes.draw do
         patch :toggle_status
         patch :deactivate
         patch :activate
+        get :kyc
+        post :submit_kyc
       end
       resources :distributor_documents, except: [:show, :index] do
         member do

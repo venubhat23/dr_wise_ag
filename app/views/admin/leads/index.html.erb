@@ -204,13 +204,7 @@
             </div>
             <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Category</label>
-              <%= form.select :product_category, options_for_select([
-                ['All Categories', ''],
-                ['Insurance', 'insurance'],
-                ['Investments', 'investments'],
-                ['Loans', 'loans'],
-                ['Taxation', 'taxation']
-              ], params[:product_category]), {}, { class: "form-select" } %>
+              <%= form.select :product_category, options_for_select([['All Categories', '']] + lead_product_category_options, params[:product_category]), {}, { class: "form-select" } %>
             </div>
             <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Source</label>
@@ -284,10 +278,7 @@
                     <td>
                       <div class="d-flex flex-column gap-1">
                         <div class="d-flex flex-wrap gap-1">
-                          <span class="badge bg-info text-white"><%= lead.product_category&.humanize || 'N/A' %></span>
-                          <% if lead.product_subcategory.present? %>
-                            <span class="badge bg-light text-dark border"><%= lead.product_subcategory %></span>
-                          <% end %>
+                          <%= lead_product_badges(lead) %>
                         </div>
                         <div class="small">
                           <% if lead.is_direct %>
@@ -461,13 +452,7 @@
             </div>
             <div class="col-lg-3 col-md-6">
               <label class="form-label small text-muted mb-1">Category</label>
-              <%= form.select :product_category, options_for_select([
-                ['All Categories', ''],
-                ['Insurance', 'insurance'],
-                ['Investments', 'investments'],
-                ['Loans', 'loans'],
-                ['Taxation', 'taxation']
-              ], params[:product_category]), {}, { class: "form-select" } %>
+              <%= form.select :product_category, options_for_select([['All Categories', '']] + lead_product_category_options, params[:product_category]), {}, { class: "form-select" } %>
             </div>
             <div class="col-lg-3 col-md-6">
               <label class="form-label small text-muted mb-1">Source</label>
@@ -558,10 +543,7 @@
                     <td>
                       <div class="d-flex flex-column gap-1">
                         <div class="d-flex flex-wrap gap-1">
-                          <span class="badge bg-info text-white"><%= lead.product_category&.humanize || 'N/A' %></span>
-                          <% if lead.product_subcategory.present? %>
-                            <span class="badge bg-light text-dark border"><%= lead.product_subcategory %></span>
-                          <% end %>
+                          <%= lead_product_badges(lead) %>
                         </div>
                         <div class="small">
                           <% if lead.is_direct %>
@@ -740,10 +722,7 @@
 
               <div class="mb-3">
                 <div class="d-flex flex-wrap gap-1 mb-2">
-                  <span class="badge bg-info"><%= lead.product_category&.humanize || 'N/A' %></span>
-                  <% if lead.product_subcategory.present? %>
-                    <span class="badge bg-outline-info text-info"><%= truncate(lead.product_subcategory, length: 15) %></span>
-                  <% end %>
+                  <%= lead_product_badges(lead, category_class: 'bg-info', sub_class: 'bg-light text-info border') %>
                 </div>
                 <div class="small text-muted">
                   <strong>Stage:</strong> <%= lead.current_stage&.humanize || 'Unknown' %>

@@ -1,6 +1,6 @@
 class Admin::DistributorsController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_distributor, only: [:show, :edit, :update, :destroy]
+  before_action :set_distributor, only: [:show, :edit, :update, :destroy, :kyc, :submit_kyc]
 
   # GET /admin/distributors
   def index
@@ -67,6 +67,48 @@ class Admin::DistributorsController < Admin::ApplicationController
     @distributor.role_id = 'distributor'
     @distributor.distributor_documents.build
     @investors = Investor.all
+  end
+
+  # GET /admin/distributors/1/kyc
+  # Lets an admin complete an ambassador's KYC on their behalf: upload any of
+  # the KYC documents (all optional) and either just save them or mark the
+  # KYC as done/approved - with or without documents.
+  def kyc
+    @documents = latest_kyc_documents(@distributor)
+  end
+
+  # POST /admin/distributors/1/submit_kyc
+  # params: kyc_action (save|approve), first_name/last_name/pan_no/aadhaar_no,
+  # aadhaar_file/pan_file/bank_file/photo_file (all optional)
+  def submit_kyc
+    approve = params[:kyc_action] == 'approve'
+    return redirect_to(kyc_admin_distributor_path(@distributor), alert: 'KYC is already approved.') if approve && @distributor.kyc_approved?
+
+    @distributor.assign_attributes(params.permit(:first_name, :last_name, :pan_no, :aadhaar_no))
+
+    if approve
+      @distributor.approve_kyc!
+      SendAmbassadorKycEmailJob.perform_later(distributor_id: @distributor.id, event: 'approved')
+    else
+      @distributor.save!
+    end
+
+    failed = upload_admin_kyc_documents
+
+    if !approve && !@distributor.kyc_approved? && !@distributor.kyc_submitted? && @distributor.kyc_ready_to_submit?
+      @distributor.submit_kyc!
+    end
+
+    notice = approve ? 'KYC marked as done. The ambassador account is now active.' : 'KYC details saved.'
+    if failed.any?
+      redirect_to kyc_admin_distributor_path(@distributor), alert: "#{notice} But these files failed to upload: #{failed.join(', ')}."
+    else
+      redirect_to(approve ? admin_distributors_path : kyc_admin_distributor_path(@distributor), notice: notice)
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    @documents = latest_kyc_documents(@distributor)
+    flash.now[:alert] = "Could not save: #{e.record.errors.full_messages.join(', ')}"
+    render :kyc, status: :unprocessable_entity
   end
 
   # GET /admin/distributors/1/edit
@@ -365,6 +407,38 @@ class Admin::DistributorsController < Admin::ApplicationController
       Rails.logger.info "✅ Ambassador user account created: #{user.email} with password: #{password}"
     rescue => e
       Rails.logger.error "❌ Failed to create ambassador user: #{e.message}"
+    end
+  end
+
+  # Newest document of each type (ambassadors can re-upload), for display.
+  def latest_kyc_documents(distributor)
+    distributor.distributor_documents.order(:created_at, :id).to_a.reverse.uniq(&:document_type).reverse
+  end
+
+  ADMIN_KYC_FILES = {
+    aadhaar_file: 'Aadhaar Card',
+    pan_file: 'Pancard',
+    bank_file: 'Bank Passbook',
+    photo_file: 'Profile Photo'
+  }.freeze
+
+  # Stores each uploaded KYC file and OCRs the ID/bank documents; returns the
+  # types of any that failed so the caller can report them.
+  def upload_admin_kyc_documents
+    ADMIN_KYC_FILES.each_with_object([]) do |(param_key, document_type), failed|
+      file = params[param_key]
+      next if file.blank?
+
+      document = @distributor.distributor_documents.build(document_type: document_type, document_file: file)
+      if document.save
+        begin
+          document.run_ocr!(file) if DistributorDocument::KYC_OCR_TYPES.include?(document_type)
+        rescue => e
+          Rails.logger.error "Admin KYC OCR failed for DistributorDocument #{document.id}: #{e.message}"
+        end
+      else
+        failed << document_type
+      end
     end
   end
 

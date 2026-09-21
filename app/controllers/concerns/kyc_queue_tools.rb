@@ -22,6 +22,20 @@ module KycQueueTools
     )
   end
 
+  # JSON suggestions for the Select2 search box: the records of `scope` (the
+  # current tab, before any search) matching the typed term. The id is the email
+  # (or mobile) so picking a suggestion filters the queue down to that record.
+  def render_kyc_lookup(scope)
+    params[:q] = params[:term]
+    matches = apply_kyc_search(scope).order(:first_name, :last_name).limit(30)
+    render json: {
+      results: matches.map do |r|
+        { id: r.email.presence || r.mobile.to_s,
+          text: [[r.first_name, r.last_name].compact_blank.join(' ').presence, r.email.presence, r.mobile.presence].compact.join(' · ') }
+      end
+    }
+  end
+
   # Runs the block for every selected record, isolating failures so one bad
   # record never blocks the rest. The block returns :skip to mark a record
   # as skipped (not eligible for the action).

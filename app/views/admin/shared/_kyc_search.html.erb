@@ -1,20 +1,23 @@
-<%# Search box for a KYC queue tab. locals: path, status, noun, q, total %>
+<%# Search box for a KYC queue tab: a Select2 dropdown that suggests matching records
+    (name / email / mobile) as you type; picking one filters to it, and any typed text can
+    also be submitted as a free search. locals: path, status, noun, q, total %>
+<%= render 'admin/shared/select2_assets' %>
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body py-3">
-    <%= form_with url: path, method: :get, local: true, class: "d-flex flex-wrap gap-2 align-items-center" do |f| %>
+    <%= form_with url: path, method: :get, local: true, id: "kyc_search_form", class: "d-flex flex-wrap gap-2 align-items-center" do |f| %>
       <%= hidden_field_tag :status, status if status.present? %>
-      <div class="input-group flex-grow-1" style="max-width: 520px;">
-        <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-        <%= text_field_tag :q, q, class: "form-control border-start-0",
-                           placeholder: "Search #{noun} by name, email or mobile…", autocomplete: "off" %>
-        <% if q.present? %>
-          <%= link_to (status.present? ? "#{path}?#{{ status: status }.to_query}" : path), class: "btn btn-outline-secondary", title: "Clear search" do %>
-            <i class="bi bi-x-lg"></i>
+      <div class="flex-grow-1" style="max-width: 520px;">
+        <select name="q" id="kyc_search_select" class="form-select" data-lookup-url="<%= path %>" data-status="<%= status %>"
+                data-placeholder="Search <%= noun %> by name, email or mobile…">
+          <option></option>
+          <% if q.present? %>
+            <option value="<%= q %>" selected><%= q %></option>
           <% end %>
-        <% end %>
-        <button type="submit" class="btn btn-primary px-4">Search</button>
+        </select>
       </div>
+      <button type="submit" class="btn btn-primary px-4">Search</button>
       <% if q.present? %>
+        <%= link_to "Clear", (status.present? ? "#{path}?#{{ status: status }.to_query}" : path), class: "btn btn-outline-secondary", title: "Clear search" %>
         <span class="text-muted small">
           <strong><%= total %></strong> result<%= 's' unless total == 1 %> for “<%= q %>”
         </span>
@@ -22,3 +25,32 @@
     <% end %>
   </div>
 </div>
+<script>
+(function () {
+  var $sel = jQuery('#kyc_search_select');
+  var form = document.getElementById('kyc_search_form');
+  $sel.select2({
+    theme: 'bootstrap-5',
+    width: '100%',
+    placeholder: $sel.data('placeholder'),
+    allowClear: true,
+    tags: true, // typed text that matches no suggestion can still be searched
+    minimumInputLength: 2,
+    createTag: function (params) {
+      var term = jQuery.trim(params.term);
+      return term ? { id: term, text: 'Search for “' + term + '”' } : null;
+    },
+    ajax: {
+      url: $sel.data('lookup-url'),
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        return { lookup: 1, term: params.term, status: $sel.data('status') };
+      },
+      processResults: function (data) { return { results: data.results }; }
+    }
+  });
+  // Picking a suggestion or clearing the box applies the filter straight away.
+  $sel.on('select2:select select2:clear', function () { form.submit(); });
+})();
+</script>

@@ -347,7 +347,7 @@ class Distributor < ApplicationRecord
   end
 
   def bust_sidebar_kyc_count_cache
-    Rails.cache.delete('sidebar/ambassador_kyc_pending_count')
+    Rails.cache.delete_multi(['sidebar/ambassador_kyc_pending_count', 'kyc_queue/ambassador_options'])
   rescue StandardError
     nil
   end

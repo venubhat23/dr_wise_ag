@@ -27,6 +27,8 @@ class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
       'rejected'        => base.kyc_rejected.count
     }
 
+    return render_kyc_lookup(base.where(kyc_status: TABS[@tab])) if params[:lookup].present?
+
     @distributors = apply_kyc_search(base.where(kyc_status: TABS[@tab]))
                         .order(kyc_submitted_at: :desc, created_at: :desc)
 

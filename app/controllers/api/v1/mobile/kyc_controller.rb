@@ -48,13 +48,13 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
 
     submit_kyc_if_complete
 
-    aadhaar_masked = uploaded.any? { |d| d.document_type == 'Aadhaar Card' && d.ocr_extracted_data.to_h['aadhaar_number'].blank? }
+    aadhaar_masked = uploaded.any? { |d| d.document_type == 'Aadhaar Card' }
 
     render_success({
       kyc_status: @sub_agent.kyc_status,
       aadhaar_number_needs_manual_entry: aadhaar_masked,
       documents: uploaded.map { |doc| document_response(doc) }
-    }, aadhaar_masked ? 'Documents uploaded. Aadhaar number is masked on this card - please enter the full 12-digit number.' : 'Documents uploaded successfully')
+    }, aadhaar_masked ? 'Documents uploaded. Please enter your full 12-digit Aadhaar number.' : 'Documents uploaded successfully')
   end
 
   # PATCH /api/v1/mobile/kyc/details
@@ -243,8 +243,24 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     document.upload_to_r2(file) ? document : nil
   end
 
+  AADHAAR_MASK_PATTERN = /\b(?:\d{4}|[Xx*]{4})\s?(?:\d{4}|[Xx*]{4})\s?(\d{4})\b/
+
+  # "1234 5678 2448" / "XXXX XXXX 2448" -> "XXXX XXXX 2448": the API never
+  # returns more than the last 4 digits of an Aadhaar number.
+  def mask_aadhaar(value)
+    value&.gsub(AADHAAR_MASK_PATTERN) { "XXXX XXXX #{Regexp.last_match(1)}" }
+  end
+
   def document_response(doc)
-    extracted = doc.ocr_extracted_data || {}
+    extracted = (doc.ocr_extracted_data || {}).dup
+    ocr_text = doc.ocr_text
+    aadhaar = doc.document_type == 'Aadhaar Card'
+
+    if aadhaar
+      extracted['aadhaar_number'] = mask_aadhaar(extracted['aadhaar_number'] || extracted.delete('aadhaar_number_masked'))
+      extracted.compact!
+      ocr_text = mask_aadhaar(ocr_text)
+    end
 
     {
       id: doc.id,
@@ -254,13 +270,12 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       # Flattened for convenience - same values also live in ocr_extracted_data.
       name: extracted['name'],
       dob: extracted['dob'],
-      id_number: extracted['aadhaar_number'] || extracted['aadhaar_number_masked'] || extracted['pan_number'],
-      # True when an Aadhaar card was read but its number is masked (e-Aadhaar
-      # prints only the last 4 digits), so the app must ask the user to type
-      # the full 12-digit number into aadhaar_no on the details step.
-      aadhaar_number_needs_manual_entry: doc.document_type == 'Aadhaar Card' &&
-                                         extracted['aadhaar_number'].blank?,
-      ocr_text: doc.ocr_text,
+      id_number: extracted['aadhaar_number'] || extracted['pan_number'],
+      # The Aadhaar number is only ever returned masked, so the app must ask
+      # the user to type the full 12-digit number into aadhaar_no on the
+      # details step.
+      aadhaar_number_needs_manual_entry: aadhaar,
+      ocr_text: ocr_text,
       ocr_extracted_data: extracted,
       created_at: doc.created_at
     }

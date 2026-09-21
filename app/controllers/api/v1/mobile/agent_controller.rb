@@ -944,15 +944,19 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   def add_lead
     # Updated parameter structure for leads
     lead_params = params.permit(
-      :name, :contact_number, :email, :product_interest, :address, :city, :state,
+      :name, :contact_number, :email, :product_interest, :product_category, :product_subcategory,
+      :address, :city, :state,
       :referred_by, :current_stage, :created_date, :note, :call_disposition,
       :lead_source, :referral_amount, :transferred_amount, :priority
     )
+
+    product_category, product_subcategory, product_error = resolve_lead_product(lead_params)
 
     # Validation: Check required fields
     validation_errors = []
     validation_errors << 'Name is required' if lead_params[:name].blank?
     validation_errors << 'Contact number is required' if lead_params[:contact_number].blank?
+    validation_errors << product_error if product_error
 
     # Validate phone number format
     if lead_params[:contact_number].present?
@@ -990,18 +994,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
 
-    # Map product interest to category and subcategory
-    product_interest = lead_params[:product_interest] || 'health'
-    product_category = 'insurance'
-    product_subcategory = case product_interest.downcase
-                         when 'health' then 'health'
-                         when 'life' then 'life'
-                         when 'motor' then 'motor'
-                         when 'home' then 'general'
-                         when 'travel' then 'travel'
-                         else 'other'
-                         end
-
     # Split name into first_name and last_name for individual customers
     name_parts = lead_params[:name].to_s.strip.split(' ')
     first_name = name_parts.first || 'Customer'
@@ -1034,6 +1026,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       customer_type: 'individual', # Default to individual
       product_category: product_category,
       product_subcategory: product_subcategory,
+      product_interest: product_subcategory,
       address: lead_params[:address],
       city: lead_params[:city],
       state: lead_params[:state],
@@ -1060,7 +1053,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           name: lead.display_name,
           contact_number: lead.contact_number,
           email: lead.email,
-          product_interest: product_interest,
+          product_interest: lead.product_interest,
           product_category: lead.product_category,
           product_subcategory: lead.product_subcategory,
           customer_type: lead.customer_type,
@@ -1133,6 +1126,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Apply filters
     leads = leads.by_stage(stage_filter) if stage_filter.present?
     leads = leads.by_product(product_filter) if product_filter.present?
+    leads = leads.by_product_category(params[:product_category]) if params[:product_category].present?
+    leads = leads.by_product_subcategory(params[:product_subcategory]) if params[:product_subcategory].present?
 
     # Apply search
     if search.present?
@@ -1274,6 +1269,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
           { value: 'tele_calling', label: 'Tele Calling' },
           { value: 'campaign', label: 'Campaign' }
         ],
+        # Main product with nested sub products for the add-lead form
+        lead_products: lead_product_catalog,
         product_interests: [
           { value: 'health', label: 'Health Insurance' },
           { value: 'life', label: 'Life Insurance' },
@@ -2279,6 +2276,52 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       Date.parse(date_string)
     rescue
       nil
+    end
+  end
+
+  # Main product -> sub products offered when adding a lead, built from
+  # Lead::LEAD_PRODUCT_TO_VENDOR_PRODUCT so values match the Lead columns and
+  # labels match Vendor::PRODUCT_TAXONOMY.
+  def lead_product_catalog
+    Lead::LEAD_PRODUCT_TO_VENDOR_PRODUCT.each_with_object({}) do |((category, sub), (category_label, sub_label)), catalog|
+      entry = (catalog[category] ||= { value: category, label: category_label, sub_products: [] })
+      entry[:sub_products] << { value: sub, label: sub_label }
+    end.values
+  end
+
+  # Legacy product_interest values sent by older app builds (insurance only).
+  LEGACY_PRODUCT_INTEREST_TO_SUBCATEGORY = {
+    'health' => 'health', 'life' => 'life', 'motor' => 'motor',
+    'home' => 'general', 'travel' => 'travel'
+  }.freeze
+
+  # Returns [category, subcategory, error]. Prefers product_category +
+  # product_subcategory; falls back to product_interest (insurance) so existing
+  # clients keep working.
+  def resolve_lead_product(lead_params)
+    normalize = ->(v) { v.to_s.strip.downcase.gsub(/[\s-]+/, '_') }
+
+    if lead_params[:product_category].present? || lead_params[:product_subcategory].present?
+      category = normalize.call(lead_params[:product_category])
+      sub = normalize.call(lead_params[:product_subcategory])
+      sub = sub.delete_suffix('_card') if category == 'credit_card'
+
+      catalog = lead_product_catalog.index_by { |c| c[:value] }
+      return [nil, nil, 'Product category is required'] if category.blank?
+      unless catalog.key?(category)
+        return [nil, nil, "Invalid product category. Valid values: #{catalog.keys.join(', ')}"]
+      end
+      return [nil, nil, 'Product subcategory is required'] if sub.blank?
+
+      valid_subs = catalog[category][:sub_products].map { |s| s[:value] }
+      unless valid_subs.include?(sub)
+        return [nil, nil, "Invalid product subcategory for #{category}. Valid values: #{valid_subs.join(', ')}"]
+      end
+
+      [category, sub, nil]
+    else
+      interest = normalize.call(lead_params[:product_interest].presence || 'health')
+      ['insurance', LEGACY_PRODUCT_INTEREST_TO_SUBCATEGORY.fetch(interest, 'other'), nil]
     end
   end
 

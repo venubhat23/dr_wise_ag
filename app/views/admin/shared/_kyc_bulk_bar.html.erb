@@ -7,6 +7,7 @@
   <%= hidden_field_tag :q, q %>
   <%= hidden_field_tag :bulk_action, "", id: "kyc_bulk_action" %>
   <%= hidden_field_tag :reason, "", id: "kyc_bulk_reason" %>
+  <%= hidden_field_tag :assigned_distributor_id, "", id: "kyc_bulk_assign" %>
 <% end %>
 
 <style>
@@ -102,7 +103,10 @@
 
   document.getElementById('kyc_bulk_approve').addEventListener('click', function () {
     var n = selected().length;
-    if (n && confirm('Approve ' + n + ' ' + noun + '(s) and activate their accounts?')) submitWith('approve');
+    if (!n) return;
+    // The affiliate queue asks which Ambassador to connect unmapped ones to first.
+    if (window.kycBeforeBulkApprove && window.kycBeforeBulkApprove(selected())) return;
+    if (confirm('Approve ' + n + ' ' + noun + '(s) and activate their accounts?')) submitWith('approve');
   });
 
   var modalEl = document.getElementById('kyc_bulk_reject_modal');

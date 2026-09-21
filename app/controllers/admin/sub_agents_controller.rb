@@ -1,6 +1,6 @@
 class Admin::SubAgentsController < Admin::ApplicationController
   include ConfigurablePagination
-  before_action :set_sub_agent, only: [:show, :edit, :update, :destroy, :documents, :create_missing_payouts]
+  before_action :set_sub_agent, only: [:show, :edit, :update, :destroy, :documents, :kyc, :submit_kyc, :create_missing_payouts]
 
   # GET /admin/sub_agents
   def index
@@ -524,11 +524,62 @@ class Admin::SubAgentsController < Admin::ApplicationController
   # PATCH /admin/sub_agents/1/approve_kyc
   def approve_kyc
     @sub_agent = SubAgent.find(params[:id])
+    # Optional: the KYC queue asks which Ambassador to connect an unmapped affiliate to.
+    @sub_agent.map_to_ambassador!(Distributor.find_by(id: params[:assigned_distributor_id])) if params[:assigned_distributor_id].present?
     @sub_agent.approve_kyc!
     SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'approved')
     redirect_to (request.referer || documents_admin_sub_agent_path(@sub_agent)), notice: 'KYC approved. The affiliate can now log in.'
   rescue => e
     redirect_to documents_admin_sub_agent_path(params[:id]), alert: "Failed to approve KYC: #{e.message}"
+  end
+
+  # GET /admin/sub_agents/1/kyc
+  # Lets an admin complete an affiliate's KYC on their behalf: upload any of
+  # the KYC documents (all optional) and either just save them or mark the
+  # KYC as done/approved - with or without documents.
+  def kyc
+    @documents = latest_documents_by_type(@sub_agent.sub_agent_documents.order(:created_at))
+  end
+
+  ADMIN_KYC_FILES = {
+    aadhaar_file: ['Aadhaar Card', true],
+    pan_file: ['Pancard', true],
+    bank_file: ['Bank Passbook', true],
+    photo_file: ['Profile Image', false]
+  }.freeze
+
+  # POST /admin/sub_agents/1/submit_kyc
+  # params: kyc_action (save|approve), first_name/last_name/pan_no/aadhaar_no,
+  # aadhaar_file/pan_file/bank_file/photo_file (all optional)
+  def submit_kyc
+    approve = params[:kyc_action] == 'approve'
+    return redirect_to(kyc_admin_sub_agent_path(@sub_agent), alert: 'KYC is already approved.') if approve && @sub_agent.kyc_approved?
+
+    @sub_agent.assign_attributes(params.permit(:first_name, :last_name, :pan_no, :aadhaar_no))
+
+    if approve
+      @sub_agent.approve_kyc!
+      SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'approved')
+    else
+      @sub_agent.save!
+    end
+
+    failed = upload_admin_kyc_documents
+
+    if !approve && !@sub_agent.kyc_approved? && @sub_agent.kyc_documents_complete? && !@sub_agent.kyc_submitted?
+      @sub_agent.update!(kyc_status: :submitted, kyc_submitted_at: Time.current, kyc_rejection_reason: nil)
+    end
+
+    notice = approve ? 'KYC marked as done. The affiliate can now log in.' : 'KYC details saved.'
+    if failed.any?
+      redirect_to kyc_admin_sub_agent_path(@sub_agent), alert: "#{notice} But these files failed to upload: #{failed.join(', ')}."
+    else
+      redirect_to(approve ? admin_sub_agents_path : kyc_admin_sub_agent_path(@sub_agent), notice: notice)
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    @documents = latest_documents_by_type(@sub_agent.sub_agent_documents.order(:created_at))
+    flash.now[:alert] = "Could not save: #{e.record.errors.full_messages.join(', ')}"
+    render :kyc, status: :unprocessable_entity
   end
 
   # PATCH /admin/sub_agents/1/reject_kyc
@@ -537,7 +588,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
     reason = params[:reason].presence || 'Documents could not be verified.'
     @sub_agent.reject_kyc!(reason)
     SendKycStatusEmailJob.perform_later(sub_agent_id: @sub_agent.id, event: 'rejected')
-    redirect_to documents_admin_sub_agent_path(@sub_agent), notice: 'KYC rejected. The affiliate has been notified.'
+    redirect_to (request.referer || documents_admin_sub_agent_path(@sub_agent)), notice: 'KYC rejected. The affiliate has been notified.'
   rescue => e
     redirect_to documents_admin_sub_agent_path(params[:id]), alert: "Failed to reject KYC: #{e.message}"
   end
@@ -622,6 +673,26 @@ class Admin::SubAgentsController < Admin::ApplicationController
       end
     end
     package.to_stream.read
+  end
+
+  # Stores each uploaded KYC file (R2) and OCRs the ID/bank documents; returns
+  # the labels of any that failed so the caller can report them.
+  def upload_admin_kyc_documents
+    ADMIN_KYC_FILES.each_with_object([]) do |(param_key, (document_type, ocr)), failed|
+      file = params[param_key]
+      next if file.blank?
+
+      document = @sub_agent.sub_agent_documents.build(document_type: document_type)
+      if document.upload_to_r2(file)
+        begin
+          document.run_ocr!(file) if ocr
+        rescue => e
+          Rails.logger.error "Admin KYC OCR failed for SubAgentDocument #{document.id}: #{e.message}"
+        end
+      else
+        failed << document_type
+      end
+    end
   end
 
   # KYC re-submissions create a fresh SubAgentDocument each time, so the same

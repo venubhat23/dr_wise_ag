@@ -24,7 +24,7 @@ class SubAgent < ApplicationRecord
   before_validation :format_mobile_number
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
-  after_commit -> { Rails.cache.delete('sidebar/affiliate_kyc_pending_count') rescue nil }
+  after_commit -> { Rails.cache.delete_multi(['sidebar/affiliate_kyc_pending_count', 'kyc_queue/affiliate_counts']) rescue nil }
 # before_save :add_country_code_to_mobile # Commented out - frontend already shows +91
 
   # Associations
@@ -68,6 +68,7 @@ class SubAgent < ApplicationRecord
     with: /\A[6-9]\d{9}\z/,
     message: "must be a valid 10-digit Indian mobile number (6-9 as first digit). Format: 9XXXXXXXXX or +919XXXXXXXXX"
   }
+  validate :city_belongs_to_state, if: -> { state_changed? || city_changed? }
   validates :email, presence: true,
             uniqueness: {
               message: "address is already registered with another affiliate",
@@ -118,8 +119,23 @@ class SubAgent < ApplicationRecord
     distributor || assigned_distributor
   end
 
+  # Uses the assignment row directly (not assigned_distributor) so lists that
+  # preload :distributor_assignment don't need to load the Distributor too.
   def ambassador_id
-    distributor_id || assigned_distributor&.id
+    distributor_id || distributor_assignment&.distributor_id
+  end
+
+  # Maps a not-yet-mapped affiliate under an Ambassador, keeping the direct FK
+  # and the assignment join row in sync (see AffiliateReferralService.attribute!).
+  # No-op when the affiliate already has an Ambassador.
+  def map_to_ambassador!(ambassador)
+    return false if ambassador.blank? || ambassador_id.present?
+
+    transaction do
+      update_columns(distributor_id: ambassador.id)
+      DistributorAssignment.create!(distributor_id: ambassador.id, sub_agent_id: id, assigned_at: Time.current)
+    end
+    true
   end
 
   def referral_bonus_credited?
@@ -309,6 +325,35 @@ class SubAgent < ApplicationRecord
     self.mobile = digits_part
   end
 
+
+  # Modern spellings that LocationData lists under their older names.
+  CITY_ALIASES = {
+    'bengaluru' => 'bangalore', 'bengaluru urban' => 'bangalore', 'bangalore urban' => 'bangalore',
+    'mysuru' => 'mysore'
+  }.freeze
+
+  # Rejects a city that clearly belongs to a different state (e.g. state
+  # Andhra Pradesh + city Bengaluru). Cities not in LocationData at all are
+  # still accepted, since the mobile app allows free-text cities.
+  def city_belongs_to_state
+    return if state.blank? || city.blank?
+
+    state_key, state_data = LocationData::STATES_AND_CITIES.find do |key, data|
+      key == state.to_s.downcase.tr(' ', '_') || data[:name].casecmp?(state.to_s)
+    end
+    return unless state_key
+
+    normalize = ->(name) { CITY_ALIASES.fetch(name.to_s.strip.downcase, name.to_s.strip.downcase) }
+    wanted = normalize.call(city)
+    return if state_data[:cities].any? { |c| normalize.call(c) == wanted }
+
+    other_state = LocationData::STATES_AND_CITIES.find do |key, data|
+      key != state_key && data[:cities].any? { |c| normalize.call(c) == wanted }
+    end&.last
+    return unless other_state
+
+    errors.add(:city, "#{city} is in #{other_state[:name]}, not #{state_data[:name]}. Please pick a city from #{state_data[:name]} or change the state.")
+  end
 
   def set_location_ids_from_names
     # Set state_id and city_id from names if they are present but IDs are blank
