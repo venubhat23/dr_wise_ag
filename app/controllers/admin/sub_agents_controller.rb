@@ -313,7 +313,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents/1/documents
   def documents
-    @documents = @sub_agent.sub_agent_documents.order(:created_at)
+    @documents = latest_documents_by_type(@sub_agent.sub_agent_documents.order(:created_at))
     @uploaded_documents = @sub_agent.respond_to?(:uploaded_documents) ? @sub_agent.uploaded_documents.order(:created_at) : []
   end
 
@@ -326,8 +326,8 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents/1/edit
   def edit
-    # Load documents for display
-    @documents = @sub_agent.sub_agent_documents.order(:created_at)
+    # Load documents for display (one card per document type; see latest_documents_by_type)
+    @documents = latest_documents_by_type(@sub_agent.sub_agent_documents.order(:created_at))
 
     # Only build a new document placeholder if there are no documents (this won't affect display)
     @sub_agent.sub_agent_documents.build if @sub_agent.sub_agent_documents.empty?
@@ -622,6 +622,13 @@ class Admin::SubAgentsController < Admin::ApplicationController
       end
     end
     package.to_stream.read
+  end
+
+  # KYC re-submissions create a fresh SubAgentDocument each time, so the same
+  # type (e.g. Pancard) can exist more than once. Keep only the newest of each
+  # type; 'Other File' can legitimately repeat, so it is left untouched.
+  def latest_documents_by_type(documents)
+    documents.to_a.reverse.uniq { |d| d.document_type == 'Other File' ? d.id : d.document_type }.reverse
   end
 
   def set_sub_agent

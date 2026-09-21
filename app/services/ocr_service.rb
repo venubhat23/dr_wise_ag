@@ -249,6 +249,9 @@ class OcrService
 
   module AadhaarParser
     NUMBER_PATTERN = /\b(\d{4}\s?\d{4}\s?\d{4})\b/
+    # Downloaded e-Aadhaar / masked copies print only the last 4 digits
+    # ("XXXX XXXX 2448"), so the full number can't be read off them.
+    MASKED_NUMBER_PATTERN = /\b([Xx*]{4}\s?[Xx*]{4}\s?\d{4})\b/
     DOB_PATTERN = /\b(\d{2}\/\d{2}\/\d{4})\b/
     YOB_PATTERN = /Year of Birth\s*[:\-]?\s*(\d{4})/i
     GENDER_PATTERN = /\b(Male|Female|Transgender)\b/i
@@ -261,6 +264,7 @@ class OcrService
 
       {
         "aadhaar_number" => text[NUMBER_PATTERN, 1]&.gsub(/\s+/, " ")&.strip,
+        "aadhaar_number_masked" => text[MASKED_NUMBER_PATTERN, 1]&.gsub(/\s+/, " ")&.strip&.upcase,
         "dob" => text[DOB_PATTERN, 1] || text[YOB_PATTERN, 1],
         "gender" => text[GENDER_PATTERN, 1]&.capitalize,
         "name" => guess_name(lines),

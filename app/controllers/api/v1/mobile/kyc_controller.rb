@@ -48,10 +48,13 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
 
     submit_kyc_if_complete
 
+    aadhaar_masked = uploaded.any? { |d| d.document_type == 'Aadhaar Card' && d.ocr_extracted_data.to_h['aadhaar_number'].blank? }
+
     render_success({
       kyc_status: @sub_agent.kyc_status,
+      aadhaar_number_needs_manual_entry: aadhaar_masked,
       documents: uploaded.map { |doc| document_response(doc) }
-    }, 'Documents uploaded successfully')
+    }, aadhaar_masked ? 'Documents uploaded. Aadhaar number is masked on this card - please enter the full 12-digit number.' : 'Documents uploaded successfully')
   end
 
   # PATCH /api/v1/mobile/kyc/details
@@ -251,7 +254,12 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       # Flattened for convenience - same values also live in ocr_extracted_data.
       name: extracted['name'],
       dob: extracted['dob'],
-      id_number: extracted['aadhaar_number'] || extracted['pan_number'],
+      id_number: extracted['aadhaar_number'] || extracted['aadhaar_number_masked'] || extracted['pan_number'],
+      # True when an Aadhaar card was read but its number is masked (e-Aadhaar
+      # prints only the last 4 digits), so the app must ask the user to type
+      # the full 12-digit number into aadhaar_no on the details step.
+      aadhaar_number_needs_manual_entry: doc.document_type == 'Aadhaar Card' &&
+                                         extracted['aadhaar_number'].blank?,
       ocr_text: doc.ocr_text,
       ocr_extracted_data: extracted,
       created_at: doc.created_at
