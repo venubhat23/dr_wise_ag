@@ -6,8 +6,8 @@
 # and it never pays the referring affiliate. Two one-time rewards are created,
 # both into the INACTIVE wallet and unlocked only when the new affiliate
 # creates their first policy (see WalletUnlockService):
-#   * SIGNUP_BONUS    -> the new affiliate
-#   * REFERRAL_REWARD -> the Ambassador the affiliate is mapped under
+#   * SIGNUP_BONUS    -> the new affiliate, on KYC approval (with or without a code)
+#   * REFERRAL_REWARD -> the Ambassador the affiliate is mapped under (referred sign-ups only)
 class AffiliateReferralService
   SIGNUP_BONUS = BigDecimal('100')
   REFERRAL_REWARD = BigDecimal('100')

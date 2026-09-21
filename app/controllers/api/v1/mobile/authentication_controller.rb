@@ -701,8 +701,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             ambassador_name: referral.ambassador&.display_name,
             referred_under_ambassador: referral.ambassador&.display_name,
             signup_bonus: 0.0,
-            signup_bonus_pending: referral.bonus_eligible? ? AffiliateReferralService::SIGNUP_BONUS.to_f : 0.0,
-            signup_bonus_note: referral.bonus_eligible? ? 'Credited to your inactive wallet once your KYC is approved; it becomes withdrawable after you create your first policy.' : nil,
+            signup_bonus_pending: AffiliateReferralService::SIGNUP_BONUS.to_f,
+            signup_bonus_note: 'Credited to your inactive wallet once your KYC is approved; it becomes withdrawable after you create your first policy.',
             wallet_balance: sub_agent.wallet&.total_balance.to_f,
             active_balance: sub_agent.wallet&.balance.to_f,
             inactive_balance: sub_agent.wallet&.inactive_balance.to_f
