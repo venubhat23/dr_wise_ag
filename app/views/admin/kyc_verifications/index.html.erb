@@ -117,6 +117,9 @@
                         &middot; <%= link_to ambassador.display_name, admin_distributor_path(ambassador) %>
                       <% end %>
                     </div>
+                  <% elsif (ambassador = @ambassadors_by_id[sub_agent.ambassador_id]).present? %>
+                    <%= link_to ambassador.display_name, admin_distributor_path(ambassador) %>
+                    <div class="small text-muted">Connected by admin</div>
                   <% else %>
                     <span class="text-muted">Direct signup</span>
                   <% end %>

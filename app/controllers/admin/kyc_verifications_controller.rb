@@ -23,7 +23,9 @@ class Admin::KycVerificationsController < Admin::ApplicationController
     preload_legacy_attachments(@sub_agents)
 
     # Ambassador names for the "Referred By" cell: one query, and only if needed.
-    referred_ids = @sub_agents.select { |s| s.referred_by_code.present? }.filter_map(&:ambassador_id).uniq
+    # Includes admin-connected affiliates too (map_to_ambassador! sets ambassador_id
+    # with no referred_by_code), not just referral signups.
+    referred_ids = @sub_agents.filter_map(&:ambassador_id).uniq
     @ambassadors_by_id = referred_ids.any? ? Distributor.where(id: referred_ids).select(:id, :first_name, :last_name).index_by(&:id) : {}
 
     # Ambassadors an unmapped affiliate can be connected to while approving:
