@@ -3,10 +3,13 @@
     locals: options - [[label, distributor_id], ...] %>
 <%= render 'admin/shared/select2_assets' %>
 
-<%# authenticity_token: true forces the session-wide CSRF token instead of a
-    per-form one scoped to "#" - this form's real action is swapped in by JS
-    per affiliate at submit time, so a path-scoped token would never match. %>
-<%= form_with url: "#", method: :patch, local: true, authenticity_token: true, id: "kyc_single_approve_form" do %>
+<%# `authenticity_token: form_authenticity_token` embeds the actual session-wide
+    (non-per-form) token. `authenticity_token: true` does NOT do this - Rails
+    still runs its normal per-form logic keyed off this form's placeholder "#"
+    action, so it would still mint a token scoped to the wrong path. This
+    form's real action is swapped in by JS per affiliate at submit time, so
+    only the global token (valid for any path) can possibly match. %>
+<%= form_with url: "#", method: :patch, local: true, authenticity_token: form_authenticity_token, id: "kyc_single_approve_form" do %>
   <%= hidden_field_tag :assigned_distributor_id, "", id: "kyc_single_assign" %>
 <% end %>
 
