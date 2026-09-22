@@ -74,7 +74,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
   # GET /admin/sub_agents/1
   def show
-    @documents = @sub_agent.sub_agent_documents.order(:created_at)
+    @documents = latest_documents_by_type(@sub_agent.sub_agent_documents.order(:created_at))
     @assigned_distributor = @sub_agent.assigned_distributor
     @distributor_assignment = @sub_agent.distributor_assignment
 

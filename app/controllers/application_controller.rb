@@ -29,6 +29,14 @@ class ApplicationController < ActionController::Base
     redirect_to safe_fallback_path_for(current_user), alert: exception.message
   end
 
+  # A stale/cached page's CSRF token stops matching the session (e.g. the tab
+  # was left open past sign-out, or the session expired) and Rails raises this
+  # before the action even runs. Without this, it renders the bare 422 page;
+  # send the admin back to retry instead.
+  rescue_from ActionController::InvalidAuthenticityToken do
+    redirect_back fallback_location: root_path, alert: 'Your session expired. Please try that again.'
+  end
+
   # Redirect users after sign in based on their role
   def after_sign_in_path_for(resource)
     if resource.ambassador?

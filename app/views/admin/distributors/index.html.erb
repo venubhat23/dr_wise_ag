@@ -217,7 +217,7 @@
                 <td>
                   <% kyc_badge = { 'pending' => 'secondary', 'submitted' => 'warning text-dark', 'approved' => 'success', 'rejected' => 'danger' }[distributor.kyc_status] %>
                   <span class="badge bg-<%= kyc_badge %>"><%= distributor.kyc_approved? ? 'KYC Approved' : "KYC #{distributor.kyc_status.capitalize}" %></span>
-                  <% if !distributor.kyc_approved? && can_edit?('distributors') %>
+                  <% if !distributor.kyc_approved? && !distributor.kyc_submitted? && can_edit?('distributors') %>
                     <div class="mt-1">
                       <%= link_to kyc_admin_distributor_path(distributor), class: "btn btn-sm btn-outline-primary py-0", title: "Submit KYC on behalf of this ambassador" do %>
                         <i class="bi bi-patch-check me-1"></i>Submit KYC

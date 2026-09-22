@@ -225,7 +225,7 @@
                 <td>
                   <% kyc_badge = { 'pending' => 'secondary', 'submitted' => 'warning text-dark', 'approved' => 'success', 'rejected' => 'danger' }[sub_agent.kyc_status] %>
                   <span class="badge bg-<%= kyc_badge %>"><%= sub_agent.kyc_approved? ? 'KYC Approved' : "KYC #{sub_agent.kyc_status.capitalize}" %></span>
-                  <% if !sub_agent.kyc_approved? && can_edit?('sub_agents') %>
+                  <% if !sub_agent.kyc_approved? && !sub_agent.kyc_submitted? && can_edit?('sub_agents') %>
                     <div class="mt-1">
                       <%= link_to kyc_admin_sub_agent_path(sub_agent), class: "btn btn-sm btn-outline-primary py-0", title: "Submit KYC on behalf of this affiliate" do %>
                         <i class="bi bi-patch-check me-1"></i>Submit KYC
