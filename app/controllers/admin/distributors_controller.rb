@@ -59,6 +59,13 @@ class Admin::DistributorsController < Admin::ApplicationController
     # Build commission ledger
     @ledger_entries = build_distributor_ledger(@distributor)
     @ledger_closing_balance = @ledger_entries.last&.dig(:balance) || 0.0
+
+    # Wallet balance (active/withdrawable + inactive/locked) and recent history
+    @wallet = @distributor.wallet!
+    @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
+    @inactive_balance = @locked_holds.sum(&:amount)
+    @wallet_transactions = @wallet.wallet_transactions.recent_first.limit(10)
+    @wallet_transaction_count = @wallet.wallet_transactions.count
   end
 
   # GET /admin/distributors/new

@@ -843,6 +843,16 @@
   </div>
 </div>
 
+<!-- Wallet Balance -->
+<%= render 'admin/wallets/shared/summary_card',
+    owner: @distributor,
+    wallet: @wallet,
+    locked_holds: @locked_holds,
+    inactive_balance: @inactive_balance,
+    transactions: @wallet_transactions,
+    transaction_count: @wallet_transaction_count,
+    full_wallet_path: admin_wallets_ambassador_wallet_path(@distributor) %>
+
 <!-- Commission Ledger -->
 <%= render 'shared/ledger_table',
     ledger_entries: @ledger_entries,

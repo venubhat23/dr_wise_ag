@@ -242,6 +242,13 @@ class Admin::SubAgentsController < Admin::ApplicationController
       entry.merge(balance: balance)
     end
     @ledger_closing_balance = balance
+
+    # Wallet balance (active/withdrawable + inactive/locked) and recent history
+    @wallet = @sub_agent.wallet!
+    @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
+    @inactive_balance = @locked_holds.sum(&:amount)
+    @wallet_transactions = @wallet.wallet_transactions.recent_first.limit(10)
+    @wallet_transaction_count = @wallet.wallet_transactions.count
   end
 
   # POST /admin/sub_agents/1/create_missing_payouts

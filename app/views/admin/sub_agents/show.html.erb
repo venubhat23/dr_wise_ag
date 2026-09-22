@@ -775,6 +775,16 @@
   </div>
 </div>
 
+<!-- Wallet Balance -->
+<%= render 'admin/wallets/shared/summary_card',
+    owner: @sub_agent,
+    wallet: @wallet,
+    locked_holds: @locked_holds,
+    inactive_balance: @inactive_balance,
+    transactions: @wallet_transactions,
+    transaction_count: @wallet_transaction_count,
+    full_wallet_path: admin_wallets_affiliate_wallet_path(@sub_agent) %>
+
 <!-- Commission Ledger -->
 <%= render 'shared/ledger_table',
     ledger_entries: @ledger_entries,
