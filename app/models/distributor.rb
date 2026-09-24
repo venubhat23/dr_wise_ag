@@ -1,6 +1,7 @@
 class Distributor < ApplicationRecord
   include PgSearch::Model
   include ReferralCodeable
+  include Subscribable
 
   # Ambassador referral code, e.g. "AMB123456"
   referral_code_prefix 'AMB'
@@ -214,15 +215,7 @@ class Distributor < ApplicationRecord
     self_registered? && !payment_paid? && payment_amount_due > 0
   end
 
-  def mark_payment_paid!(order_id:, payment_id:, amount:)
-    update!(
-      payment_paid: true,
-      payment_paid_at: Time.current,
-      payment_amount: amount,
-      razorpay_order_id: order_id,
-      razorpay_payment_id: payment_id
-    )
-  end
+  # mark_payment_paid! lives in Subscribable - each payment buys 1 year.
 
   # R2 Profile Image methods
   def r2_profile_image

@@ -54,6 +54,11 @@ Rails.application.routes.draw do
   post 'ambassador/kyc/payment/order',  to: 'ambassador_kyc#create_payment_order', as: :ambassador_kyc_payment_order
   post 'ambassador/kyc/payment/verify', to: 'ambassador_kyc#verify_payment',       as: :ambassador_kyc_payment_verify
 
+  # Yearly subscription: status + renewal payment (dashboard is blocked once it expires)
+  get  'ambassador/subscription',        to: 'ambassador_subscriptions#show',         as: :ambassador_subscription
+  post 'ambassador/subscription/order',  to: 'ambassador_subscriptions#create_order', as: :ambassador_subscription_order
+  post 'ambassador/subscription/verify', to: 'ambassador_subscriptions#verify',       as: :ambassador_subscription_verify
+
   # Investor Dashboard
   get 'investor/dashboard', to: 'investor#dashboard'
   get 'investor/profit_summary', to: 'investor#profit_summary'
@@ -291,6 +296,9 @@ Rails.application.routes.draw do
         get 'module/:module_name', action: :module_permissions, as: :module
       end
     end
+
+    # Yearly ambassador / affiliate subscriptions (who is active, expiring, expired)
+    resources :subscriptions, only: [:index]
 
     # KYC Verification queue (affiliates awaiting KYC review)
     resources :kyc_verifications, only: [:index] do
@@ -942,6 +950,12 @@ Rails.application.routes.draw do
         get  'kyc/payment/status', to: 'kyc#payment_status'
         post 'kyc/payment/order',  to: 'kyc#create_payment_order'
         post 'kyc/payment/verify', to: 'kyc#verify_payment'
+
+        # Yearly subscription (affiliate + ambassador): status, history, renewal via Razorpay
+        get  'subscription',        to: 'subscription#show'
+        get  'subscription/history', to: 'subscription#history'
+        post 'subscription/order',  to: 'subscription#create_order'
+        post 'subscription/verify', to: 'subscription#verify'
 
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'

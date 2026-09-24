@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_24_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -546,6 +546,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
     t.datetime "payment_paid_at"
     t.string "razorpay_order_id"
     t.string "razorpay_payment_id"
+    t.datetime "subscription_expires_at"
     t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
@@ -556,6 +557,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
     t.index ["role_id"], name: "index_distributors_on_role_id"
     t.index ["state_id"], name: "index_distributors_on_state_id"
     t.index ["status"], name: "index_distributors_on_status"
+    t.index ["subscription_expires_at"], name: "index_distributors_on_subscription_expires_at"
   end
 
   create_table "documents", force: :cascade do |t|
@@ -1941,6 +1943,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
     t.datetime "payment_paid_at"
     t.string "razorpay_order_id"
     t.string "razorpay_payment_id"
+    t.datetime "subscription_expires_at"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
@@ -1949,6 +1952,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_19_091000) do
     t.index ["referral_code"], name: "index_sub_agents_on_referral_code", unique: true
     t.index ["role_id"], name: "index_sub_agents_on_role_id"
     t.index ["status"], name: "index_sub_agents_on_status"
+    t.index ["subscription_expires_at"], name: "index_sub_agents_on_subscription_expires_at"
+  end
+
+  create_table "subscriptions", force: :cascade do |t|
+    t.string "subscriber_type", null: false
+    t.bigint "subscriber_id", null: false
+    t.string "kind", default: "registration", null: false
+    t.decimal "amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.datetime "starts_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "paid_at"
+    t.string "razorpay_order_id"
+    t.string "razorpay_payment_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_subscriptions_on_expires_at"
+    t.index ["razorpay_payment_id"], name: "index_subscriptions_on_razorpay_payment_id", unique: true, where: "(razorpay_payment_id IS NOT NULL)"
+    t.index ["subscriber_type", "subscriber_id"], name: "index_subscriptions_on_subscriber"
   end
 
   create_table "system_settings", force: :cascade do |t|

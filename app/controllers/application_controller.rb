@@ -88,7 +88,7 @@ class ApplicationController < ActionController::Base
     end
 
     # Skip authorization for ambassador controller + web KYC wizard
-    if ['AmbassadorController', 'AmbassadorKycController'].include?(self.class.name)
+    if ['AmbassadorController', 'AmbassadorKycController', 'AmbassadorSubscriptionsController'].include?(self.class.name)
       return false
     end
 

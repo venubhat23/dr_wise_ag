@@ -37,23 +37,13 @@
           </thead>
           <tbody>
             <% @payouts.each do |payout| %>
-              <%
-                policy = nil
-                case payout.policy_type
-                when 'health'
-                  policy = HealthInsurance.find_by(id: payout.policy_id) if defined?(HealthInsurance)
-                when 'life'
-                  policy = LifeInsurance.find_by(id: payout.policy_id) if defined?(LifeInsurance)
-                when 'motor'
-                  policy = MotorInsurance.find_by(id: payout.policy_id) if defined?(MotorInsurance)
-                end
-              %>
+              <% policy = payout.policy %>
               <tr>
                 <td><%= policy&.policy_number || "Policy ##{payout.policy_id}" %></td>
                 <td><%= policy&.customer&.display_name || 'Customer' %></td>
                 <td><%= payout.policy_type.capitalize %></td>
                 <td><%= indian_currency((policy&.total_premium || 0).round) %></td>
-                <td><%= indian_currency((payout.payout_amount || 0).round) %></td>
+                <td><%= indian_currency(payout.payout_amount || 0) %></td>
                 <td>
                   <% case payout.status.downcase %>
                   <% when 'paid' %>
@@ -64,7 +54,7 @@
                     <span class="badge bg-secondary"><%= payout.status.humanize %></span>
                   <% end %>
                 </td>
-                <td><%= payout.created_at.strftime("%b %d, %Y") %></td>
+                <td><%= (payout.payout_date || payout.created_at).strftime("%b %d, %Y") %></td>
               </tr>
             <% end %>
           </tbody>

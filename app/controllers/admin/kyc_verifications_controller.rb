@@ -16,6 +16,14 @@ class Admin::KycVerificationsController < Admin::ApplicationController
 
     scope = apply_kyc_search(scope)
 
+    # Registration-fee payment filter: paid / unpaid (unpaid = self-registered and not yet paid).
+    @payment_filter = %w[paid unpaid].include?(params[:payment]) ? params[:payment] : nil
+    scope = case @payment_filter
+            when 'paid' then scope.where(payment_paid: true)
+            when 'unpaid' then scope.where(payment_paid: false, self_registered: true)
+            else scope
+            end
+
     # 3 queries however many rows: affiliates, their documents, their assignment
     # rows. (This DB has ~350ms per round trip, so round trips are what cost.)
     @sub_agents = scope.includes(:sub_agent_documents, :distributor_assignment)

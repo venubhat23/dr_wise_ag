@@ -1,0 +1,10 @@
+Dear <%= @lead.display_name %>,
+
+Thank you for your interest in <%= @lead.insurance_interest.presence || 'our services' %>.<% if @affiliate.present? %> Your details were shared with us by <%= @affiliate.display_name %>.<% end %>
+
+One of our advisors will contact you shortly on <%= @lead.contact_number %> to understand your needs and help you find the right plan.
+
+Your reference ID: <%= @lead.lead_id %>
+
+Thank you,
+Drwise Team

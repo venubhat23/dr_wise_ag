@@ -1,0 +1,13 @@
+Hi <%= @affiliate.display_name %>,
+
+Your lead <%= @lead.display_name %> has been submitted successfully. Our team will reach out to them shortly, and you can track its progress from the Leads section of the app.
+
+Lead ID: <%= @lead.lead_id %>
+Name: <%= @lead.display_name %>
+Contact Number: <%= @lead.contact_number %>
+<% if @lead.email.present? %>Email: <%= @lead.email %>
+<% end %>Product: <%= @lead.product_display_name %>
+Submitted On: <%= @lead.created_at.strftime("%d %b %Y, %I:%M %p") %>
+
+Thank you,
+Drwise Team

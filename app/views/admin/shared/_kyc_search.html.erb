@@ -1,13 +1,18 @@
 <%# Search box for a KYC queue tab: a Select2 dropdown that suggests matching records
     (name / email / mobile) as you type; picking one filters to it, and any typed text can
-    also be submitted as a free search. locals: path, status, noun, q, total %>
+    also be submitted as a free search. locals: path, status, noun, q, total
+    (optional: payment, hidden - extra params hash kept on search + lookup) %>
 <%= render 'admin/shared/select2_assets' %>
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body py-3">
     <%= form_with url: path, method: :get, local: true, id: "kyc_search_form", class: "d-flex flex-wrap gap-2 align-items-center" do |f| %>
       <%= hidden_field_tag :status, status if status.present? %>
+      <%= hidden_field_tag :payment, local_assigns[:payment] if local_assigns[:payment].present? %>
+      <% (local_assigns[:hidden] || {}).each do |name, value| %>
+        <%= hidden_field_tag name, value %>
+      <% end %>
       <div class="flex-grow-1" style="max-width: 520px;">
-        <select name="q" id="kyc_search_select" class="form-select" data-lookup-url="<%= path %>" data-status="<%= status %>"
+        <select name="q" id="kyc_search_select" class="form-select" data-lookup-url="<%= local_assigns[:hidden].present? ? "#{path}?#{local_assigns[:hidden].to_query}" : path %>" data-status="<%= status %>"
                 data-placeholder="Search <%= noun %> by name, email or mobile…">
           <option></option>
           <% if q.present? %>
@@ -17,7 +22,7 @@
       </div>
       <button type="submit" class="btn btn-primary px-4">Search</button>
       <% if q.present? %>
-        <%= link_to "Clear", (status.present? ? "#{path}?#{{ status: status }.to_query}" : path), class: "btn btn-outline-secondary", title: "Clear search" %>
+        <%= link_to "Clear", "#{path}?#{{ status: status.presence }.compact.merge(local_assigns[:hidden] || {}).to_query}", class: "btn btn-outline-secondary", title: "Clear search" %>
         <span class="text-muted small">
           <strong><%= total %></strong> result<%= 's' unless total == 1 %> for “<%= q %>”
         </span>

@@ -709,7 +709,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           },
           payment_required: sub_agent.payment_required?,
           payment_paid: sub_agent.payment_paid,
-          payment_amount_due: sub_agent.payment_amount_due.to_f
+          payment_amount_due: sub_agent.payment_amount_due.to_f,
+          subscription: sub_agent.subscription_summary
         }
       }
     else
@@ -918,6 +919,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
             active_balance: ambassador_record.wallet&.balance.to_f,
             inactive_balance: ambassador_record.wallet&.inactive_balance.to_f
           },
+          subscription: ambassador_record&.subscription_summary,
+          subscription_renewal_required: ambassador_record&.renewal_required? || false,
           commission_earned: format_indian_amount(agent_stats[:commission_earned]),
           customers_count: agent_stats[:customers_count],
           policies_count: agent_stats[:policies_count],
@@ -983,7 +986,9 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
     kyc_approved   = sub_agent.kyc_approved?
     account_active = sub_agent.status == 'active'
-    message = if kyc_approved && account_active
+    message = if sub_agent.renewal_required?
+      "Your yearly subscription expired on #{sub_agent.subscription_expires_at.strftime('%d %b %Y')}. Please renew to continue."
+    elsif kyc_approved && account_active
       'Login successful'
     elsif sub_agent.kyc_rejected?
       'Your KYC was rejected. Please re-upload your documents.'
@@ -1019,6 +1024,8 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         payment_required: sub_agent.payment_required?,
         payment_paid: sub_agent.payment_paid,
         payment_amount_due: sub_agent.payment_amount_due.to_f,
+        subscription: sub_agent.subscription_summary,
+        subscription_renewal_required: sub_agent.renewal_required?,
         password_reset_days: get_sub_agent_password_reset_days(sub_agent),
         password_reset_required: get_sub_agent_password_reset_required(sub_agent),
         commission_earned: format_indian_amount(sub_agent_stats[:commission_earned]),

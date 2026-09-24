@@ -1,0 +1,156 @@
+<% content_for :title, "Subscription - Dr WISE" %>
+<% status = @distributor.subscription_status %>
+
+<style>
+  html, body { overflow-y: auto !important; background: #eef0f8; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .sub-wrap { max-width: 520px; margin: 0 auto; padding: 28px 16px 64px; }
+  .sub-topbar { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 18px; }
+  .sub-logo { height: 36px; }
+  .sub-card { background: #fff; border-radius: 22px; overflow: hidden; box-shadow: 0 24px 60px -12px rgba(31, 41, 55, .22); }
+  .sub-hero { padding: 30px 26px 44px; text-align: center; color: #fff; background: linear-gradient(155deg, #4338ca, #6d5bf0 55%, #8b7cf5); }
+  .sub-hero.expired { background: linear-gradient(155deg, #b91c1c, #dc2626 55%, #f87171); }
+  .sub-hero.expiring_soon { background: linear-gradient(155deg, #b45309, #d97706 55%, #fbbf24); }
+  .sub-hero-icon { width: 58px; height: 58px; border-radius: 16px; background: rgba(255,255,255,.16); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 24px; }
+  .sub-hero h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .sub-hero p { font-size: 13px; opacity: .9; margin: 0 auto; max-width: 360px; }
+  .sub-box { margin: -26px 22px 0; background: #fff; border-radius: 16px; box-shadow: 0 14px 30px rgba(31,41,55,.14); border: 1px solid #eef0f6; padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; position: relative; }
+  .sub-box .lbl { font-size: 12px; color: #6b7280; font-weight: 600; }
+  .sub-box .val { font-size: 18px; font-weight: 800; color: #111827; }
+  .sub-box .amt { font-size: 28px; font-weight: 800; color: #111827; }
+  .sub-actions { padding: 22px 24px 8px; }
+  .btn-pay-now { width: 100%; background: linear-gradient(135deg, #4f46e5, #6d5bf0); border: none; color: #fff; font-weight: 700; font-size: 15px; padding: 14px; border-radius: 14px; }
+  .btn-pay-now:hover:not(:disabled) { color: #fff; opacity: .95; }
+  .sub-history { padding: 8px 24px 24px; }
+  .sub-history h2 { font-size: 13px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .3px; margin: 14px 0 10px; }
+  .sub-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: #f8f9fd; border: 1px solid #f0f1f8; margin-bottom: 8px; font-size: 13px; }
+  .sub-row .kind { font-weight: 600; text-transform: capitalize; }
+  .sub-row .period { color: #6b7280; font-size: 12px; }
+</style>
+
+<div class="sub-wrap">
+  <div class="sub-topbar">
+    <img src="/logo.jpeg" alt="Dr WISE" class="sub-logo">
+    <%= button_to "Sign out", destroy_user_session_path, method: :delete,
+          class: "btn btn-link btn-sm p-0 small text-muted text-decoration-none" %>
+  </div>
+
+  <% flash.each do |type, message| %>
+    <div class="alert alert-<%= type.to_s == 'notice' ? 'success' : 'warning' %> small"><%= message %></div>
+  <% end %>
+
+  <div class="sub-card">
+    <div class="sub-hero <%= status %>">
+      <div class="sub-hero-icon"><i class="fas fa-<%= status == 'expired' ? 'lock' : 'calendar-check' %>"></i></div>
+      <% case status %>
+      <% when 'expired' %>
+        <h1>Your subscription has expired</h1>
+        <p>It expired on <%= @distributor.subscription_expires_at.strftime('%d %b %Y') %>.
+          Renew now to get back to your dashboard, wallet and referrals.</p>
+      <% when 'expiring_soon' %>
+        <h1>Renewal due in <%= pluralize(@distributor.subscription_days_left, 'day') %></h1>
+        <p>Renew early - the new year is added on top of your current expiry date.</p>
+      <% when 'active' %>
+        <h1>Subscription active</h1>
+        <p>Your ambassador membership is valid for 1 year from each payment.</p>
+      <% else %>
+        <h1>Ambassador subscription</h1>
+        <p>There is no subscription payment linked to your account.</p>
+      <% end %>
+    </div>
+
+    <div class="sub-box">
+      <div class="text-start">
+        <div class="lbl"><%= status == 'expired' ? 'Expired on' : 'Valid till' %></div>
+        <div class="val"><%= @distributor.subscription_expires_at&.strftime('%d %b %Y') || '—' %></div>
+      </div>
+      <% if @distributor.subscription_payment_due? %>
+        <div class="text-end">
+          <div class="lbl">1 year renewal</div>
+          <div class="amt"><%= indian_currency(@amount) %></div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="sub-actions">
+      <div id="payErrorBox" class="alert alert-danger small mb-3 text-start" style="display:none;"></div>
+      <% if @distributor.subscription_payment_due? %>
+        <button id="payNowBtn" type="button" class="btn btn-pay-now">
+          <i class="fas fa-lock me-2"></i>Pay <%= indian_currency(@amount) %> &amp; renew for 1 year
+        </button>
+      <% end %>
+      <% unless @distributor.renewal_required? %>
+        <%= link_to "Back to dashboard", ambassador_dashboard_path, class: "btn btn-link w-100 mt-2 text-decoration-none text-muted small" %>
+      <% end %>
+    </div>
+
+    <% if @subscriptions.any? %>
+      <div class="sub-history">
+        <h2>Payment history</h2>
+        <% @subscriptions.each do |sub| %>
+          <div class="sub-row">
+            <div>
+              <div class="kind"><%= sub.kind %> <% if sub.active? %><span class="badge bg-success ms-1">Current</span><% end %></div>
+              <div class="period"><%= sub.starts_at.strftime('%d %b %Y') %> → <%= sub.expires_at.strftime('%d %b %Y') %></div>
+            </div>
+            <div class="fw-bold"><%= indian_currency(sub.amount) %></div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% if @distributor.subscription_payment_due? %>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  (function () {
+    var btn = document.getElementById("payNowBtn");
+    var btnHtml = btn.innerHTML;
+    var errorBox = document.getElementById("payErrorBox");
+    var csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+    function showError(message) { errorBox.textContent = message; errorBox.style.display = "block"; }
+    function resetButton() { btn.disabled = false; btn.innerHTML = btnHtml; }
+
+    btn.addEventListener("click", async function () {
+      errorBox.style.display = "none";
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Please wait...';
+
+      try {
+        var orderRes = await fetch("<%= ambassador_subscription_order_path %>", { method: "POST", headers: { "X-CSRF-Token": csrf } });
+        var order = await orderRes.json();
+        if (!orderRes.ok) throw new Error(order.error || "Could not start payment.");
+
+        var rzp = new Razorpay({
+          key: order.key, amount: order.amount, currency: order.currency, order_id: order.order_id,
+          name: order.name, description: order.description, prefill: order.prefill,
+          theme: { color: "#4f46e5" },
+          handler: async function (response) {
+            try {
+              var verifyRes = await fetch("<%= ambassador_subscription_verify_path %>", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                })
+              });
+              var result = await verifyRes.json();
+              if (!verifyRes.ok) throw new Error(result.error || "Payment verification failed.");
+              window.location.href = result.redirect_to;
+            } catch (err) { showError(err.message); resetButton(); }
+          },
+          modal: { ondismiss: resetButton }
+        });
+        rzp.on("payment.failed", function (response) {
+          showError(response.error.description || "Payment failed. Please try again.");
+          resetButton();
+        });
+        rzp.open();
+      } catch (err) { showError(err.message); resetButton(); }
+    });
+  })();
+</script>
+<% end %>

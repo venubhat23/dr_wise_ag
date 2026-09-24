@@ -47,6 +47,16 @@ class Api::V1::Mobile::BaseController < ApplicationController
         @current_user = User.find(user_id)
       when 'sub_agent'
         @current_user = SubAgent.find(user_id)
+        # Expired yearly subscription: block the app until they renew via
+        # /api/v1/mobile/subscription/* (which does its own auth).
+        if @current_user.renewal_required?
+          return render json: {
+            success: false,
+            code: 'subscription_expired',
+            message: 'Your yearly subscription has expired. Please renew to continue.',
+            data: { subscription: @current_user.subscription_summary }
+          }, status: :payment_required
+        end
       else
         return render json: {
           success: false,

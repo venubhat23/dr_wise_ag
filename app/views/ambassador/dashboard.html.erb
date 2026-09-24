@@ -10,6 +10,20 @@
   </div>
 <% end %>
 
+<% if @distributor.subscription_tracked? %>
+  <% sub_soon = @distributor.renewal_window_open? %>
+  <div class="alert <%= sub_soon ? 'alert-warning' : 'alert-light border' %> d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <i class="bi bi-calendar-check me-2"></i>
+      Subscription valid till <strong><%= @distributor.subscription_expires_at.strftime('%d %b %Y') %></strong>
+      (<%= pluralize(@distributor.subscription_days_left, 'day') %> left).
+      Next renewal: <strong><%= @distributor.subscription_expires_at.strftime('%d %b %Y') %></strong>
+    </div>
+    <%= link_to (sub_soon ? "Renew Now" : "View Subscription"), ambassador_subscription_path,
+          class: "btn btn-sm #{sub_soon ? 'btn-warning' : 'btn-outline-primary'}" %>
+  </div>
+<% end %>
+
 <div class="row mb-4">
   <div class="col-12">
     <div class="d-flex justify-content-between align-items-center">

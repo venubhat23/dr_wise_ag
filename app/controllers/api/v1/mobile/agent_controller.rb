@@ -1044,6 +1044,15 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     )
 
     if lead.save
+      # Affiliate-submitted leads: email both the affiliate and the lead
+      if affiliate_id
+        begin
+          SendLeadSubmittedEmailJob.perform_later(lead_id: lead.id)
+        rescue => e
+          Rails.logger.error "Failed to enqueue lead submitted email for Lead #{lead.id}: #{e.message}"
+        end
+      end
+
       render json: {
         status: true,
         message: 'Lead created successfully',

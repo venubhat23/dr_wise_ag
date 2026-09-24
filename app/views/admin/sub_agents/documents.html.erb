@@ -212,6 +212,12 @@
                 <span class="badge bg-success">Paid</span>
                 ₹<%= number_with_precision(@sub_agent.payment_amount, precision: 2) %>
                 on <%= @sub_agent.payment_paid_at&.strftime('%d %b %Y') %>
+                <% if @sub_agent.subscription_tracked? %>
+                  <div class="small <%= @sub_agent.subscription_expired? ? 'text-danger' : 'text-muted' %>">
+                    Subscription <%= @sub_agent.subscription_expired? ? 'expired on' : 'valid till' %>
+                    <%= @sub_agent.subscription_expires_at.strftime('%d %b %Y') %>
+                  </div>
+                <% end %>
               <% elsif @sub_agent.payment_required? %>
                 <span class="badge bg-warning text-dark">Pending</span>
                 ₹<%= number_with_precision(@sub_agent.payment_amount_due, precision: 2) %> due

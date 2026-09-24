@@ -1043,6 +1043,21 @@ body.sidebar-collapsed .main-content {
           </li>
         <% end %>
 
+        <!-- Subscriptions (yearly ambassador / affiliate membership) -->
+        <% if show_sidebar_item?('kyc_verification') %>
+          <li class="nav-item">
+            <%= link_to admin_subscriptions_path, class: "nav-link-modern #{'active' if request.path.start_with?('/admin/subscriptions')}", data: { tooltip: "Subscriptions" } do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-violet">
+                  <i class="bi bi-calendar-check"></i>
+                </div>
+              </div>
+              <span class="nav-text">Subscriptions</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
         <!-- Ambassadors -->
         <% if show_sidebar_item?('distributors') %>
           <li class="nav-item">

@@ -35,9 +35,18 @@
 </ul>
 
 <%= render 'admin/shared/kyc_search', path: admin_kyc_verifications_path, status: @kyc_status_filter,
-           noun: 'affiliates', q: @q, total: @sub_agents.size %>
+           noun: 'affiliates', q: @q, total: @sub_agents.size, payment: @payment_filter %>
 
 <% bulk_enabled = @kyc_status_filter == 'submitted' %>
+
+<!-- Payment Filter -->
+<div class="d-flex align-items-center gap-2 mb-3">
+  <span class="text-muted small">Payment:</span>
+  <% [[nil, 'All'], ['paid', 'Paid'], ['unpaid', 'Not Paid']].each do |value, label| %>
+    <%= link_to label, admin_kyc_verifications_path(status: @kyc_status_filter, q: @q.presence, payment: value),
+                class: "btn btn-sm #{@payment_filter == value ? 'btn-primary' : 'btn-outline-secondary'}" %>
+  <% end %>
+</div>
 
 <div class="card border-0 shadow-sm">
   <div class="card-body p-0">
@@ -59,6 +68,7 @@
                 <th>Documents</th>
               <% end %>
               <th>Referred By</th>
+              <th>Payment Paid</th>
               <th><%= @kyc_status_filter == 'just_registered' ? 'Registered' : 'Submitted' %></th>
               <th class="text-end">Action</th>
             </tr>
@@ -122,6 +132,22 @@
                     <div class="small text-muted">Connected by admin</div>
                   <% else %>
                     <span class="text-muted">Direct signup</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if sub_agent.payment_paid? %>
+                    <span class="badge bg-success">Paid</span>
+                    <% if sub_agent.payment_amount.present? %>
+                      <div class="small fw-semibold">₹<%= number_with_delimiter(sub_agent.payment_amount.to_i == sub_agent.payment_amount ? sub_agent.payment_amount.to_i : sub_agent.payment_amount) %></div>
+                    <% end %>
+                    <% if sub_agent.payment_paid_at.present? %>
+                      <div class="small text-muted"><%= sub_agent.payment_paid_at.strftime('%d %b %Y') %></div>
+                    <% end %>
+                  <% elsif sub_agent.self_registered? %>
+                    <span class="badge bg-danger">Not Paid</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Not Required</span>
+                    <div class="small text-muted">Added by admin</div>
                   <% end %>
                 </td>
                 <td>

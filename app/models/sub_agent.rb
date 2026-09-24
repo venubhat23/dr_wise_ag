@@ -1,6 +1,7 @@
 class SubAgent < ApplicationRecord
   include PgSearch::Model
   include ReferralCodeable
+  include Subscribable
 
   # Affiliate referral code, e.g. "AFF123456"
   referral_code_prefix 'AFF'
@@ -239,15 +240,7 @@ class SubAgent < ApplicationRecord
     self_registered? && !payment_paid? && payment_amount_due > 0
   end
 
-  def mark_payment_paid!(order_id:, payment_id:, amount:)
-    update!(
-      payment_paid: true,
-      payment_paid_at: Time.current,
-      payment_amount: amount,
-      razorpay_order_id: order_id,
-      razorpay_payment_id: payment_id
-    )
-  end
+  # mark_payment_paid! lives in Subscribable - each payment buys 1 year.
 
   # A submission only counts as complete once both required documents are present -
   # used to decide when to flip kyc_status from pending/rejected to submitted.

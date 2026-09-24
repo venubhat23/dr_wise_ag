@@ -5,6 +5,9 @@ class AmbassadorController < ApplicationController
   # self-registered ambassador can check their Joining Credit / payout status
   # while their KYC (and registration-fee payment) is still under review.
   before_action :ensure_kyc_approved, except: [:wallet, :payout_history, :request_withdrawal]
+  # Once the yearly subscription lapses every ambassador page is blocked until
+  # they renew (see Subscribable).
+  before_action :ensure_subscription_active
   before_action :setup_ambassador_data
 
   def dashboard
@@ -39,17 +42,20 @@ class AmbassadorController < ApplicationController
     # Common data setup handled by before_action
 
     # Get payout history
-    @payouts = get_ambassador_payouts.order(created_at: :desc)
+    payouts = get_ambassador_payouts
+
+    # Summary statistics (over all payouts, not just the current page)
+    @total_earned = payouts.where(status: 'paid').sum(:payout_amount)
+    @pending_amount = payouts.where(status: 'pending').sum(:payout_amount)
+    @total_policies = get_total_policies_count
+
+    @payouts = payouts.order(payout_date: :desc, created_at: :desc)
 
     # Pagination (safely handle if Kaminari is available)
     if @payouts.respond_to?(:page)
       @payouts = @payouts.page(params[:page]).per(15)
     end
-
-    # Summary statistics
-    @total_earned = @payouts.where(status: 'paid').sum(:payout_amount)
-    @pending_amount = @payouts.where(status: 'pending').sum(:payout_amount)
-    @total_policies = get_total_policies_count
+    CommissionPayout.preload_policies!(@payouts.to_a)
   end
 
   def wallet
@@ -106,6 +112,14 @@ class AmbassadorController < ApplicationController
     return if @distributor.kyc_approved?
 
     redirect_to ambassador_kyc_path
+  end
+
+  def ensure_subscription_active
+    @distributor ||= Distributor.find_by(email: current_user.email)
+    return if @distributor.nil?
+    return unless @distributor.renewal_required?
+
+    redirect_to ambassador_subscription_path, alert: "Your yearly subscription expired on #{@distributor.subscription_expires_at.strftime('%d %b %Y')}. Please renew to continue."
   end
 
   def setup_ambassador_data
@@ -340,13 +354,18 @@ class AmbassadorController < ApplicationController
     Payout.none
   end
 
+  # Ambassador commission is paid from the policy's Commission Calculation
+  # table (admin "Pay" / Affiliate cascade), which writes a CommissionPayout
+  # with payout_to 'ambassador' - not a DistributorPayout. A policy belongs to
+  # this ambassador when it is tagged with their distributor_id or was sold by
+  # one of their assigned affiliates.
   def get_ambassador_payouts
-    # Get payouts related to this ambassador/distributor
-    if defined?(DistributorPayout)
-      DistributorPayout.where(distributor_id: @distributor.id)
-    else
-      Payout.none
-    end
+    affiliate_ids = @assigned_affiliates.pluck(:id)
+
+    { 'health' => HealthInsurance, 'life' => LifeInsurance, 'motor' => MotorInsurance, 'other' => OtherInsurance }.map do |type, klass|
+      policy_ids = klass.where(distributor_id: @distributor.id).or(klass.where(sub_agent_id: affiliate_ids)).select(:id)
+      CommissionPayout.where(payout_to: 'ambassador', policy_type: type, policy_id: policy_ids)
+    end.reduce(:or)
   end
 
   def get_total_policies_count

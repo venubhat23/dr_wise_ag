@@ -143,7 +143,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     render_success({
       payment_required: @sub_agent.payment_required?,
       payment_paid: @sub_agent.payment_paid,
-      amount_due: @sub_agent.payment_amount_due
+      amount_due: @sub_agent.payment_amount_due,
+      subscription: @sub_agent.subscription_summary
     })
   end
 
@@ -194,7 +195,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
     render_success({
       payment_paid: true,
       payment_paid_at: @sub_agent.payment_paid_at,
-      kyc_status: @sub_agent.kyc_status
+      kyc_status: @sub_agent.kyc_status,
+      subscription: @sub_agent.subscription_summary
     }, 'Payment verified successfully')
   end
 

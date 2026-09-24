@@ -1,0 +1,173 @@
+<% content_for :title, "Subscriptions" %>
+<% noun = @type == 'ambassadors' ? 'Ambassador' : 'Affiliate' %>
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="mb-1">Subscriptions</h2>
+    <p class="text-muted mb-0">Yearly membership: each registration / renewal payment is valid for 1 year. Expired users are locked out until they renew.</p>
+  </div>
+  <div class="btn-group">
+    <% [['ambassadors', 'Ambassadors'], ['affiliates', 'Affiliates']].each do |key, label| %>
+      <%= link_to admin_subscriptions_path(type: key, status: @tab),
+                  class: "btn #{@type == key ? 'btn-primary' : 'btn-outline-primary'}" do %>
+        <%= label %>
+        <% if @type_counts[key].to_i > 0 %>
+          <span class="badge bg-danger ms-1" title="Expired"><%= @type_counts[key] %></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<!-- Summary cards (click = open that tab) -->
+<% cards = [
+     ['active',        'Active',               'bi-check-circle-fill',     'success'],
+     ['expiring_soon', 'Expiring in 30 days',  'bi-hourglass-split',       'warning'],
+     ['expired',       'Expired (locked out)', 'bi-x-octagon-fill',        'danger'],
+     ['unpaid',        'Never paid',           'bi-exclamation-circle',    'secondary']
+   ] %>
+<div class="row g-3 mb-4">
+  <% cards.each do |key, label, icon, color| %>
+    <div class="col-6 col-lg-3">
+      <%= link_to admin_subscriptions_path(type: @type, status: key), class: "text-decoration-none" do %>
+        <div class="card border-0 shadow-sm h-100 <%= "border-start border-4 border-#{color}" if @tab == key %>">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-<%= color %> bg-opacity-10 text-<%= color %> d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+              <i class="bi <%= icon %> fs-5"></i>
+            </div>
+            <div>
+              <div class="fs-4 fw-bold text-dark lh-1"><%= @tab_counts[key] %></div>
+              <div class="small text-muted"><%= label %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<%= render 'admin/shared/kyc_search', path: admin_subscriptions_path, status: @tab,
+           noun: @type, q: @q, total: (@records.respond_to?(:total_count) ? @records.total_count : @records.size),
+           hidden: { type: @type } %>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-0">
+    <% if @records.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th><%= noun %></th>
+              <th>Email / Mobile</th>
+              <th>Status</th>
+              <% if @tab == 'unpaid' %>
+                <th>Registered on</th>
+                <th>Fee due</th>
+              <% else %>
+                <th>Current period</th>
+                <th><%= @tab == 'expired' ? 'Expired on' : 'Next renewal' %></th>
+                <th>Years paid</th>
+                <th>Last payment</th>
+              <% end %>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @records.each do |rec| %>
+              <% subs = rec.subscriptions.to_a %>
+              <% current = subs.detect(&:active?) || subs.first %>
+              <tr>
+                <td class="fw-semibold"><%= rec.display_name.presence || content_tag(:span, "Name pending", class: "text-muted fst-italic") %></td>
+                <td>
+                  <div><%= rec.email %></div>
+                  <div class="small text-muted"><%= rec.mobile %></div>
+                </td>
+                <td>
+                  <% case rec.subscription_status %>
+                  <% when 'active' %>
+                    <span class="badge bg-success">Active</span>
+                  <% when 'expiring_soon' %>
+                    <span class="badge bg-warning text-dark"><%= pluralize(rec.subscription_days_left, 'day') %> left</span>
+                  <% when 'expired' %>
+                    <span class="badge bg-danger">Expired <%= time_ago_in_words(rec.subscription_expires_at) %> ago</span>
+                  <% when 'unpaid' %>
+                    <span class="badge bg-secondary">Not paid</span>
+                  <% else %>
+                    <span class="badge bg-light text-muted">No fee</span>
+                  <% end %>
+                </td>
+                <% if @tab == 'unpaid' %>
+                  <td><%= rec.created_at.strftime('%d %b %Y') %></td>
+                  <td><%= indian_currency(rec.payment_amount_due) %></td>
+                <% else %>
+                  <td class="small">
+                    <% if current %>
+                      <%= current.starts_at.strftime('%d %b %Y') %> → <%= current.expires_at.strftime('%d %b %Y') %>
+                    <% else %>—<% end %>
+                  </td>
+                  <td class="fw-semibold <%= 'text-danger' if rec.subscription_expired? %>">
+                    <%= rec.subscription_expires_at&.strftime('%d %b %Y') || '—' %>
+                  </td>
+                  <td><%= subs.size %></td>
+                  <td class="small">
+                    <% if (last = subs.max_by { |s| s.paid_at || s.created_at }) %>
+                      <%= indian_currency(last.amount) %>
+                      <div class="text-muted"><%= (last.paid_at || last.created_at).strftime('%d %b %Y') %> · <%= last.kind.titleize %></div>
+                    <% else %>—<% end %>
+                  </td>
+                <% end %>
+                <td class="text-end">
+                  <%= link_to (@type == 'ambassadors' ? admin_distributor_path(rec) : documents_admin_sub_agent_path(rec)),
+                              class: "btn btn-sm btn-outline-primary" do %>
+                    <i class="bi bi-eye"></i> View
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <% if @records.respond_to?(:total_pages) && @records.total_pages > 1 %>
+        <div class="p-3"><%= paginate @records %></div>
+      <% end %>
+    <% else %>
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+        No <%= @type %> in this list.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Recent payments -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent border-0">
+    <h6 class="mb-0"><i class="bi bi-credit-card me-2 text-success"></i>Recent <%= noun %> Subscription Payments</h6>
+  </div>
+  <div class="card-body p-0">
+    <% if @recent_payments.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr><th><%= noun %></th><th>Type</th><th>Amount</th><th>Paid on</th><th>Valid</th><th>Razorpay Payment ID</th></tr>
+          </thead>
+          <tbody>
+            <% @recent_payments.each do |pay| %>
+              <tr>
+                <td><%= pay.subscriber&.display_name.presence || pay.subscriber&.email %></td>
+                <td><span class="badge <%= pay.kind == 'renewal' ? 'bg-info text-dark' : 'bg-primary' %>"><%= pay.kind.titleize %></span></td>
+                <td><%= indian_currency(pay.amount) %></td>
+                <td><%= pay.paid_at&.strftime('%d %b %Y, %I:%M %p') %></td>
+                <td class="small"><%= pay.starts_at.strftime('%d %b %Y') %> → <%= pay.expires_at.strftime('%d %b %Y') %></td>
+                <td><code class="small"><%= pay.razorpay_payment_id.presence || '—' %></code></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted small p-3 mb-0">No subscription payments yet.</p>
+    <% end %>
+  </div>
+</div>

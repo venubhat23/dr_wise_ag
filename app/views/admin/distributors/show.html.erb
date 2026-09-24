@@ -771,6 +771,19 @@
                 <span class="text-muted">Paid On</span>
                 <span class="fw-semibold"><%= @distributor.payment_paid_at&.strftime('%d %b %Y, %I:%M %p') %></span>
               </div>
+              <% if @distributor.subscription_tracked? %>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                  <span class="text-muted">Subscription</span>
+                  <span class="fw-semibold <%= @distributor.subscription_expired? ? 'text-danger' : 'text-success' %>">
+                    <%= @distributor.subscription_expired? ? 'Expired' : 'Valid till' %>
+                    <%= @distributor.subscription_expires_at.strftime('%d %b %Y') %>
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between py-1 border-bottom">
+                  <span class="text-muted">Years Paid</span>
+                  <span class="fw-semibold"><%= @distributor.subscriptions.size %></span>
+                </div>
+              <% end %>
               <% if @distributor.razorpay_order_id.present? %>
                 <div class="d-flex justify-content-between py-1 border-bottom">
                   <span class="text-muted">Order ID</span>
