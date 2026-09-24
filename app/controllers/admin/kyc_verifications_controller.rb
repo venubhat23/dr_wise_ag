@@ -41,11 +41,18 @@ class Admin::KycVerificationsController < Admin::ApplicationController
     needs_ambassador_picker = @sub_agents.any? { |s| s.kyc_submitted? && s.ambassador_id.nil? }
     @ambassador_options = needs_ambassador_picker ? cached_ambassador_options : []
 
-    counts = Rails.cache.fetch('kyc_queue/affiliate_counts', expires_in: 5.minutes) do
-      SubAgent.where(kyc_status: [:pending, :submitted]).group(:kyc_status).count
+    # Per-tab counts in one grouped query (cache is cleared by SubAgent's after_commit).
+    counts = Rails.cache.fetch('kyc_queue/affiliate_tab_counts', expires_in: 5.minutes) do
+      SubAgent.group(:kyc_status).count
     end
-    @pending_count = counts['submitted'].to_i
-    @just_registered_count = counts['pending'].to_i
+    @tab_counts = {
+      'just_registered' => counts['pending'].to_i,
+      'submitted'       => counts['submitted'].to_i,
+      'approved'        => counts['approved'].to_i,
+      'rejected'        => counts['rejected'].to_i
+    }
+    @pending_count = @tab_counts['submitted']
+    @just_registered_count = @tab_counts['just_registered']
   end
 
   # POST /admin/kyc_verifications/bulk_action

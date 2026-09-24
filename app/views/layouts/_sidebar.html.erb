@@ -1044,7 +1044,7 @@ body.sidebar-collapsed .main-content {
         <% end %>
 
         <!-- Subscriptions (yearly ambassador / affiliate membership) -->
-        <% if show_sidebar_item?('kyc_verification') %>
+        <% if show_sidebar_item?('kyc_verification') || show_sidebar_item?('distributors') || show_sidebar_item?('sub_agents') %>
           <li class="nav-item">
             <%= link_to admin_subscriptions_path, class: "nav-link-modern #{'active' if request.path.start_with?('/admin/subscriptions')}", data: { tooltip: "Subscriptions" } do %>
               <div class="nav-icon-modern">

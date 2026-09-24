@@ -25,7 +25,7 @@ class SubAgent < ApplicationRecord
   before_validation :format_mobile_number
   before_save :store_password_if_changed
   before_save :set_location_ids_from_names
-  after_commit -> { Rails.cache.delete_multi(['sidebar/affiliate_kyc_pending_count', 'kyc_queue/affiliate_counts']) rescue nil }
+  after_commit -> { Rails.cache.delete_multi(['sidebar/affiliate_kyc_pending_count', 'kyc_queue/affiliate_tab_counts']) rescue nil }
 # before_save :add_country_code_to_mobile # Commented out - frontend already shows +91
 
   # Associations

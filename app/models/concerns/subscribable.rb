@@ -20,7 +20,9 @@ module Subscribable
     scope :subscription_active,        -> { where("#{table_name}.subscription_expires_at > ?", Time.current) }
     scope :subscription_expiring_soon, -> { where(subscription_expires_at: Time.current..RENEWAL_WINDOW_DAYS.days.from_now) }
     scope :subscription_expired,       -> { where("#{table_name}.subscription_expires_at <= ?", Time.current) }
-    scope :subscription_unpaid,        -> { where(self_registered: true, payment_paid: false) }
+    # Everyone with no subscription yet - existing / admin-created accounts
+    # as well as self-registered ones who haven't paid.
+    scope :subscription_not_subscribed, -> { where(subscription_expires_at: nil) }
   end
 
   def subscription_tracked?

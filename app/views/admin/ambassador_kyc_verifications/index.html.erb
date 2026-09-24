@@ -24,11 +24,8 @@
       <%= link_to admin_ambassador_kyc_verifications_path(status: status),
                   class: "nav-link #{'active' if @tab == status}" do %>
         <%= label %>
-        <% count = @tab_counts[status].to_i %>
-        <% if count > 0 %>
-          <% badge_class = status == 'submitted' ? 'bg-warning text-dark' : (status == 'just_registered' ? 'bg-info text-dark' : 'bg-secondary') %>
-          <span class="badge <%= badge_class %> ms-1"><%= count %></span>
-        <% end %>
+        <% badge_class = { 'submitted' => 'bg-warning text-dark', 'just_registered' => 'bg-info text-dark', 'approved' => 'bg-success', 'rejected' => 'bg-danger' }.fetch(status, 'bg-secondary') %>
+        <span class="badge <%= badge_class %> ms-1"><%= @tab_counts[status].to_i %></span>
       <% end %>
     </li>
   <% end %>

@@ -25,7 +25,7 @@
      ['active',        'Active',               'bi-check-circle-fill',     'success'],
      ['expiring_soon', 'Expiring in 30 days',  'bi-hourglass-split',       'warning'],
      ['expired',       'Expired (locked out)', 'bi-x-octagon-fill',        'danger'],
-     ['unpaid',        'Never paid',           'bi-exclamation-circle',    'secondary']
+     ['not_subscribed', 'Not subscribed yet',  'bi-person-dash',           'secondary']
    ] %>
 <div class="row g-3 mb-4">
   <% cards.each do |key, label, icon, color| %>
@@ -61,9 +61,11 @@
               <th><%= noun %></th>
               <th>Email / Mobile</th>
               <th>Status</th>
-              <% if @tab == 'unpaid' %>
+              <% if @tab == 'not_subscribed' %>
+                <th>Joined via</th>
+                <th>Account</th>
                 <th>Registered on</th>
-                <th>Fee due</th>
+                <th>Fee</th>
               <% else %>
                 <th>Current period</th>
                 <th><%= @tab == 'expired' ? 'Expired on' : 'Next renewal' %></th>
@@ -91,13 +93,22 @@
                     <span class="badge bg-warning text-dark"><%= pluralize(rec.subscription_days_left, 'day') %> left</span>
                   <% when 'expired' %>
                     <span class="badge bg-danger">Expired <%= time_ago_in_words(rec.subscription_expires_at) %> ago</span>
-                  <% when 'unpaid' %>
-                    <span class="badge bg-secondary">Not paid</span>
                   <% else %>
-                    <span class="badge bg-light text-muted">No fee</span>
+                    <span class="badge bg-secondary">Not subscribed</span>
                   <% end %>
                 </td>
-                <% if @tab == 'unpaid' %>
+                <% if @tab == 'not_subscribed' %>
+                  <td>
+                    <% if rec.self_registered? %>
+                      <span class="badge bg-info-subtle text-info">Self-registered</span>
+                    <% else %>
+                      <span class="badge bg-light text-dark border">Existing / added by admin</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="badge <%= rec.status.to_s == 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' %>"><%= rec.status.to_s.titleize %></span>
+                    <div class="small text-muted">KYC: <%= rec.kyc_status.to_s.titleize %></div>
+                  </td>
                   <td><%= rec.created_at.strftime('%d %b %Y') %></td>
                   <td><%= indian_currency(rec.payment_amount_due) %></td>
                 <% else %>

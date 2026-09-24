@@ -20,12 +20,9 @@ class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
 
     base = Distributor.self_registered
 
-    @tab_counts = {
-      'just_registered' => base.kyc_pending.count,
-      'submitted'       => base.kyc_submitted.count,
-      'approved'        => base.kyc_approved.count,
-      'rejected'        => base.kyc_rejected.count
-    }
+    # One grouped query instead of four counts.
+    counts = base.group(:kyc_status).count
+    @tab_counts = TABS.transform_values { |status| counts[status.to_s].to_i }
 
     return render_kyc_lookup(base.where(kyc_status: TABS[@tab])) if params[:lookup].present?
 

@@ -24,11 +24,8 @@
       <%= link_to admin_kyc_verifications_path(status: status),
                   class: "nav-link #{'active' if @kyc_status_filter == status}" do %>
         <%= label %>
-        <% if status == 'just_registered' && @just_registered_count > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @just_registered_count %></span>
-        <% elsif status == 'submitted' && @pending_count > 0 %>
-          <span class="badge bg-warning text-dark ms-1"><%= @pending_count %></span>
-        <% end %>
+        <% badge_class = { 'submitted' => 'bg-warning text-dark', 'approved' => 'bg-success', 'rejected' => 'bg-danger' }.fetch(status, 'bg-secondary') %>
+        <span class="badge <%= badge_class %> ms-1"><%= @tab_counts[status].to_i %></span>
       <% end %>
     </li>
   <% end %>
