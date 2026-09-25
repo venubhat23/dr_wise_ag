@@ -1,0 +1,78 @@
+<%
+  details = [
+    ["Account Type", @role],
+    ["Subscription Expires On", @expires_on.strftime("%d %b %Y")],
+    ["Days Remaining", "#{@days_remaining} #{@days_remaining == 1 ? 'day' : 'days'}"],
+    ["Renewal Fee (1 Year)", "₹ #{'%.2f' % @renewal_fee}"]
+  ]
+
+  urgent = @days_remaining <= 7
+  badge_bg = urgent ? "#fff4e5" : "#eef2ff"
+  badge_color = urgent ? "#b45309" : "#4338ca"
+%>
+<div style="background:#f4f6fb;padding:24px 12px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+    <tr>
+      <td style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">Drwise</h1>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;"><%= @role %> Subscription Renewal</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:15px;color:#333;">Hi <strong><%= @subscriber.display_name %></strong>,</p>
+
+        <div style="display:inline-block;background:<%= badge_bg %>;color:<%= badge_color %>;font-weight:600;font-size:12px;letter-spacing:0.4px;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:14px;">
+          Expires in <%= @days_remaining %> <%= @days_remaining == 1 ? "Day" : "Days" %>
+        </div>
+
+        <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
+          Thank you for being a valued Drwise <strong><%= @role %></strong>. This is a friendly reminder that your yearly subscription
+          expires on <strong><%= @expires_on.strftime("%d %b %Y") %></strong>, which is only <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %> away.
+          Your account needs renewal to keep going &mdash; once it expires, access to your <%= @ambassador ? "dashboard" : "app" %> will be paused until the renewal payment is made.
+        </p>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px;border:1px solid #ececf5;border-radius:10px;overflow:hidden;">
+          <tr style="background:#f8f9fd;">
+            <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#555;border-bottom:1px solid #ececf5;">Subscription Details</td>
+          </tr>
+          <% details.each_with_index do |(label, value), i| %>
+            <tr style="background:<%= i.even? ? '#ffffff' : '#fbfbfd' %>;">
+              <td style="padding:10px 16px;font-size:13px;color:#888;width:45%;border-bottom:1px solid #f2f2f6;">
+                <%= label %>
+              </td>
+              <td style="padding:10px 16px;font-size:13px;color:#222;font-weight:500;border-bottom:1px solid #f2f2f6;">
+                <%= value %>
+              </td>
+            </tr>
+          <% end %>
+        </table>
+
+        <div style="margin-top:8px;padding:14px 16px;background:#f8f9fd;border-radius:10px;font-size:13px;color:#444;line-height:1.6;">
+          <strong style="color:#333;">How to renew</strong><br>
+          <% if @ambassador %>
+            Please log in to the Drwise platform, open the <strong>Subscription</strong> page and complete the payment to renew for another year.
+          <% else %>
+            Please log in to the Drwise mobile app, open the <strong>Subscription</strong> section and complete the payment to renew for another year.
+          <% end %>
+          Renewing early is safe &mdash; the new year starts from your current expiry date, so you don't lose any remaining days.
+        </div>
+
+        <% if @login_url %>
+          <div style="text-align:center;margin:24px 0 4px;">
+            <a href="<%= @login_url %>" style="display:inline-block;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:8px;">Log in &amp; Renew Now</a>
+          </div>
+        <% end %>
+
+        <p style="font-size:14px;color:#444;line-height:1.6;margin:16px 0 0;">Please renew before the expiry date to continue without interruption.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:20px 32px;background:#f8f9fd;text-align:center;font-size:12px;color:#999;">
+        Thank you,<br><strong style="color:#555;">Drwise Team</strong>
+      </td>
+    </tr>
+  </table>
+</div>

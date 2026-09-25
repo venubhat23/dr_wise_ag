@@ -1,0 +1,24 @@
+Hi <%= @subscriber.display_name %>,
+
+Thank you for being a valued Drwise <%= @role %>. This is a friendly reminder that your yearly subscription expires on <%= @expires_on.strftime("%d %b %Y") %>, which is only <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %> away. Your account needs renewal to keep going - once it expires, access to your <%= @ambassador ? "dashboard" : "app" %> will be paused until the renewal payment is made.
+
+Subscription Details
+--------------------
+Account Type:            <%= @role %>
+Subscription Expires On: <%= @expires_on.strftime("%d %b %Y") %>
+Days Remaining:          <%= @days_remaining %> <%= @days_remaining == 1 ? "day" : "days" %>
+Renewal Fee (1 Year):    Rs. <%= '%.2f' % @renewal_fee %>
+
+How to renew
+<% if @ambassador -%>
+Please log in to the Drwise platform, open the Subscription page and complete the payment to renew for another year.
+Log in: <%= @login_url %>
+<% else -%>
+Please log in to the Drwise mobile app, open the Subscription section and complete the payment to renew for another year.
+<% end -%>
+Renewing early is safe - the new year starts from your current expiry date, so you don't lose any remaining days.
+
+Please renew before the expiry date to continue without interruption.
+
+Thank you,
+Drwise Team

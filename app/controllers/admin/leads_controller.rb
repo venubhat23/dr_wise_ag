@@ -248,6 +248,15 @@ class Admin::LeadsController < Admin::ApplicationController
         session.delete(:branch_out_mode)
       end
 
+      # Affiliate leads: notify the affiliate (in-app + email) and email the lead
+      if @lead.affiliate_id.present?
+        begin
+          SendLeadSubmittedEmailJob.perform_later(lead_id: @lead.id)
+        rescue => e
+          Rails.logger.error "Failed to enqueue lead submitted notifications for Lead #{@lead.id}: #{e.message}"
+        end
+      end
+
       redirect_to admin_leads_path, notice: 'Lead was successfully created.'
     else
       Rails.logger.error "Lead creation failed: #{@lead.errors.full_messages.join(', ')}"

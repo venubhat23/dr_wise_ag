@@ -129,7 +129,76 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
     }
   end
 
+  # GET /api/v1/mobile/sub_agent/notifications
+  def notifications
+    page = [params[:page].to_i, 1].max
+    per_page = params[:per_page].to_i
+    per_page = 20 if per_page <= 0
+    per_page = [per_page, 50].min
+
+    scope = Notification.for_sub_agent(current_sub_agent.id)
+    scope = scope.unread if params[:unread_only].to_s == 'true'
+
+    total_count = scope.count
+    total_pages = (total_count.to_f / per_page).ceil
+    notifications = scope.recent.limit(per_page).offset((page - 1) * per_page)
+
+    render json: {
+      success: true,
+      data: {
+        notifications: notifications.map { |n| notification_json(n) },
+        unread_count: Notification.for_sub_agent(current_sub_agent.id).unread.count,
+        pagination: {
+          current_page: page,
+          total_pages: total_pages,
+          total_count: total_count,
+          per_page: per_page,
+          has_next_page: page < total_pages,
+          has_prev_page: page > 1
+        }
+      }
+    }
+  end
+
+  # PUT /api/v1/mobile/sub_agent/notifications/:id/mark_read
+  def mark_notification_read
+    notification = Notification.for_sub_agent(current_sub_agent.id).find_by(id: params[:id])
+    unless notification
+      return render json: { success: false, message: 'Notification not found' }, status: :not_found
+    end
+
+    notification.mark_as_read! if notification.unread?
+    render json: { success: true, message: 'Notification marked as read', data: notification_json(notification) }
+  end
+
+  # PUT /api/v1/mobile/sub_agent/notifications/mark_all_read
+  def mark_all_notifications_read
+    updated = Notification.for_sub_agent(current_sub_agent.id)
+                          .where(is_read: [false, nil])
+                          .update_all(is_read: true, read_at: Time.current, updated_at: Time.current)
+    render json: { success: true, message: 'All notifications marked as read', data: { updated_count: updated } }
+  end
+
+  # GET /api/v1/mobile/sub_agent/notifications/unread_count
+  def unread_notifications_count
+    render json: { success: true, data: { unread_count: Notification.for_sub_agent(current_sub_agent.id).unread.count } }
+  end
+
   private
+
+  def notification_json(notification)
+    {
+      id: notification.id,
+      notification_type: notification.notification_type,
+      title: notification.title,
+      message: notification.message,
+      reference_type: notification.reference_type,
+      reference_id: notification.reference_id,
+      is_read: notification.read?,
+      sent_at: notification.sent_at,
+      read_at: notification.read_at
+    }
+  end
 
   def validate_sub_agent_access
     unless current_user.is_a?(SubAgent)

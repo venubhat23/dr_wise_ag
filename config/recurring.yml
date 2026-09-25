@@ -34,6 +34,13 @@ production:
     queue: default
     schedule: "45 1 * * *"
 
+  # Ambassador/affiliate yearly subscription reminders at 30/15/1 day(s)
+  # before expiry. 02:00 UTC = 7:30am IST, after the two policy batches.
+  subscription_renewal_reminders:
+    class: SubscriptionRenewalReminderJob
+    queue: default
+    schedule: "0 2 * * *"
+
 # Development currently points at the same Railway Postgres as production
 # (config/database.yml), so the same warmer needs to run here too or every
 # local dashboard load pays the full cold-query cost.
@@ -62,3 +69,10 @@ development:
     class: PolicyExpiredFollowupJob
     queue: default
     schedule: "45 1 * * *"
+
+  # Same caveats as above - dev/prod share Postgres, so this WILL email real
+  # ambassadors/affiliates if it runs with real matching subscriptions.
+  subscription_renewal_reminders:
+    class: SubscriptionRenewalReminderJob
+    queue: default
+    schedule: "0 2 * * *"

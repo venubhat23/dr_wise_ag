@@ -18,6 +18,7 @@ class Notification < ApplicationRecord
     policy_created
     policy_renewed
     lead_status_updated
+    lead_submitted
     general_announcement
   ].freeze
 
@@ -56,6 +57,20 @@ class Notification < ApplicationRecord
       title: 'New Comment on Your Support Ticket',
       message: "An admin has added a comment to your support ticket: #{ticket.subject}",
       reference: ticket,
+      is_read: false
+    )
+  end
+
+  def self.create_lead_submitted_notification(lead)
+    return if lead.affiliate.nil?
+    return if exists?(recipient: lead.affiliate, notification_type: 'lead_submitted', reference: lead)
+
+    create!(
+      recipient: lead.affiliate,
+      notification_type: 'lead_submitted',
+      title: 'Lead Submitted Successfully',
+      message: "Your lead #{lead.display_name} (#{lead.lead_id}) for #{lead.insurance_interest.presence || lead.product_interest.presence || 'insurance'} has been submitted. Our team will contact them shortly.",
+      reference: lead,
       is_read: false
     )
   end
