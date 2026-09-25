@@ -215,6 +215,13 @@ Rails.application.routes.draw do
 
     # Referral Program (Ambassador -> Affiliate hierarchy, referral codes, signup bonuses)
     resources :referral_program, only: [:index, :show], controller: 'referral_program'
+    # Incentive ranges per product (editable Minimum / Upto / Remarks)
+    resources :incentive_calculator, only: [:index], controller: 'incentive_calculator' do
+      collection do
+        patch '/', action: :update, as: :update
+        post :reset
+      end
+    end
 
     # Wallet System (Affiliate wallets + Ambassador e-wallets)
     namespace :wallets do
@@ -956,6 +963,9 @@ Rails.application.routes.draw do
         get  'subscription/history', to: 'subscription#history'
         post 'subscription/order',  to: 'subscription#create_order'
         post 'subscription/verify', to: 'subscription#verify'
+
+        # Incentive ranges (Minimum / Upto) per segment > category > sub-category
+        get 'incentive_calculator', to: 'incentive_calculator#index'
 
         # Commission Distribution APIs
         get 'agent/commission_distribution', to: 'agent#commission_distribution'

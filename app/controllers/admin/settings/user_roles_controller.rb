@@ -108,6 +108,7 @@ class Admin::Settings::UserRolesController < Admin::Settings::BaseController
         { key: 'kyc_verification', name: 'KYC Verification' },
         { key: 'distributors', name: 'Ambassadors' },
         { key: 'referral_program', name: 'Referral Program' },
+        { key: 'incentive_calculator', name: 'Incentive Calculator' },
         { key: 'vendors', name: 'Vendors' },
         { key: 'vendor_payouts', name: 'Vendor Payouts' }
       ],

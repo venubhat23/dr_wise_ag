@@ -903,7 +903,7 @@ body.sidebar-collapsed .main-content {
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">
     <!-- Main Menu Section -->
-    <% if show_sidebar_section?(['dashboard', 'analytics', 'customers', 'sub_agents', 'distributors', 'leads', 'appointments']) %>
+    <% if show_sidebar_section?(['dashboard', 'analytics', 'customers', 'sub_agents', 'distributors', 'leads', 'appointments', 'incentive_calculator']) %>
     <div class="nav-section">
       <div class="nav-section-title">Main Menu</div>
       <ul class="nav-menu">
@@ -1083,6 +1083,21 @@ body.sidebar-collapsed .main-content {
                 </div>
               </div>
               <span class="nav-text">Referral Program</span>
+              <div class="nav-indicator"></div>
+            <% end %>
+          </li>
+        <% end %>
+
+        <!-- Incentive Calculator -->
+        <% if show_sidebar_item?('incentive_calculator') %>
+          <li class="nav-item">
+            <%= link_to admin_incentive_calculator_index_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/incentive_calculator')}", data: { tooltip: "Incentive Calculator" } do %>
+              <div class="nav-icon-modern">
+                <div class="icon-bg gradient-teal">
+                  <i class="bi bi-calculator-fill"></i>
+                </div>
+              </div>
+              <span class="nav-text">Incentive Calculator</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>
