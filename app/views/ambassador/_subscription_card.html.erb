@@ -1,0 +1,143 @@
+<%# Yearly subscription summary on the ambassador dashboard (see Subscribable). %>
+<%
+  status     = distributor.subscription_status
+  expires_at = distributor.subscription_expires_at
+  current    = distributor.subscriptions.detect(&:active?) || distributor.subscriptions.first
+  starts_at  = current&.starts_at
+  days_left  = distributor.subscription_days_left.to_i
+  total_days = starts_at ? [(expires_at.to_date - starts_at.to_date).to_i, 1].max : 365
+  pct_left   = (days_left * 100.0 / total_days).clamp(0, 100).round
+  ring_len   = 2 * Math::PI * 52
+  theme = case status
+          when "expired"       then { key: "expired", label: "Expired",       icon: "bi-x-octagon-fill" }
+          when "expiring_soon" then { key: "soon",    label: "Expiring Soon", icon: "bi-hourglass-split" }
+          else                      { key: "active",  label: "Active",        icon: "bi-patch-check-fill" }
+          end
+%>
+<div class="sub-card sub-card--<%= theme[:key] %> mb-4">
+  <div class="sub-card__ring">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="sub-card__ring-track" cx="60" cy="60" r="52"></circle>
+      <circle class="sub-card__ring-fill" cx="60" cy="60" r="52"
+              stroke-dasharray="<%= ring_len.round(2) %>"
+              stroke-dashoffset="<%= (ring_len * (1 - pct_left / 100.0)).round(2) %>"></circle>
+    </svg>
+    <div class="sub-card__ring-label">
+      <span class="sub-card__days"><%= days_left %></span>
+      <span class="sub-card__days-unit"><%= days_left == 1 ? "day left" : "days left" %></span>
+    </div>
+  </div>
+
+  <div class="sub-card__body">
+    <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+      <h5 class="sub-card__title mb-0"><i class="bi bi-gem me-2"></i>Yearly Subscription</h5>
+      <span class="sub-card__badge"><i class="bi <%= theme[:icon] %> me-1"></i><%= theme[:label] %></span>
+    </div>
+    <p class="sub-card__lead mb-3">
+      <% if status == "expired" %>
+        Your subscription expired on <strong><%= expires_at.strftime('%d %b %Y') %></strong>. Renew to keep earning.
+      <% elsif status == "expiring_soon" %>
+        Your subscription expires in <strong><%= pluralize(days_left, 'day') %></strong> - renew now so nothing stops.
+      <% else %>
+        You're all set! Your subscription is active till <strong><%= expires_at.strftime('%d %b %Y') %></strong>.
+      <% end %>
+    </p>
+
+    <div class="sub-card__stats">
+      <div>
+        <span class="sub-card__stat-label">Started</span>
+        <span class="sub-card__stat-value"><%= starts_at ? starts_at.strftime('%d %b %Y') : "-" %></span>
+      </div>
+      <div>
+        <span class="sub-card__stat-label"><%= status == "expired" ? "Expired" : "Expires" %></span>
+        <span class="sub-card__stat-value"><%= expires_at.strftime('%d %b %Y') %></span>
+      </div>
+      <div>
+        <span class="sub-card__stat-label">Amount Paid</span>
+        <span class="sub-card__stat-value"><%= current&.amount ? indian_currency(current.amount.to_i) : "-" %></span>
+      </div>
+    </div>
+
+    <div class="sub-card__bar mt-3" title="<%= pct_left %>% of your subscription remaining">
+      <div class="sub-card__bar-fill" style="width: <%= pct_left %>%"></div>
+    </div>
+  </div>
+
+  <div class="sub-card__action">
+    <% if status == "active" %>
+      <%= link_to ambassador_subscription_path, class: "btn sub-card__btn sub-card__btn--ghost" do %>
+        <i class="bi bi-receipt me-1"></i>View Details
+      <% end %>
+    <% else %>
+      <%= link_to ambassador_subscription_path, class: "btn sub-card__btn" do %>
+        <i class="bi bi-arrow-repeat me-1"></i>Renew Now
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<style>
+.sub-card {
+  --sub-a: #4e73df; --sub-b: #7b5cff; --sub-accent: #1cc88a;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap;
+  padding: 1.5rem 1.75rem; border-radius: 1rem; color: #fff;
+  background: linear-gradient(135deg, var(--sub-a) 0%, var(--sub-b) 100%);
+  box-shadow: 0 10px 30px -10px rgba(78, 115, 223, .55);
+}
+.sub-card--soon    { --sub-a: #f6a23e; --sub-b: #e8590c; --sub-accent: #fff3bf; box-shadow: 0 10px 30px -10px rgba(232, 89, 12, .5); }
+.sub-card--expired { --sub-a: #e74a3b; --sub-b: #a61e4d; --sub-accent: #ffc9c9; box-shadow: 0 10px 30px -10px rgba(166, 30, 77, .5); }
+.sub-card::after {
+  content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px;
+  border-radius: 50%; background: rgba(255, 255, 255, .08); pointer-events: none;
+}
+
+.sub-card__ring { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+.sub-card__ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.sub-card__ring-track { fill: none; stroke: rgba(255, 255, 255, .2); stroke-width: 10; }
+.sub-card__ring-fill {
+  fill: none; stroke: var(--sub-accent); stroke-width: 10; stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease;
+}
+.sub-card__ring-label {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; line-height: 1.1;
+}
+.sub-card__days { font-size: 2rem; font-weight: 800; }
+.sub-card__days-unit { font-size: .75rem; opacity: .85; text-transform: uppercase; letter-spacing: .04em; }
+
+.sub-card__body { flex: 1 1 280px; min-width: 0; position: relative; z-index: 1; }
+.sub-card__title { font-weight: 700; color: #fff; }
+.sub-card__badge {
+  font-size: .75rem; font-weight: 600; padding: .3rem .7rem; border-radius: 2rem;
+  background: rgba(255, 255, 255, .2); backdrop-filter: blur(4px);
+}
+.sub-card__lead { opacity: .92; }
+
+.sub-card__stats { display: flex; gap: .75rem; flex-wrap: wrap; }
+.sub-card__stats > div {
+  flex: 1 1 110px; padding: .6rem .85rem; border-radius: .6rem;
+  background: rgba(255, 255, 255, .14);
+}
+.sub-card__stat-label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
+.sub-card__stat-value { display: block; font-weight: 700; font-size: 1rem; }
+
+.sub-card__bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.sub-card__bar-fill { height: 100%; border-radius: 3px; background: var(--sub-accent); }
+
+.sub-card__action { position: relative; z-index: 1; }
+.sub-card__btn {
+  background: #fff; color: var(--sub-b); font-weight: 700; border-radius: 2rem;
+  padding: .55rem 1.4rem; border: 2px solid #fff;
+}
+.sub-card__btn:hover { background: transparent; color: #fff; }
+.sub-card__btn--ghost { background: transparent; color: #fff; }
+.sub-card__btn--ghost:hover { background: #fff; color: var(--sub-b); }
+
+@media (max-width: 576px) {
+  .sub-card { justify-content: center; text-align: center; padding: 1.25rem; }
+  .sub-card__body .d-flex { justify-content: center; }
+  .sub-card__action { width: 100%; }
+  .sub-card__btn { width: 100%; }
+}
+</style>

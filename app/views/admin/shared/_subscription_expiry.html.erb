@@ -1,0 +1,7 @@
+<%# Subscription expiry line under an ambassador / affiliate name (only when set). %>
+<% if record.subscription_expires_at.present? %>
+  <% expired = record.subscription_expires_at <= Time.current %>
+  <small class="d-block <%= expired ? 'text-danger' : 'text-success' %>">
+    <i class="bi bi-calendar-check me-1"></i>Subscription <%= expired ? 'expired' : 'expires' %>: <%= record.subscription_expires_at.strftime('%d %b %Y') %>
+  </small>
+<% end %>

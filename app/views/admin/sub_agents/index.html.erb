@@ -182,6 +182,7 @@
                       <small class="text-muted d-block">
                         <i class="bi bi-calendar me-1"></i>Created: <%= sub_agent.created_at.strftime('%d %b %Y') %>
                       </small>
+                      <%= render 'admin/shared/subscription_expiry', record: sub_agent %>
                     </div>
                   </div>
                 </td>
@@ -265,6 +266,10 @@
                       <% end %>
                     <% end %>
 
+                    <% if can_edit?('sub_agents') %>
+                      <%= render 'admin/shared/subscription_button', record: sub_agent, url: record_subscription_admin_sub_agent_path(sub_agent), name_fallback: 'Unnamed Affiliate' %>
+                    <% end %>
+
                     <% if can_delete?('sub_agents') %>
                       <button type="button"
                           class="btn btn-sm btn-outline-danger delete-sub-agent"
@@ -313,6 +318,8 @@
     <% end %>
   </div>
 </div>
+
+<%= render 'admin/shared/subscription_modal' %>
 
 <style>
 .min-width-250 {

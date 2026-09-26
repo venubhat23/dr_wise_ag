@@ -21,6 +21,7 @@ class AmbassadorKycController < ApplicationController
   # GET /ambassador/kyc
   def show
     return redirect_to ambassador_dashboard_path, notice: "Your KYC is already approved." if @distributor.kyc_approved?
+    return redirect_to ambassador_dashboard_path if @distributor.kyc_submitted? && @distributor.payment_paid?
 
     @submitted = @distributor.kyc_submitted?
     @rejected  = @distributor.kyc_rejected?
@@ -175,7 +176,7 @@ class AmbassadorKycController < ApplicationController
 
     @distributor.mark_payment_paid!(order_id: order_id, payment_id: payment_id, amount: @distributor.payment_amount_due)
     flash[:notice] = "Payment received. Thanks! Your KYC has been submitted for review."
-    render json: { redirect_to: ambassador_kyc_path }
+    render json: { redirect_to: ambassador_dashboard_path }
   end
 
   private

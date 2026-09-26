@@ -167,6 +167,7 @@
                       <h6 class="mb-0">
                         <%= distributor.display_name.present? ? distributor.display_name : "Unnamed Ambassador" %>
                       </h6>
+                      <%= render 'admin/shared/subscription_expiry', record: distributor %>
                     </div>
                   </div>
                 </td>
@@ -257,6 +258,10 @@
                       <% end %>
                     <% end %>
 
+                    <% if can_edit?('distributors') %>
+                      <%= render 'admin/shared/subscription_button', record: distributor, url: record_subscription_admin_distributor_path(distributor), name_fallback: 'Unnamed Ambassador' %>
+                    <% end %>
+
                     <% if can_delete?('distributors') %>
                       <button type="button"
                           class="btn btn-sm btn-outline-danger delete-distributor"
@@ -315,6 +320,8 @@
     <% end %>
   </div>
 </div>
+
+<%= render 'admin/shared/subscription_modal' %>
 
 <style>
 .min-width-250 {

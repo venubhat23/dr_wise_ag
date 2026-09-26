@@ -293,6 +293,23 @@ class Admin::DistributorsController < Admin::ApplicationController
     end
   end
 
+  # POST /admin/distributors/1/record_subscription
+  # Marks a subscription paid outside the app (params: from_date, to_date, amount).
+  def record_subscription
+    record = Distributor.find(params[:id])
+    from_date = Date.parse(params[:from_date].to_s)
+    to_date   = Date.parse(params[:to_date].to_s)
+    amount    = params[:amount].presence&.to_d || record.payment_amount_due
+
+    record.record_manual_subscription!(starts_on: from_date, ends_on: to_date, amount: amount)
+    redirect_back fallback_location: admin_distributors_path,
+                  notice: "Subscription marked as paid for #{record.display_name.presence || 'Ambassador'} (#{from_date.strftime('%d %b %Y')} - #{to_date.strftime('%d %b %Y')})."
+  rescue Date::Error
+    redirect_back fallback_location: admin_distributors_path, alert: 'Please enter valid From and To dates.'
+  rescue ArgumentError, ActiveRecord::RecordInvalid => e
+    redirect_back fallback_location: admin_distributors_path, alert: "Failed to record subscription: #{e.message}"
+  end
+
   # PATCH /admin/distributors/1/deactivate
   def deactivate
     @distributor = Distributor.find(params[:id])

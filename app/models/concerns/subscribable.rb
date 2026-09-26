@@ -102,6 +102,33 @@ module Subscribable
     end
   end
 
+  # Admin back-fill for a subscription paid outside Razorpay - e.g. existing
+  # ambassadors/affiliates who paid before subscriptions were tracked. The
+  # period covers starts_on..ends_on inclusive; the account's expiry becomes
+  # the latest expiry across all its subscription rows.
+  def record_manual_subscription!(starts_on:, ends_on:, amount:)
+    starts  = starts_on.in_time_zone.beginning_of_day
+    expires = ends_on.in_time_zone.end_of_day
+    raise ArgumentError, "To date must be on or after From date" if expires <= starts
+
+    transaction do
+      lock!
+      now = Time.current
+      subscriptions.create!(
+        kind: subscription_payment_kind, amount: amount,
+        starts_at: starts, expires_at: expires, paid_at: now
+      )
+
+      update_columns(
+        updated_at: now,
+        payment_paid: true,
+        payment_paid_at: payment_paid_at || starts,
+        payment_amount: amount,
+        subscription_expires_at: subscriptions.maximum(:expires_at)
+      )
+    end
+  end
+
   # Shape shared by the mobile login/profile/subscription endpoints.
   def subscription_summary
     {
