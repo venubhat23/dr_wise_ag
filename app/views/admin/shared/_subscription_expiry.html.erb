@@ -1,7 +1,23 @@
-<%# Subscription expiry line under an ambassador / affiliate name (only when set). %>
+<%# Subscription period + countdown under an ambassador / affiliate name (only when set). %>
 <% if record.subscription_expires_at.present? %>
-  <% expired = record.subscription_expires_at <= Time.current %>
-  <small class="d-block <%= expired ? 'text-danger' : 'text-success' %>">
-    <i class="bi bi-calendar-check me-1"></i>Subscription <%= expired ? 'expired' : 'expires' %>: <%= record.subscription_expires_at.strftime('%d %b %Y') %>
+  <%
+    expires_on = record.subscription_expires_at.to_date
+    current    = record.subscriptions.detect(&:active?) || record.subscriptions.first
+    starts_on  = current&.starts_at&.to_date
+    days_left  = (expires_on - Date.current).to_i
+    expired    = record.subscription_expires_at <= Time.current
+    color      = if expired then 'text-danger'
+                 elsif days_left <= Subscribable::RENEWAL_WINDOW_DAYS then 'text-warning'
+                 else 'text-success'
+                 end
+    countdown  = if expired then "expired #{days_left.zero? ? 'today' : "#{pluralize(-days_left, 'day')} ago"}"
+                 elsif days_left.zero? then 'expires today'
+                 else "expires in #{pluralize(days_left, 'day')}"
+                 end
+  %>
+  <small class="d-block <%= color %>" title="Subscription <%= starts_on&.strftime('%d %b %Y') %> - <%= expires_on.strftime('%d %b %Y') %>">
+    <i class="bi bi-calendar-check me-1"></i>
+    <%= starts_on ? "#{starts_on.strftime('%d %b %Y')} → #{expires_on.strftime('%d %b %Y')}" : "Till #{expires_on.strftime('%d %b %Y')}" %>
+    <span class="fw-semibold">· <%= countdown %></span>
   </small>
 <% end %>

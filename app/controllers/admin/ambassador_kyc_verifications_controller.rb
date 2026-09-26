@@ -27,6 +27,7 @@ class Admin::AmbassadorKycVerificationsController < Admin::ApplicationController
     return render_kyc_lookup(base.where(kyc_status: TABS[@tab])) if params[:lookup].present?
 
     @distributors = apply_kyc_search(base.where(kyc_status: TABS[@tab]))
+                        .includes(:subscriptions)
                         .order(kyc_submitted_at: :desc, created_at: :desc)
 
     # Anything that still needs an admin to act on it.

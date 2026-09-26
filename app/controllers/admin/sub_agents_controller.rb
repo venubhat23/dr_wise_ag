@@ -34,11 +34,11 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # trip. Cache the whole assembled page per unique filter+page combination
     # so repeat views of the same listing skip the DB entirely.
     page_cache_key = [
-      "sub_agents_page_v1", cache_gen, per_page_param, params[:page], params[:search], params[:status]
+      "sub_agents_page_v1", cache_gen, Subscribable.cache_gen, per_page_param, params[:page], params[:search], params[:status]
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
-      scope = SubAgent.includes(:assigned_distributor, :profile_image_attachment)
+      scope = SubAgent.includes(:assigned_distributor, :profile_image_attachment, :subscriptions)
       scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
       case params[:status]
       when 'active'   then scope = scope.active
@@ -512,6 +512,10 @@ class Admin::SubAgentsController < Admin::ApplicationController
   # Marks a subscription paid outside the app (params: from_date, to_date, amount).
   def record_subscription
     record = SubAgent.find(params[:id])
+    if record.subscription_active?
+      return redirect_back fallback_location: admin_sub_agents_path,
+                           alert: "Subscription is already active till #{record.subscription_expires_at.strftime('%d %b %Y')}."
+    end
     from_date = Date.parse(params[:from_date].to_s)
     to_date   = Date.parse(params[:to_date].to_s)
     amount    = params[:amount].presence&.to_d || record.payment_amount_due

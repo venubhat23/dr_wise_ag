@@ -13,6 +13,14 @@ module Subscribable
   # Renew button / reminder banner shows up this many days before expiry.
   RENEWAL_WINDOW_DAYS = 30
 
+  # Bumped on every payment so cached admin list pages (Admin::SubAgentsController#index)
+  # pick up the new subscription immediately.
+  CACHE_GEN_KEY = "subscription_cache_gen"
+
+  def self.cache_gen
+    Rails.cache.read(CACHE_GEN_KEY) || "0"
+  end
+
   included do
     has_many :subscriptions, -> { recent_first }, as: :subscriber, dependent: :destroy
 
@@ -100,6 +108,7 @@ module Subscribable
         subscription_expires_at: expires
       )
     end
+    bump_subscription_cache_gen
   end
 
   # Admin back-fill for a subscription paid outside Razorpay - e.g. existing
@@ -127,6 +136,11 @@ module Subscribable
         subscription_expires_at: subscriptions.maximum(:expires_at)
       )
     end
+    bump_subscription_cache_gen
+  end
+
+  def bump_subscription_cache_gen
+    Rails.cache.write(Subscribable::CACHE_GEN_KEY, SecureRandom.hex(4))
   end
 
   # Shape shared by the mobile login/profile/subscription endpoints.

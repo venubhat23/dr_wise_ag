@@ -26,7 +26,7 @@ class Admin::KycVerificationsController < Admin::ApplicationController
 
     # 3 queries however many rows: affiliates, their documents, their assignment
     # rows. (This DB has ~350ms per round trip, so round trips are what cost.)
-    @sub_agents = scope.includes(:sub_agent_documents, :distributor_assignment)
+    @sub_agents = scope.includes(:sub_agent_documents, :distributor_assignment, :subscriptions)
                        .order(kyc_submitted_at: :desc, created_at: :desc).load
     preload_legacy_attachments(@sub_agents)
 

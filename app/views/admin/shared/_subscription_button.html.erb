@@ -1,10 +1,13 @@
-<%# Opens the shared subscription modal (admin/shared/_subscription_modal). %>
+<%# Opens the shared subscription modal (admin/shared/_subscription_modal).
+    Hidden while a subscription is active - shows again once it has expired. %>
+<% unless record.subscription_active? %>
 <% current = record.subscription_expires_at && "Current subscription #{record.subscription_expires_at <= Time.current ? 'expired' : 'valid till'} #{record.subscription_expires_at.strftime('%d %b %Y')}." %>
-<button type="button" class="btn btn-sm btn-outline-success" title="Mark subscription paid"
+<button type="button" class="btn btn-sm btn-success" title="Mark subscription paid"
         data-sub-url="<%= url %>"
         data-sub-name="<%= record.display_name.presence || name_fallback %>"
         data-sub-current="<%= current %>"
         data-sub-from="<%= (record.subscription_expires_at&.to_date&.+(1) || record.payment_paid_at&.to_date || record.created_at.to_date).iso8601 %>"
         data-sub-amount="<%= record.payment_amount_due.to_f %>">
-  <i class="bi bi-calendar-check"></i>
+  <i class="bi bi-currency-rupee"></i>
 </button>
+<% end %>

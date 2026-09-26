@@ -4,7 +4,7 @@ class Admin::DistributorsController < Admin::ApplicationController
 
   # GET /admin/distributors
   def index
-    @distributors = Distributor.includes(:distributor_assignments, :distributor_documents,
+    @distributors = Distributor.includes(:distributor_assignments, :distributor_documents, :subscriptions,
                                          profile_image_attachment: :blob)
 
     if params[:search].present?
@@ -297,6 +297,10 @@ class Admin::DistributorsController < Admin::ApplicationController
   # Marks a subscription paid outside the app (params: from_date, to_date, amount).
   def record_subscription
     record = Distributor.find(params[:id])
+    if record.subscription_active?
+      return redirect_back fallback_location: admin_distributors_path,
+                           alert: "Subscription is already active till #{record.subscription_expires_at.strftime('%d %b %Y')}."
+    end
     from_date = Date.parse(params[:from_date].to_s)
     to_date   = Date.parse(params[:to_date].to_s)
     amount    = params[:amount].presence&.to_d || record.payment_amount_due

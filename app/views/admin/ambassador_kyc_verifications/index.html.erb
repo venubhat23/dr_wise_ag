@@ -85,6 +85,12 @@
                   <% else %>
                     <span class="badge bg-secondary-subtle text-secondary">—</span>
                   <% end %>
+                  <%= render 'admin/shared/subscription_expiry', record: distributor %>
+                  <% if can_edit?('distributors') %>
+                    <div class="mt-1">
+                      <%= render 'admin/shared/subscription_button', record: distributor, url: record_subscription_admin_distributor_path(distributor), name_fallback: 'Unnamed Ambassador' %>
+                    </div>
+                  <% end %>
                 </td>
                 <td>
                   <% ts = @tab == 'just_registered' ? distributor.created_at : distributor.kyc_submitted_at %>
@@ -138,3 +144,5 @@
   <%= render 'admin/shared/kyc_bulk_bar', url: bulk_action_admin_ambassador_kyc_verifications_path,
              status: @tab, q: @q, noun: 'ambassador', default_reason: 'Rejected by admin' %>
 <% end %>
+
+<%= render 'admin/shared/subscription_modal' %>
