@@ -213,6 +213,18 @@
                                                  .includes(:payout)
                                                  .order(processed_at: :desc)
                                                  .limit(50)
+                                                 .to_a
+
+  # Batch-load the policies (+ customers) and ambassadors for all rows up front:
+  # one query per policy type instead of 3 queries per row.
+  policy_models = { 'health' => HealthInsurance, 'life' => LifeInsurance, 'motor' => MotorInsurance, 'other' => OtherInsurance }
+  policies_by_key = {}
+  ambassador_commission_records.group_by(&:policy_type).each do |type, recs|
+    model = policy_models[type] or next
+    model.includes(:customer).where(id: recs.map(&:policy_id).uniq).each { |pol| policies_by_key[[type, pol.id]] = pol }
+  end
+  distributor_ids = policies_by_key.values.filter_map { |pol| pol.distributor_id if pol.respond_to?(:distributor_id) }.uniq
+  distributors_by_id = distributor_ids.any? ? Distributor.where(id: distributor_ids).index_by(&:id) : {}
 %>
 
 <% if ambassador_commission_records.any? %>
@@ -244,15 +256,10 @@
         <tbody>
           <% ambassador_commission_records.each do |record| %>
             <%
-              policy = case record.policy_type
-                      when 'health' then HealthInsurance.find_by(id: record.policy_id)
-                      when 'life' then LifeInsurance.find_by(id: record.policy_id)
-                      when 'motor' then MotorInsurance.find_by(id: record.policy_id)
-                      when 'other' then OtherInsurance.find_by(id: record.policy_id) if defined?(OtherInsurance)
-                      end
+              policy = policies_by_key[[record.policy_type, record.policy_id.to_i]]
 
               distributor = policy&.respond_to?(:distributor_id) && policy.distributor_id.present? ?
-                           Distributor.find_by(id: policy.distributor_id) : nil
+                           distributors_by_id[policy.distributor_id] : nil
             %>
             <% if policy && distributor %>
               <tr>

@@ -485,6 +485,12 @@
 <!-- Commission Payouts Table -->
 <% if @commission_payouts.any? %>
   <%
+    # Batch-load each payout's policy (+ its affiliate / ambassador) up front:
+    # policy_number below and the per-row lookups otherwise query once per payout.
+    CommissionPayout.preload_policies!(@commission_payouts.to_a)
+    ActiveRecord::Associations::Preloader.new(records: @commission_payouts.filter_map(&:policy).uniq,
+                                              associations: [:sub_agent, :distributor]).call
+
     # Group payouts by policy number
     grouped_payouts = @commission_payouts.group_by { |p| p.policy_number || "Policy ##{p.policy_id}" }
   %>
@@ -510,12 +516,7 @@
               <% first_payout = payouts.first %>
               <%
                 # Fetch insurance policy — source of truth for commission amounts
-                _policy_rec = case first_payout.policy_type
-                              when 'motor'  then MotorInsurance.find_by(id: first_payout.policy_id)
-                              when 'life'   then LifeInsurance.find_by(id: first_payout.policy_id)
-                              when 'health' then HealthInsurance.find_by(id: first_payout.policy_id)
-                              when 'other'  then OtherInsurance.find_by(id: first_payout.policy_id)
-                              end
+                _policy_rec = first_payout.policy # preloaded above
 
                 # Resolve actual recipient names once (outside the map)
                 _sub_agent   = _policy_rec&.sub_agent

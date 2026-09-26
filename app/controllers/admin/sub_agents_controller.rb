@@ -38,7 +38,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
-      scope = SubAgent.includes(:assigned_distributor, :profile_image_attachment, :subscriptions)
+      scope = SubAgent.includes(:assigned_distributor, :subscriptions, profile_image_attachment: :blob)
       scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
       case params[:status]
       when 'active'   then scope = scope.active

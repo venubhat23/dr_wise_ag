@@ -194,10 +194,10 @@ class Admin::InvestorsController < Admin::ApplicationController
 
       policy_classes.each do |ptype, klass|
         tbl = klass.table_name
-        klass.where(distributor_id: amb.id).includes(:customer).each do |pol|
-          payout = CommissionPayout.where(
-            policy_type: ptype, policy_id: pol.id, payout_to: 'ambassador'
-          ).order(created_at: :desc).first
+        latest = {}
+        klass.where(distributor_id: amb.id).includes(:customer).to_a
+             .tap { |pols| latest = latest_payouts_by_policy(ptype, pols.map(&:id)) }.each do |pol|
+          payout = latest[[pol.id, :ambassador]]
 
           premium       = pol.total_premium.to_f
           comm_pct      = pol.try(:ambassador_commission_percentage).to_f
@@ -210,7 +210,7 @@ class Admin::InvestorsController < Admin::ApplicationController
           p_paid        = payout&.paid?    ? net : 0.0
           p_pending     = payout&.pending? ? net : 0.0
 
-          inv_payout  = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'investor').order(created_at: :desc).first
+          inv_payout  = latest[[pol.id, :investor]]
           inv_gross   = pol.try(:investor_commission_amount).to_f
           inv_tds_pct = pol.try(:investor_tds_percentage).to_f
           inv_tds     = pol.try(:investor_tds_amount).to_f
@@ -284,11 +284,10 @@ class Admin::InvestorsController < Admin::ApplicationController
 
         policy_classes.each do |ptype, klass|
           tbl = klass.table_name
-          klass.where(sub_agent_id: af.id).includes(:customer).each do |pol|
-            payout = CommissionPayout.where(
-              policy_type: ptype, policy_id: pol.id,
-              payout_to: ['sub_agent', 'affiliate']
-            ).order(created_at: :desc).first
+          latest = {}
+          klass.where(sub_agent_id: af.id).includes(:customer).to_a
+               .tap { |pols| latest = latest_payouts_by_policy(ptype, pols.map(&:id)) }.each do |pol|
+            payout = latest[[pol.id, :affiliate]]
 
             premium      = pol.total_premium.to_f
             comm_pct     = pol.try(:sub_agent_commission_percentage).to_f
@@ -301,13 +300,13 @@ class Admin::InvestorsController < Admin::ApplicationController
             p_paid       = payout&.paid?    ? net : 0.0
             p_pending    = payout&.pending? ? net : 0.0
 
-            amb_pol_pay = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'ambassador').order(created_at: :desc).first
+            amb_pol_pay = latest[[pol.id, :ambassador]]
             amb_g       = pol.try(:ambassador_commission_amount).to_f
             amb_t       = pol.try(:ambassador_tds_amount).to_f
             amb_a       = pol.try(:ambassador_after_tds_value).to_f
             amb_a       = (amb_g - amb_t).round(2) if amb_a.zero? && amb_g > 0
 
-            inv_payout  = CommissionPayout.where(policy_type: ptype, policy_id: pol.id, payout_to: 'investor').order(created_at: :desc).first
+            inv_payout  = latest[[pol.id, :investor]]
             inv_gross   = pol.try(:investor_commission_amount).to_f
             inv_tds_pct = pol.try(:investor_tds_percentage).to_f
             inv_tds     = pol.try(:investor_tds_amount).to_f
@@ -391,7 +390,7 @@ class Admin::InvestorsController < Admin::ApplicationController
         commission_paid: amb_paid,
         commission_pending: amb_pending,
         total_commission: amb_paid + amb_pending,
-        affiliates_count: affiliates.count,
+        affiliates_count: affiliates.size,
         affiliates: aff_rows,
         policy_rows: amb_policy_rows
       }
@@ -557,6 +556,22 @@ class Admin::InvestorsController < Admin::ApplicationController
   end
 
   private
+
+  # payout_to values -> the recipient key used in the rows above
+  # ('sub_agent' and 'affiliate' are both the affiliate's payout).
+  PAYOUT_RECIPIENTS = { 'ambassador' => :ambassador, 'investor' => :investor,
+                        'sub_agent' => :affiliate, 'affiliate' => :affiliate }.freeze
+
+  # Latest CommissionPayout per [policy_id, recipient] for a set of policies of
+  # one type - one query instead of 2-3 `.order(created_at: :desc).first`
+  # lookups per policy. Ascending order, so the last one written wins.
+  def latest_payouts_by_policy(ptype, policy_ids)
+    return {} if policy_ids.empty?
+
+    CommissionPayout.where(policy_type: ptype, policy_id: policy_ids, payout_to: PAYOUT_RECIPIENTS.keys)
+                    .order(:created_at, :id)
+                    .each_with_object({}) { |p, h| h[[p.policy_id, PAYOUT_RECIPIENTS[p.payout_to]]] = p }
+  end
 
   def set_investor
     @investor = Investor.find(params[:id])

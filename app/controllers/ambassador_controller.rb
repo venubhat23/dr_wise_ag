@@ -259,14 +259,17 @@ class AmbassadorController < ApplicationController
       total_customers += stats[:customers_count]
     end
 
+    # @assigned_affiliates is already loaded (see setup_ambassador_data), so
+    # count in memory instead of 4 extra COUNT round trips.
+    affiliates = @assigned_affiliates.to_a
     {
-      total_affiliates: @assigned_affiliates.count,
-      active_affiliates: @assigned_affiliates.active.count,
+      total_affiliates: affiliates.size,
+      active_affiliates: affiliates.count(&:active?),
       total_policies: total_policies,
       total_premium: total_premium,
       total_commission: total_commission,
       total_customers: total_customers,
-      avg_policies_per_affiliate: @assigned_affiliates.count > 0 ? (total_policies.to_f / @assigned_affiliates.count).round(2) : 0
+      avg_policies_per_affiliate: affiliates.any? ? (total_policies.to_f / affiliates.size).round(2) : 0
     }
   end
 

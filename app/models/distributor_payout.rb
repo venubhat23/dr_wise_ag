@@ -12,7 +12,11 @@ class DistributorPayout < ApplicationRecord
   scope :for_policy, ->(policy_type, policy_id) { where(policy_type: policy_type, policy_id: policy_id) }
 
   def policy
-    case policy_type
+    # Memoized like CommissionPayout#policy, so CommissionPayout.preload_policies!
+    # can batch-load it for a list of payouts.
+    return @policy if defined?(@policy)
+
+    @policy = case policy_type
     when 'health'
       HealthInsurance.find_by(id: policy_id)
     when 'life'

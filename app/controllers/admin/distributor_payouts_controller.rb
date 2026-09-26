@@ -303,7 +303,9 @@ class Admin::DistributorPayoutsController < ApplicationController
   end
 
   def fetch_distributor_detailed_payouts(distributor_id)
-    distributor_payouts = DistributorPayout.where(distributor_id: distributor_id)
+    distributor_payouts = DistributorPayout.where(distributor_id: distributor_id).to_a
+    # One query per policy type (with customer) instead of a find_by per payout.
+    CommissionPayout.preload_policies!(distributor_payouts)
 
     lead_wise_commissions = distributor_payouts.map do |payout|
       policy = payout.policy

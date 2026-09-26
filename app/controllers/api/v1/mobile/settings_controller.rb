@@ -310,7 +310,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
     end
 
     # Order by most recent and paginate
-    tickets = tickets.order(created_at: :desc)
+    tickets = tickets.includes(:resolved_by).order(created_at: :desc)
                     .page(page)
                     .per(per_page)
 

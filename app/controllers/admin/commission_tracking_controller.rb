@@ -1143,9 +1143,11 @@ class Admin::CommissionTrackingController < ApplicationController
     total_premium = 0
     policy_count = 0
 
+    # SUM + COUNT in one query per model (was two).
     [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
-      total_premium += model.sum(:total_premium)
-      policy_count += model.count
+      sum, count = model.pick(Arel.sql('COALESCE(SUM(total_premium), 0)'), Arel.sql('COUNT(*)'))
+      total_premium += sum.to_d
+      policy_count += count.to_i
     end
 
     return 0 if policy_count.zero?
@@ -1163,24 +1165,26 @@ class Admin::CommissionTrackingController < ApplicationController
   end
 
   def calculate_premium_trend
-    # Get last 6 months of data
+    # Get last 6 months of data: one grouped query per insurance type for the
+    # whole window (was 6 months x 4 types = 24 queries). Months are bucketed
+    # in the app time zone so totals match the per-month ranges exactly.
+    range = 6.months.ago.beginning_of_month..1.month.ago.end_of_month
+    tz = ActiveRecord::Base.connection.quote(Time.zone.tzinfo.identifier)
+    month_key = Arel.sql("to_char((created_at AT TIME ZONE 'UTC') AT TIME ZONE #{tz}, 'YYYY-MM')")
+    premium_by_month = Hash.new(0)
+    [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
+      model.where(created_at: range).group(month_key).sum(:total_premium).each { |key, sum| premium_by_month[key] += sum }
+    end
+
     months = []
     6.downto(1) do |i|
       month_start = i.months.ago.beginning_of_month
-      month_end = i.months.ago.end_of_month
 
-      month_data = {
+      months << {
         month: month_start.strftime("%b"),
         year: month_start.year,
-        premium: 0
+        premium: premium_by_month[month_start.strftime("%Y-%m")]
       }
-
-      # Calculate total premium for each insurance type for this month
-      [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |model|
-        month_data[:premium] += model.where(created_at: month_start..month_end).sum(:total_premium)
-      end
-
-      months << month_data
     end
 
     months

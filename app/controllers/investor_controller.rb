@@ -187,23 +187,15 @@ class InvestorController < ApplicationController
                                     .where("health_insurances.investor_id = :id OR motor_insurances.investor_id = :id", id: @investor.id)
                                     .order(created_at: :desc)
                                     .limit(10)
+                                    .to_a
+    # One query per policy type instead of a find_by per payout.
+    CommissionPayout.preload_policies!(recent_payouts)
+    type_labels = { 'health' => 'Health Insurance', 'life' => 'Life Insurance',
+                    'motor' => 'Motor Insurance', 'other' => 'Other Insurance' }
 
     recent_payouts.each do |payout|
-      policy = nil
-      case payout.policy_type
-      when 'health'
-        policy = HealthInsurance.find_by(id: payout.policy_id)
-        type = 'Health Insurance'
-      when 'life'
-        policy = LifeInsurance.find_by(id: payout.policy_id) rescue nil
-        type = 'Life Insurance'
-      when 'motor'
-        policy = MotorInsurance.find_by(id: payout.policy_id)
-        type = 'Motor Insurance'
-      when 'other'
-        policy = OtherInsurance.find_by(id: payout.policy_id) rescue nil
-        type = 'Other Insurance'
-      end
+      policy = payout.policy
+      type = type_labels[payout.policy_type]
 
       next unless policy
 

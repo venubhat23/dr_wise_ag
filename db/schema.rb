@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_24_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_26_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -2091,6 +2091,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_24_100000) do
     t.string "role_name"
     t.datetime "password_reset_at", comment: "When password was last reset"
     t.text "crud_permissions"
+    t.index "lower((email)::text)", name: "index_users_on_lower_email"
+    t.index ["email"], name: "index_users_on_email"
+    t.index ["mobile"], name: "index_users_on_mobile"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role_id"], name: "idx_users_role_id"
     t.index ["role_id"], name: "index_users_on_role_id"

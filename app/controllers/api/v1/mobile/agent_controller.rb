@@ -1485,6 +1485,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Paginate
     commission_payouts = commission_payouts.order(payout_date: :desc).page(page).per(per_page)
+    # One query per policy type for payout.policy / policy.customer below.
+    CommissionPayout.preload_policies!(commission_payouts.to_a)
 
     # Format commission data
     commissions_data = commission_payouts.map do |payout|

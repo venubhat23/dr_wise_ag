@@ -283,7 +283,8 @@
               </button>
 
               <% if current_user.respond_to?(:ambassador?) && current_user.ambassador? %>
-                <% ambassador_wallet_distributor = Distributor.find_by(email: current_user.email) %>
+                <%# Reuse the controller's @distributor (Ambassador* controllers load it) instead of re-querying. %>
+                <% ambassador_wallet_distributor = (@distributor if @distributor.is_a?(Distributor) && @distributor.email == current_user.email) || Distributor.find_by(email: current_user.email) %>
                 <% if ambassador_wallet_distributor %>
                   <% header_wallet = ambassador_wallet_distributor.wallet! %>
                   <%= link_to ambassador_wallet_path, class: "btn btn-outline-warning btn-sm me-2 d-flex align-items-center gap-2", title: "Active wallet can be withdrawn. Inactive wallet unlocks when your referred affiliates create their first policy." do %>

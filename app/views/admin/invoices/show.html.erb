@@ -589,32 +589,20 @@
                 commission_payouts = []
 
                 # Health policies
-                HealthInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                  payouts = CommissionPayout.where(policy_type: 'health', policy_id: policy.id,
-                                                  payout_to: 'affiliate', status: 'paid')
-                  commission_payouts += payouts
-                end
+                commission_payouts += CommissionPayout.where(policy_type: 'health', policy_id: HealthInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                          payout_to: 'affiliate', status: 'paid').order(:id).to_a
 
                 # Life policies
-                LifeInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                  payouts = CommissionPayout.where(policy_type: 'life', policy_id: policy.id,
-                                                  payout_to: 'affiliate', status: 'paid')
-                  commission_payouts += payouts
-                end
+                commission_payouts += CommissionPayout.where(policy_type: 'life', policy_id: LifeInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                          payout_to: 'affiliate', status: 'paid').order(:id).to_a
 
                 # Motor policies
-                MotorInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                  payouts = CommissionPayout.where(policy_type: 'motor', policy_id: policy.id,
-                                                  payout_to: 'affiliate', status: 'paid')
-                  commission_payouts += payouts
-                end
+                commission_payouts += CommissionPayout.where(policy_type: 'motor', policy_id: MotorInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                          payout_to: 'affiliate', status: 'paid').order(:id).to_a
 
                 # Other policies
-                OtherInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                  payouts = CommissionPayout.where(policy_type: 'other', policy_id: policy.id,
-                                                  payout_to: 'affiliate', status: 'paid')
-                  commission_payouts += payouts
-                end
+                commission_payouts += CommissionPayout.where(policy_type: 'other', policy_id: OtherInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                          payout_to: 'affiliate', status: 'paid').order(:id).to_a
 
                 # Sort by policy type and ID
                 commission_payouts = commission_payouts.sort_by { |p| [p.policy_type, p.policy_id] }
@@ -640,29 +628,17 @@
                 sub_agent = SubAgent.find_by(id: @invoice.payout_id)
                 if sub_agent
                   # Get ambassador commissions for this specific sub_agent's policies
-                  HealthInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                    payouts = CommissionPayout.where(policy_type: 'health', policy_id: policy.id,
-                                                    payout_to: 'ambassador', status: 'paid')
-                    commission_payouts += payouts
-                  end
+                  commission_payouts += CommissionPayout.where(policy_type: 'health', policy_id: HealthInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                            payout_to: 'ambassador', status: 'paid').order(:id).to_a
 
-                  LifeInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                    payouts = CommissionPayout.where(policy_type: 'life', policy_id: policy.id,
-                                                    payout_to: 'ambassador', status: 'paid')
-                    commission_payouts += payouts
-                  end
+                  commission_payouts += CommissionPayout.where(policy_type: 'life', policy_id: LifeInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                            payout_to: 'ambassador', status: 'paid').order(:id).to_a
 
-                  MotorInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                    payouts = CommissionPayout.where(policy_type: 'motor', policy_id: policy.id,
-                                                    payout_to: 'ambassador', status: 'paid')
-                    commission_payouts += payouts
-                  end
+                  commission_payouts += CommissionPayout.where(policy_type: 'motor', policy_id: MotorInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                            payout_to: 'ambassador', status: 'paid').order(:id).to_a
 
-                  OtherInsurance.where(sub_agent_id: sub_agent.id).each do |policy|
-                    payouts = CommissionPayout.where(policy_type: 'other', policy_id: policy.id,
-                                                    payout_to: 'ambassador', status: 'paid')
-                    commission_payouts += payouts
-                  end
+                  commission_payouts += CommissionPayout.where(policy_type: 'other', policy_id: OtherInsurance.where(sub_agent_id: sub_agent.id).select(:id),
+                                                            payout_to: 'ambassador', status: 'paid').order(:id).to_a
 
                   commission_payouts = commission_payouts.sort_by { |p| [p.policy_type, p.policy_id] }
                 else
@@ -675,21 +651,21 @@
             end
 
             total_line_items = 0
+
+            # Every policy the rows below need, loaded once (with customer) instead
+            # of a find_by per row in each of the three loops.
+            invoice_policy_models = { 'health' => HealthInsurance, 'life' => LifeInsurance, 'motor' => MotorInsurance, 'other' => OtherInsurance }
+            invoice_policies = {}
+            commission_payouts.group_by(&:policy_type).each do |type, rows|
+              model = invoice_policy_models[type] or next
+              model.includes(:customer).where(id: rows.map(&:policy_id).compact.uniq).each { |pol| invoice_policies[[type, pol.id]] = pol }
+            end
           %>
 
           <% commission_payouts.each_with_index do |commission_payout, index| %>
             <%
               # Get policy details based on policy type
-              policy = case commission_payout.policy_type
-              when 'health'
-                HealthInsurance.find_by(id: commission_payout.policy_id)
-              when 'life'
-                LifeInsurance.find_by(id: commission_payout.policy_id)
-              when 'motor'
-                MotorInsurance.find_by(id: commission_payout.policy_id)
-              when 'other'
-                OtherInsurance.find_by(id: commission_payout.policy_id)
-              end
+              policy = invoice_policies[[commission_payout.policy_type, commission_payout.policy_id.to_i]]
 
               customer_name = policy&.customer&.display_name || 'Unknown Customer'
               policy_number = policy&.policy_number || 'N/A'
@@ -783,16 +759,7 @@
                       tax_amount += (cp.gross_amount.to_f - cp.payout_amount.to_f)
                     else
                       # Get TDS from the policy record
-                      policy = case cp.policy_type
-                      when 'health'
-                        HealthInsurance.find_by(id: cp.policy_id)
-                      when 'life'
-                        LifeInsurance.find_by(id: cp.policy_id)
-                      when 'motor'
-                        MotorInsurance.find_by(id: cp.policy_id)
-                      when 'other'
-                        OtherInsurance.find_by(id: cp.policy_id)
-                      end
+                      policy = invoice_policies[[cp.policy_type, cp.policy_id.to_i]]
 
                       if policy&.respond_to?(:sub_agent_tds_amount) && policy.sub_agent_tds_amount.present? && policy.sub_agent_tds_amount > 0
                         # Use TDS amount from policy
@@ -842,16 +809,7 @@
                       end
                     else
                       # Calculate from policy data or use defaults
-                      policy = case cp.policy_type
-                      when 'health'
-                        HealthInsurance.find_by(id: cp.policy_id)
-                      when 'life'
-                        LifeInsurance.find_by(id: cp.policy_id)
-                      when 'motor'
-                        MotorInsurance.find_by(id: cp.policy_id)
-                      when 'other'
-                        OtherInsurance.find_by(id: cp.policy_id)
-                      end
+                      policy = invoice_policies[[cp.policy_type, cp.policy_id.to_i]]
 
                       if policy&.respond_to?(:sub_agent_commission_amount) && policy.sub_agent_commission_amount.present? && policy.sub_agent_commission_amount > 0
                         # Use policy commission data

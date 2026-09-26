@@ -123,8 +123,9 @@ class User < ApplicationRecord
   def has_permission?(module_name, action_type)
     return false unless role
 
-    # Get user abilities
-    role.permissions.pluck(:module_name, :action_type).include?([module_name.to_s, action_type.to_s])
+    # Checked in memory: role.permissions loads once and is reused, instead of
+    # a pluck query on every call (views call this many times per page).
+    role.permissions.any? { |p| p.module_name == module_name.to_s && p.action_type == action_type.to_s }
   end
 
   def can_access_module?(module_name)

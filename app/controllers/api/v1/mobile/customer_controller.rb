@@ -137,7 +137,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     installments = []
 
     # Health Insurance installments - include active and expired policies that might need renewal payments
-    health_policies = HealthInsurance.where(customer_id: customer_id)
+    health_policies = HealthInsurance.includes(:health_insurance_documents).where(customer_id: customer_id)
                                     .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
 
     health_policies.each do |policy|
@@ -230,7 +230,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     end
 
     # Life Insurance installments - include active and expired policies that might need renewal payments
-    life_policies = LifeInsurance.where(customer_id: customer_id)
+    life_policies = LifeInsurance.includes(:life_insurance_documents).where(customer_id: customer_id)
                                 .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
 
     life_policies.each do |policy|
@@ -326,7 +326,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     motor_policies = []
     begin
       if defined?(MotorInsurance)
-        motor_policies = MotorInsurance.where(customer_id: customer_id)
+        motor_policies = MotorInsurance.includes(:motor_insurance_documents).where(customer_id: customer_id)
                                      .where('policy_end_date >= ? OR policy_start_date >= ?', 18.months.ago, Date.current)
       end
     rescue => e
@@ -460,7 +460,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     Rails.logger.info "Upcoming renewals for customer ID: #{customer_id}"
 
     # Health Insurance renewals - show only policies with renewals within next 2 months
-    health_policies = HealthInsurance.where(customer_id: customer_id)
+    health_policies = HealthInsurance.includes(:health_insurance_documents).where(customer_id: customer_id)
                                     .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                     .where.not(policy_end_date: nil)
 
@@ -513,7 +513,7 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
     end
 
     # Life Insurance renewals — use next premium due date (not policy_end_date which is 10–20 years away)
-    LifeInsurance.where(customer_id: customer_id)
+    LifeInsurance.includes(:life_insurance_documents).where(customer_id: customer_id)
                  .where('policy_end_date >= ?', Date.current)
                  .where.not(policy_end_date: nil)
                  .each do |policy|
@@ -584,8 +584,12 @@ class Api::V1::Mobile::CustomerController < Api::V1::Mobile::BaseController
           policies = model_class.where(customer_id: customer_id)
                                .where('policy_end_date BETWEEN ? AND ?', Date.current, 2.months.from_now)
                                .where.not(policy_end_date: nil)
+          # build_documents_list reads e.g. motor_insurance_documents per policy - preload it.
+          docs_assoc = :"#{insurance_config[:type].downcase}_insurance_documents"
+          policies = policies.includes(docs_assoc) if model_class.reflect_on_association(docs_assoc)
+          policies = policies.to_a
 
-          Rails.logger.info "Processing #{policies.count} #{insurance_config[:type]} insurance policies"
+          Rails.logger.info "Processing #{policies.size} #{insurance_config[:type]} insurance policies"
 
           policies.each do |policy|
             days_since_end = (Date.current - policy.policy_end_date).to_i

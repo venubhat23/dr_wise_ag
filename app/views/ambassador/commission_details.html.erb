@@ -127,6 +127,11 @@
             </tr>
           </thead>
           <tbody>
+            <%
+              # One grouped query for every affiliate's motor commission (was 2 queries per affiliate).
+              motor_commission_by_affiliate = (@assigned_affiliates || []).any? ?
+                MotorInsurance.where(sub_agent_id: @assigned_affiliates.map(&:id)).group(:sub_agent_id).sum(:main_agent_commission_amount) : {}
+            %>
             <% (@assigned_affiliates || []).each do |affiliate| %>
               <% stats = @affiliate_stats&.dig(affiliate.id) || {} %>
               <% commission_percentage = (stats[:total_premium] || 0) > 0 ? (((stats[:total_commission] || 0) / (stats[:total_premium] || 1)) * 100) : 0 %>
@@ -157,13 +162,7 @@
                 <td>
                   <div class="text-center">
                     <div class="fw-bold"><%= indian_currency(
-                      begin
-                        # Try to sum commission amounts if column exists, otherwise return 0
-                        MotorInsurance.where(sub_agent_id: affiliate.id).sum(:main_agent_commission_amount)
-                      rescue ActiveRecord::StatementInvalid
-                        # Column doesn't exist yet, return 0 until commission structure is implemented
-                        0
-                      end.round
+                      (motor_commission_by_affiliate[affiliate.id] || 0).round
                     ) %></div>
                     <small class="text-muted">(<%= stats[:motor_policies] %> policies)</small>
                   </div>
@@ -196,13 +195,7 @@
                 <%= indian_currency((@assigned_affiliates || []).sum { |a| @affiliate_stats&.dig(a.id, :life_commission) || 0 }.round) %>
               </td>
               <td class="text-center">
-                <%= indian_currency((@assigned_affiliates || []).sum { |a|
-                  begin
-                    MotorInsurance.where(sub_agent_id: a.id).sum(:main_agent_commission_amount) || 0
-                  rescue ActiveRecord::StatementInvalid
-                    0
-                  end
-                }.round) %>
+                <%= indian_currency((@assigned_affiliates || []).sum { |a| motor_commission_by_affiliate[a.id] || 0 }.round) %>
               </td>
               <td class="text-center text-success">
                 <%= indian_currency((@distributor_stats&.dig(:total_commission) || 0).round) %>
