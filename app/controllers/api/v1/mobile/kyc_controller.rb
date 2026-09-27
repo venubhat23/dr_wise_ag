@@ -149,10 +149,12 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   end
 
   # POST /api/v1/mobile/kyc/payment/order
-  # Creates a Razorpay order for the affiliate registration fee. The app hands
-  # order_id/key/amount straight to Razorpay's native Checkout SDK.
+  # Creates a Razorpay order for the affiliate registration fee - or, once
+  # paid, the yearly renewal (expired or inside the renewal window), so the
+  # same payment screen works every year. The app hands order_id/key/amount
+  # straight to Razorpay's native Checkout SDK.
   def create_payment_order
-    unless @sub_agent.payment_required?
+    unless @sub_agent.subscription_payment_due?
       message, reason = payment_not_required_reason
       return render_error(message, :unprocessable_entity, { reason: reason, subscription: @sub_agent.subscription_summary })
     end
@@ -161,6 +163,7 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       amount_rupees: @sub_agent.payment_amount_due,
       receipt: "affiliate_kyc_#{@sub_agent.id}_#{Time.current.to_i}"
     )
+    renewal = @sub_agent.subscription_payment_kind == 'renewal'
     @sub_agent.update_column(:razorpay_order_id, order['id'])
 
     render_success({
@@ -169,7 +172,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       currency: order['currency'],
       key: RAZORPAY_CONFIG[:key_id],
       name: 'Dr WISE',
-      description: 'Affiliate registration fee',
+      description: renewal ? 'Affiliate yearly renewal' : 'Affiliate registration fee',
+      payment_kind: @sub_agent.subscription_payment_kind,
       prefill: { name: @sub_agent.display_name, email: @sub_agent.email, contact: @sub_agent.mobile }
     }, 'Payment order created')
   rescue RazorpayService::Error => e
