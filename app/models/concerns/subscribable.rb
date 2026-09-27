@@ -139,6 +139,25 @@ module Subscribable
     bump_subscription_cache_gen
   end
 
+  # Admin correction of an existing subscription row's dates / amount. The
+  # account's expiry is re-derived from the latest row afterwards.
+  def update_subscription_period!(subscription, starts_on:, ends_on:, amount:)
+    starts  = starts_on.in_time_zone.beginning_of_day
+    expires = ends_on.in_time_zone.end_of_day
+    raise ArgumentError, "To date must be on or after From date" if expires <= starts
+
+    transaction do
+      lock!
+      subscription.update!(starts_at: starts, expires_at: expires, amount: amount)
+      update_columns(
+        updated_at: Time.current,
+        payment_paid_at: [payment_paid_at, subscriptions.minimum(:starts_at)].compact.min,
+        subscription_expires_at: subscriptions.maximum(:expires_at)
+      )
+    end
+    bump_subscription_cache_gen
+  end
+
   def bump_subscription_cache_gen
     Rails.cache.write(Subscribable::CACHE_GEN_KEY, SecureRandom.hex(4))
   end

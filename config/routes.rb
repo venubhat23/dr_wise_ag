@@ -344,6 +344,7 @@ Rails.application.routes.draw do
         get :kyc
         post :submit_kyc
         post :record_subscription
+        patch :update_subscription
         get :distributor
         get :documents
         post :create_missing_payouts

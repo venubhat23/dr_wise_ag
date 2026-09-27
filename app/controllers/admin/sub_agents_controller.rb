@@ -529,6 +529,24 @@ class Admin::SubAgentsController < Admin::ApplicationController
     redirect_back fallback_location: admin_sub_agents_path, alert: "Failed to record subscription: #{e.message}"
   end
 
+  # PATCH /admin/sub_agents/1/update_subscription
+  # Edits one subscription row (params: subscription_id, from_date, to_date, amount).
+  def update_subscription
+    record = SubAgent.find(params[:id])
+    subscription = record.subscriptions.find(params[:subscription_id])
+    from_date = Date.parse(params[:from_date].to_s)
+    to_date   = Date.parse(params[:to_date].to_s)
+    amount    = params[:amount].presence&.to_d || subscription.amount
+
+    record.update_subscription_period!(subscription, starts_on: from_date, ends_on: to_date, amount: amount)
+    redirect_back fallback_location: admin_sub_agent_path(record),
+                  notice: "Subscription updated (#{from_date.strftime('%d %b %Y')} - #{to_date.strftime('%d %b %Y')})."
+  rescue Date::Error
+    redirect_back fallback_location: admin_sub_agent_path(params[:id]), alert: 'Please enter valid From and To dates.'
+  rescue ArgumentError, ActiveRecord::RecordInvalid => e
+    redirect_back fallback_location: admin_sub_agent_path(params[:id]), alert: "Failed to update subscription: #{e.message}"
+  end
+
   # PATCH /admin/sub_agents/1/deactivate
   def deactivate
     @sub_agent = SubAgent.find(params[:id])

@@ -153,7 +153,8 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
   # order_id/key/amount straight to Razorpay's native Checkout SDK.
   def create_payment_order
     unless @sub_agent.payment_required?
-      return render_error('Payment not required', :unprocessable_entity)
+      message, reason = payment_not_required_reason
+      return render_error(message, :unprocessable_entity, { reason: reason, subscription: @sub_agent.subscription_summary })
     end
 
     order = RazorpayService.create_order(
@@ -281,6 +282,24 @@ class Api::V1::Mobile::KycController < Api::V1::Mobile::BaseController
       ocr_extracted_data: extracted,
       created_at: doc.created_at
     }
+  end
+
+  # Explains why create_payment_order has nothing to charge, so the app can
+  # show a meaningful message (or route to POST /subscription/order to renew).
+  def payment_not_required_reason
+    if @sub_agent.payment_paid?
+      if @sub_agent.subscription_expired?
+        ["Your subscription expired on #{@sub_agent.subscription_expires_at.to_date.strftime('%d %b %Y')}. Please renew your subscription.", 'subscription_expired']
+      elsif @sub_agent.subscription_active?
+        ["You already have an active subscription valid till #{@sub_agent.subscription_expires_at.to_date.strftime('%d %b %Y')}.", 'already_subscribed']
+      else
+        ['Registration fee already paid.', 'already_paid']
+      end
+    elsif !@sub_agent.self_registered?
+      ['No registration fee applies to your account.', 'not_self_registered']
+    else
+      ['No registration fee is configured at the moment.', 'no_fee_configured']
+    end
   end
 
   # Like Api::V1::Mobile::BaseController#authenticate_customer!, but does NOT
