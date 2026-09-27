@@ -5,6 +5,9 @@ class AmbassadorController < ApplicationController
   # self-registered ambassador can check their Joining Credit / payout status
   # while their KYC (and registration-fee payment) is still under review.
   before_action :ensure_kyc_approved, except: [:wallet, :payout_history, :request_withdrawal]
+  # The one-time registration fee is mandatory: until it is paid no ambassador
+  # page (dashboard, wallet, payouts) is reachable - they're sent to pay first.
+  before_action :ensure_registration_fee_paid
   # Once the yearly subscription lapses every ambassador page is blocked until
   # they renew (see Subscribable).
   before_action :ensure_subscription_active
@@ -117,12 +120,24 @@ class AmbassadorController < ApplicationController
     redirect_to ambassador_kyc_path
   end
 
+  def ensure_registration_fee_paid
+    @distributor ||= Distributor.find_by(email: current_user.email)
+    return if @distributor.nil?
+    return unless @distributor.payment_required?
+
+    if @distributor.kyc_submitted? || @distributor.kyc_approved?
+      redirect_to ambassador_kyc_payment_path
+    else
+      redirect_to ambassador_kyc_path
+    end
+  end
+
   def ensure_subscription_active
     @distributor ||= Distributor.find_by(email: current_user.email)
     return if @distributor.nil?
     return unless @distributor.renewal_required?
 
-    redirect_to ambassador_subscription_path, alert: "Your yearly subscription expired on #{@distributor.subscription_expires_at.strftime('%d %b %Y')}. Please renew to continue."
+    redirect_to ambassador_kyc_payment_path, alert: "Your yearly subscription expired on #{@distributor.subscription_expires_at.strftime('%d %b %Y')}. Please renew to continue."
   end
 
   def setup_ambassador_data

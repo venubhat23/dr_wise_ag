@@ -20,6 +20,9 @@ class AmbassadorKycController < ApplicationController
 
   # GET /ambassador/kyc
   def show
+    # Registration fee is mandatory - once KYC is submitted (or approved) the
+    # ambassador can't get past the payment screen until it's paid.
+    return redirect_to ambassador_kyc_payment_path if @distributor.payment_required? && (@distributor.kyc_submitted? || @distributor.kyc_approved?)
     return redirect_to ambassador_dashboard_path, notice: "Your KYC is already approved." if @distributor.kyc_approved?
     return redirect_to ambassador_dashboard_path if @distributor.kyc_submitted? && @distributor.payment_paid?
 
@@ -132,20 +135,25 @@ class AmbassadorKycController < ApplicationController
 
   # GET /ambassador/kyc/payment - registration-fee payment screen (Razorpay
   # Checkout). Amount comes from SystemSetting.ambassador_registration_fee.
+  # The same screen collects the yearly renewal once the subscription has
+  # expired (or early, inside the renewal window) - each payment adds 1 year.
   def payment
-    return redirect_to ambassador_kyc_path unless @distributor.payment_required?
+    return redirect_to ambassador_kyc_path unless @distributor.subscription_payment_due?
 
-    @amount = @distributor.payment_amount_due
+    @renewal = @distributor.payment_paid?
+    @amount  = @distributor.payment_amount_due
   end
 
   # POST /ambassador/kyc/payment/order (AJAX) - creates the Razorpay order the
   # Checkout widget needs before it can open.
   def create_payment_order
-    return render json: { error: "Payment already completed." }, status: :unprocessable_entity unless @distributor.payment_required?
+    return render json: { error: "Payment already completed." }, status: :unprocessable_entity unless @distributor.subscription_payment_due?
+
+    renewal = @distributor.payment_paid?
 
     order = RazorpayService.create_order(
       amount_rupees: @distributor.payment_amount_due,
-      receipt: "ambassador_kyc_#{@distributor.id}"
+      receipt: renewal ? "ambassador_sub_#{@distributor.id}_#{Time.current.to_i}" : "ambassador_kyc_#{@distributor.id}"
     )
     @distributor.update_column(:razorpay_order_id, order["id"])
 
@@ -155,7 +163,7 @@ class AmbassadorKycController < ApplicationController
       currency: order["currency"],
       key: RAZORPAY_CONFIG[:key_id],
       name: "Dr WISE",
-      description: "Ambassador registration fee",
+      description: renewal ? "Ambassador yearly subscription" : "Ambassador registration fee",
       prefill: { name: @distributor.display_name, email: @distributor.email, contact: @distributor.mobile }
     }
   rescue RazorpayService::Error => e
@@ -174,8 +182,14 @@ class AmbassadorKycController < ApplicationController
       return render json: { error: "Payment verification failed." }, status: :unprocessable_entity
     end
 
+    renewal = @distributor.payment_paid?
     @distributor.mark_payment_paid!(order_id: order_id, payment_id: payment_id, amount: @distributor.payment_amount_due)
-    flash[:notice] = "Payment received. Thanks! Your KYC has been submitted for review."
+    flash[:notice] =
+      if renewal
+        "Payment received. Your subscription is valid till #{@distributor.subscription_expires_at.strftime('%d %b %Y')}."
+      else
+        "Payment received. Thanks! Your KYC has been submitted for review."
+      end
     render json: { redirect_to: ambassador_dashboard_path }
   end
 

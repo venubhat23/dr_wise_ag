@@ -1,12 +1,23 @@
 <% content_for :title, "Ambassador Commission Dashboard" %>
 
-<% if @distributor.payment_required? %>
-  <div class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
-    <div>
-      <i class="bi bi-exclamation-triangle-fill me-2"></i>
-      Your <%= indian_currency(@distributor.payment_amount_due.to_i) %> registration fee is still pending.
-    </div>
-    <%= link_to "Pay Now", ambassador_kyc_payment_path, class: "btn btn-sm btn-warning" %>
+<% if @distributor.subscription_tracked? %>
+  <% days_left = @distributor.subscription_days_left %>
+  <% ends_on = @distributor.subscription_expires_at.strftime("%d %b %Y") %>
+  <% message = "Your subscription ends on #{ends_on} — it will end in #{days_left} #{'day'.pluralize(days_left)}." %>
+  <style>
+    .sub-ticker { overflow: hidden; white-space: nowrap; border-radius: 10px; padding: 10px 0; }
+    .sub-ticker-track { display: inline-block; padding-left: 100%; animation: subTicker 18s linear infinite; }
+    .sub-ticker:hover .sub-ticker-track { animation-play-state: paused; }
+    @keyframes subTicker { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    @media (prefers-reduced-motion: reduce) { .sub-ticker-track { animation: none; padding-left: 16px; } }
+  </style>
+  <div class="sub-ticker alert <%= @distributor.renewal_window_open? ? 'alert-warning' : 'alert-info' %> mb-4" role="status" aria-label="<%= message %>">
+    <span class="sub-ticker-track fw-semibold">
+      <i class="bi bi-calendar-check me-2"></i><%= message %>
+      <% if @distributor.renewal_window_open? %>
+        <%= link_to "Renew now", ambassador_kyc_payment_path, class: "ms-2" %>
+      <% end %>
+    </span>
   </div>
 <% end %>
 

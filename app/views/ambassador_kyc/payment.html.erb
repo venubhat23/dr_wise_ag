@@ -153,6 +153,7 @@
           class: "btn btn-link btn-sm p-0 small text-muted text-decoration-none" %>
   </div>
 
+  <% unless @renewal %>
   <div class="pay-tracker-label fade-up d1">
     <span class="on"><i class="fas fa-check-circle me-1"></i>KYC details</span>
     <span class="on">Payment</span>
@@ -163,22 +164,39 @@
     <div class="seg current"></div>
     <div class="seg" style="background:#e5e7f5;"></div>
   </div>
+  <% end %>
+
+  <% if flash[:alert].present? %>
+    <div class="alert alert-warning small fade-up d1"><i class="fas fa-exclamation-triangle me-2"></i><%= flash[:alert] %></div>
+  <% end %>
 
   <div class="kyc-card text-center fade-up d2">
     <div id="payBody">
       <div class="pay-hero">
-        <div class="kyc-submitted-badge"><i class="fas fa-check-circle"></i> KYC submitted successfully</div>
+        <% if @renewal %>
+          <div class="kyc-submitted-badge"><i class="fas fa-rotate"></i>
+            <%= @distributor.subscription_expired? ? "Subscription expired" : "Subscription ends" %>
+            <%= @distributor.subscription_expires_at&.strftime("%d %b %Y") %></div>
+        <% else %>
+          <div class="kyc-submitted-badge"><i class="fas fa-check-circle"></i> KYC submitted successfully</div>
+        <% end %>
         <div class="pay-hero-icon"><i class="fas fa-file-invoice-dollar"></i></div>
         <div class="pay-hero-greeting">Hi <%= @distributor.display_name %>,</div>
-        <h1>One-time registration fee</h1>
-        <p>Complete this payment to activate your ambassador account
-          while our team reviews your documents.</p>
+        <% if @renewal %>
+          <h1>Renew your yearly subscription</h1>
+          <p>Renew to keep using your ambassador dashboard &amp; wallet.
+            Each payment adds one more year.</p>
+        <% else %>
+          <h1>Registration fee</h1>
+          <p>This payment is required to activate your ambassador account.
+            Your dashboard unlocks as soon as it's done.</p>
+        <% end %>
       </div>
 
       <div class="pay-amount-box fade-up d3">
         <div class="text-start">
-          <div class="pay-amount-label">Ambassador registration</div>
-          <div class="pay-amount-sub"><i class="fas fa-circle-check text-success"></i> Charged only once</div>
+          <div class="pay-amount-label"><%= @renewal ? "Yearly subscription" : "Ambassador registration" %></div>
+          <div class="pay-amount-sub"><i class="fas fa-circle-check text-success"></i> Valid for 1 year</div>
         </div>
         <div class="pay-amount" id="payAmountDisplay"><%= indian_currency(@amount) %></div>
       </div>
@@ -186,7 +204,7 @@
       <ul class="pay-benefits text-start fade-up d4">
         <li><span class="chk"><i class="fas fa-gauge-high"></i></span> Full access to your ambassador dashboard &amp; wallet</li>
         <li><span class="chk"><i class="fas fa-chart-line"></i></span> Track referrals, commissions &amp; payouts in real time</li>
-        <li><span class="chk"><i class="fas fa-bolt"></i></span> Priority review of your submitted KYC documents</li>
+        <% unless @renewal %><li><span class="chk"><i class="fas fa-bolt"></i></span> Priority review of your submitted KYC documents</li><% end %>
       </ul>
 
       <div class="pay-actions fade-up d5">
@@ -194,9 +212,6 @@
         <button id="payNowBtn" type="button" class="btn btn-pay-now">
           <i class="fas fa-lock me-2"></i>Pay <%= indian_currency(@amount) %> Securely
         </button>
-        <%= link_to ambassador_kyc_path, class: "btn btn-link w-100 mt-2 text-decoration-none text-muted small" do %>
-          I'll pay later
-        <% end %>
       </div>
 
       <div class="pay-trust-row fade-up d5">
@@ -216,7 +231,7 @@
       <h1 class="h4 fw-bold mb-1">Payment successful!</h1>
       <p class="text-muted small mb-3">
         <span class="success-amount" id="successAmount"><%= indian_currency(@amount) %></span> received.
-        Your KYC has been submitted for review.
+        <%= @renewal ? "Your subscription has been renewed for 1 year." : "Your KYC has been submitted for review." %>
       </p>
       <button id="continueBtn" type="button" class="btn btn-primary px-4">Continue</button>
     </div>
