@@ -51,11 +51,13 @@ RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 RUN for i in 1 2 3 4 5; do \
       apt-get update -qq && \
       apt-get install --no-install-recommends -y \
-        curl libpq5 libjemalloc2 imagemagick \
+        curl libpq5 libjemalloc2 imagemagick ghostscript \
         libxrender1 libxext6 libfontconfig1 fontconfig fonts-dejavu-core libjpeg62-turbo \
       && break || { echo "apt install failed, retrying ($i/5)..."; sleep 5; }; \
     done && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
+# imagemagick: re-encode KYC ID photos under OCR.space's 1 MB cap.
+# ghostscript: shrink oversized KYC PDF uploads before OCR (OcrService).
 
 ENV LD_PRELOAD="libjemalloc.so.2"
 

@@ -1,9 +1,9 @@
 class SendLeadSubmittedEmailJob < ApplicationJob
   queue_as :default
 
-  # Notifies both sides when a lead is submitted for an affiliate (mobile app or admin):
-  # the affiliate gets an in-app message + confirmation email, the lead gets a
-  # "we'll contact you" email.
+  # Notifies both sides when a lead is submitted (mobile app or admin): the
+  # affiliate (if any) gets an in-app message + confirmation email, and the lead
+  # gets a "we'll contact you" email. Each email is only sent to a valid address.
   def perform(lead_id:)
     lead = Lead.find_by(id: lead_id)
     return unless lead
@@ -14,13 +14,8 @@ class SendLeadSubmittedEmailJob < ApplicationJob
       Rails.logger.error "Lead in-app notification failed for Lead #{lead.id}: #{e.message}"
     end
 
-    if lead.affiliate&.email.present?
-      deliver_safely(lead, :lead_submitted_to_affiliate)
-    end
-
-    if lead.email.present?
-      deliver_safely(lead, :lead_submitted_to_customer)
-    end
+    deliver_safely(lead, :lead_submitted_to_affiliate) if ApplicationMailer.valid_email?(lead.affiliate&.email)
+    deliver_safely(lead, :lead_submitted_to_customer) if ApplicationMailer.valid_email?(lead.email)
   end
 
   private

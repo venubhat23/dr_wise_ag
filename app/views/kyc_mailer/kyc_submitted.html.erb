@@ -1,3 +1,7 @@
 <p>Hi <%= @sub_agent.display_name %>,</p>
-<p>We've received your Aadhaar and PAN documents. Your KYC is now under review by our team.</p>
+<p>We've received your KYC documents. Your KYC is now under review by our team.</p>
+<% if @ambassador %>
+<p>You'll get another email as soon as it's approved. Your ambassador dashboard will be unlocked then.</p>
+<% else %>
 <p>You'll get another email as soon as it's approved. You won't be able to log in until then.</p>
+<% end %>

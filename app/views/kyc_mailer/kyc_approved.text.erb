@@ -1,3 +1,8 @@
 Hi <%= @sub_agent.display_name %>,
 
+<% if @ambassador -%>
+Good news - your KYC has been approved. You can now log in to the Drwise platform and use your ambassador dashboard.
+Log in: <%= @login_url %>
+<% else -%>
 Good news - your KYC has been approved. You can now log in to the app with your registered mobile number/email and password.
+<% end -%>

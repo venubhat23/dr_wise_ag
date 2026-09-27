@@ -13,6 +13,7 @@ class SendKycStatusEmailJob < ApplicationJob
 
     mailer_method = EVENT_MAILER_METHODS[event.to_s]
     return unless mailer_method
+    return unless ApplicationMailer.valid_email?(sub_agent.email)
 
     KycMailer.public_send(mailer_method, sub_agent).deliver_now
   rescue => e

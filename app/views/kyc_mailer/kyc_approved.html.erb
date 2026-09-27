@@ -1,2 +1,7 @@
 <p>Hi <%= @sub_agent.display_name %>,</p>
+<% if @ambassador %>
+<p>Good news - your KYC has been approved. You can now log in to the Drwise platform and use your ambassador dashboard.</p>
+<p><a href="<%= @login_url %>">Log in</a></p>
+<% else %>
 <p>Good news - your KYC has been approved. You can now log in to the app with your registered mobile number/email and password.</p>
+<% end %>

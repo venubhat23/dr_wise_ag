@@ -14,4 +14,18 @@ class SubscriptionMailer < ApplicationMailer
       subject: "Renewal Reminder: Your Drwise #{@role} Subscription Expires in #{days_remaining} #{day_word}"
     )
   end
+
+  def payment_received(subscription)
+    @subscription = subscription
+    @subscriber = subscription.subscriber
+    @ambassador = @subscriber.is_a?(Distributor)
+    @role = @ambassador ? "Ambassador" : "Affiliate"
+    @renewal = subscription.kind == "renewal"
+    @login_url = new_user_session_url if @ambassador
+
+    mail(
+      to: @subscriber.email,
+      subject: "Payment Received: Your Drwise #{@role} #{@renewal ? 'Renewal' : 'Registration'} Fee"
+    )
+  end
 end

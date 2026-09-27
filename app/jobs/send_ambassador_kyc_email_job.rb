@@ -8,14 +8,15 @@ class SendAmbassadorKycEmailJob < ApplicationJob
   }.freeze
 
   # distributor_id: the self-registered ambassador's Distributor row.
-  # The KycMailer templates only use #display_name / #kyc_rejection_reason,
-  # which Distributor responds to just like SubAgent, so they are reused as-is.
+  # KycMailer templates are shared with affiliates and switch their wording
+  # for Distributor recipients.
   def perform(distributor_id:, event:)
     distributor = Distributor.find_by(id: distributor_id)
     return unless distributor
 
     mailer_method = EVENT_MAILER_METHODS[event.to_s]
     return unless mailer_method
+    return unless ApplicationMailer.valid_email?(distributor.email)
 
     KycMailer.public_send(mailer_method, distributor).deliver_now
   rescue => e

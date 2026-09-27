@@ -1,0 +1,25 @@
+Hi <%= @subscriber.display_name %>,
+
+<% if @renewal -%>
+We've received your renewal payment. Your Drwise <%= @role %> subscription is now active until <%= @subscription.expires_at.strftime("%d %b %Y") %>.
+<% else -%>
+We've received your registration fee. Your Drwise <%= @role %> subscription is active until <%= @subscription.expires_at.strftime("%d %b %Y") %>.<% if @subscriber.respond_to?(:kyc_approved?) && !@subscriber.kyc_approved? %> We'll email you as soon as your KYC has been reviewed.<% end %>
+<% end -%>
+
+Payment Details
+---------------
+Account Type: <%= @role %>
+Payment For:  <%= @renewal ? "Subscription Renewal (1 Year)" : "Registration Fee (1 Year)" %>
+Amount Paid:  Rs. <%= '%.2f' % @subscription.amount.to_f %>
+<% if @subscription.razorpay_payment_id.present? -%>
+Payment ID:   <%= @subscription.razorpay_payment_id %>
+<% end -%>
+Valid From:   <%= @subscription.starts_at.strftime("%d %b %Y") %>
+Valid Until:  <%= @subscription.expires_at.strftime("%d %b %Y") %>
+<% if @login_url -%>
+
+Log in: <%= @login_url %>
+<% end -%>
+
+Thank you,
+Drwise Team

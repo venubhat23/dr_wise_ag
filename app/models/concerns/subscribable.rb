@@ -81,6 +81,7 @@ module Subscribable
   # Records a successful Razorpay payment. Early renewals extend from the
   # current expiry so no paid days are lost; otherwise the year starts now.
   def mark_payment_paid!(order_id:, payment_id:, amount:)
+    subscription = nil
     transaction do
       lock!
       # Same Razorpay payment verified twice (double-submit / retry) - no-op.
@@ -91,7 +92,7 @@ module Subscribable
       starts = subscription_active? ? subscription_expires_at : now
       expires = starts + SUBSCRIPTION_PERIOD
 
-      subscriptions.create!(
+      subscription = subscriptions.create!(
         kind: kind, amount: amount, starts_at: starts, expires_at: expires, paid_at: now,
         razorpay_order_id: order_id, razorpay_payment_id: payment_id
       )
@@ -109,6 +110,7 @@ module Subscribable
       )
     end
     bump_subscription_cache_gen
+    enqueue_payment_received_email(subscription)
   end
 
   # Admin back-fill for a subscription paid outside Razorpay - e.g. existing
@@ -178,5 +180,17 @@ module Subscribable
       days_left: subscription_days_left,
       renewal_window_days: RENEWAL_WINDOW_DAYS
     }
+  end
+
+  private
+
+  # Payment receipt email, enqueued once the payment transaction has committed.
+  # Never allowed to fail the payment itself - the money is already collected.
+  def enqueue_payment_received_email(subscription)
+    return unless subscription
+
+    SendPaymentReceivedEmailJob.perform_later(subscription_id: subscription.id)
+  rescue => e
+    Rails.logger.error "Failed to enqueue payment received email for Subscription #{subscription.id}: #{e.message}"
   end
 end
