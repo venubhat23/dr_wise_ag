@@ -174,6 +174,11 @@ class Customer < ApplicationRecord
     }
   end
 
+  # Mobile APIs return the customer nominee wrapped in a `nominees` array
+  def nominees_list
+    nominee_name.present? ? [nominee_details] : []
+  end
+
   def active?
     status && !deactivated
   end
