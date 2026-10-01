@@ -884,6 +884,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
           customer_id: customer.id,
           email: user.email,
           mobile: user.mobile,
+          nominee: customer.nominee_details,
           password_reset_days: user.days_until_password_expires,
           password_reset_required: user.password_reset_required?,
           portfolio_summary: {
@@ -969,6 +970,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
         customer_id: customer.id,
         email: customer.email,
         mobile: customer.mobile,
+        nominee: customer.nominee_details,
         password_reset_days: user.days_until_password_expires,
         password_reset_required: user.password_reset_required?,
         portfolio_summary: {

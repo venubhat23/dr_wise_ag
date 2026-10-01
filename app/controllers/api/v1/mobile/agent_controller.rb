@@ -197,10 +197,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # Auto-generate password if not provided
     auto_generated_password = false
     if customer_params[:password].blank? && customer_params[:password_confirmation].blank?
-      # Auto-generate a secure password
-      generated_password = generate_secure_password
-      customer_params[:password] = generated_password
-      customer_params[:password_confirmation] = generated_password
+      # Use the default mobile login password
+      customer_params[:password] = Customer::DEFAULT_LOGIN_PASSWORD
+      customer_params[:password_confirmation] = Customer::DEFAULT_LOGIN_PASSWORD
       auto_generated_password = true
     end
 
@@ -215,8 +214,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       validation_errors << 'Password is required when password confirmation is provided'
     end
 
-    # Validate password strength
-    if customer_params[:password].present?
+    # Validate password strength (the default password is exempt)
+    if customer_params[:password].present? && !auto_generated_password
       password = customer_params[:password]
       if password.length < 8
         validation_errors << 'Password must be at least 8 characters long'
@@ -373,7 +372,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         response_data[:password_info] = {
           auto_generated: true,
           password: customer_params[:password],
-          message: 'Password was auto-generated since none was provided'
+          message: 'Default password was set since none was provided'
         }
       else
         response_data[:password_info] = {
@@ -2925,6 +2924,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         email: customer.email,
         password: password,
         password_confirmation: password,
+        original_password: password,
         mobile: customer.mobile,
         user_type: 'customer',
         role: customer_role,
@@ -2959,25 +2959,6 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         message: 'Customer created but user account creation failed. Customer cannot login yet.'
       }
     end
-  end
-
-  def generate_secure_password
-    # Generate a secure password with uppercase, lowercase, numbers, and special characters
-    charset = ('A'..'Z').to_a + ('a'..'z').to_a + (0..9).to_a + ['@', '$', '!', '%', '*', '?', '&']
-
-    # Ensure at least one of each required character type
-    password = []
-    password << ('A'..'Z').to_a.sample  # Uppercase
-    password << ('a'..'z').to_a.sample  # Lowercase
-    password << (0..9).to_a.sample.to_s # Number
-    password << ['@', '$', '!', '%', '*', '?', '&'].sample # Special char
-
-    # Fill remaining characters randomly
-    (8..12).to_a.sample.times do
-      password << charset.sample.to_s
-    end
-
-    password.shuffle.join
   end
 
   # Optimized dashboard statistics helper methods

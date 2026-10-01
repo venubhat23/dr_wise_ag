@@ -1,7 +1,7 @@
 class Admin::CustomersController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_customer, only: [:show, :edit, :update, :destroy, :associations_summary, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate, :get_policies, :family_members, :affiliate_info]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy, :associations_summary, :policy_chart, :trace_commission, :product_selection, :deactivate, :activate, :get_policies, :family_members, :affiliate_info, :create_mobile_login, :reset_mobile_login_password]
   skip_before_action :ensure_admin, only: [:search_sub_agents]
   skip_before_action :authenticate_user!, only: [:search_sub_agents]
   skip_load_and_authorize_resource only: [:search_sub_agents]
@@ -735,6 +735,16 @@ class Admin::CustomersController < Admin::ApplicationController
       coverage_percentage: (opted_count.to_f / 17 * 100).round(1)
     }
 
+    # Product matrix: every product / sub-product the customer holds, split DrWise vs Non-DrWise
+    @product_matrix = build_product_matrix(@customer)
+    all_rows = @product_matrix.flat_map { |seg| seg[:categories].flat_map { |cat| cat[:subs] } }
+    @drwise_summary, @non_drwise_summary = [:drwise, :non_drwise].map do |side|
+      held = all_rows.map { |row| row[side] }.select { |cell| cell[:count].positive? }
+      { total_policies: held.sum { |cell| cell[:count] },
+        total_premium: held.sum { |cell| cell[:premium] },
+        opted_count: held.size }
+    end
+
     # Get commission payouts for this customer's policies
     @commission_payouts = CommissionPayout.joins(
       "LEFT JOIN health_insurances ON commission_payouts.policy_type = 'health' AND commission_payouts.policy_id = health_insurances.id
@@ -965,62 +975,21 @@ class Admin::CustomersController < Admin::ApplicationController
             end
           end
 
-          # Create User account - auto-generate password if not provided
-          should_create_user = user_enter_password == '1' ||
-                             (@customer.email.present? && password.blank?)
+          # Always create the mobile login: entered password if given, otherwise the default
+          if user_enter_password == '1' && password.present? && password != password_confirmation
+            @customer.errors.add(:password_confirmation, "doesn't match Password")
+            raise ActiveRecord::Rollback
+          end
 
-          if should_create_user
-            # Skip user creation if a user with this email/mobile already exists (e.g. existing affiliate)
-            existing_user = User.find_by(email: @customer.email) ||
-                            (@customer.mobile.present? && User.find_by(mobile: @customer.mobile))
-
-            if existing_user
-              success = true
-            else
-              user_first_name = @customer.individual? ? @customer.first_name : @customer.company_name
-              user_last_name = @customer.individual? ? (@customer.last_name || @customer.company_name) : @customer.company_name
-
-              if password.present? && password_confirmation.present?
-                # Use provided password
-                if password == password_confirmation
-                  generated_password = password
-                  User.create!(
-                    first_name: user_first_name,
-                    last_name: user_last_name,
-                    email: @customer.email,
-                    mobile: @customer.mobile,
-                    password: generated_password,
-                    password_confirmation: generated_password,
-                    original_password: generated_password,
-                    user_type: 'customer',
-                    status: true
-                  )
-                  user_created = true
-                  success = true
-                else
-                  @customer.destroy
-                  @customer.errors.add(:password_confirmation, "doesn't match Password")
-                  success = false
-                end
-              else
-                # Auto-generate password if no password provided but user account creation requested
-                generated_password = generate_secure_password
-                User.create!(
-                  first_name: user_first_name,
-                  last_name: user_last_name,
-                  email: @customer.email,
-                  mobile: @customer.mobile,
-                  password: generated_password,
-                  password_confirmation: generated_password,
-                  original_password: generated_password,
-                  user_type: 'customer',
-                  status: true
-                )
-                user_created = true
-                success = true
-              end
-            end
+          if @customer.login_user
+            success = true
+          elsif @customer.email.blank?
+            # User accounts require an email, so no mobile login can be created
+            success = true
           else
+            generated_password = password.presence || Customer::DEFAULT_LOGIN_PASSWORD
+            @customer.create_login_user!(generated_password)
+            user_created = true
             success = true
           end
         else
@@ -1035,11 +1004,8 @@ class Admin::CustomersController < Admin::ApplicationController
 
     # Handle response based on success/failure - single render/redirect point
     if success
-      base_notice = if user_created && generated_password.present?
-        flash[:generated_password] = generated_password
-        "Customer created successfully. Auto-generated password: #{generated_password}"
-      elsif user_created
-        'Customer and login account created successfully.'
+      base_notice = if user_created
+        "Customer created successfully. Mobile login: #{@customer.email} / #{generated_password}"
       else
         'Customer was successfully created.'
       end
@@ -1055,6 +1021,34 @@ class Admin::CustomersController < Admin::ApplicationController
       end
       @sub_agents = SubAgent.active.order(:first_name, :last_name)
       render :new, status: :unprocessable_entity
+    end
+  end
+
+  # POST /admin/customers/1/create_mobile_login
+  def create_mobile_login
+    if @customer.login_user
+      redirect_to admin_customer_path(@customer), notice: 'Mobile login already exists.'
+    elsif @customer.email.blank?
+      redirect_to admin_customer_path(@customer), alert: 'Add an email to this customer before creating a mobile login.'
+    else
+      @customer.create_login_user!
+      redirect_to admin_customer_path(@customer),
+                  notice: "Mobile login created: #{@customer.email} / #{Customer::DEFAULT_LOGIN_PASSWORD}"
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to admin_customer_path(@customer), alert: "Could not create mobile login: #{e.record.errors.full_messages.to_sentence}"
+  end
+
+  # PATCH /admin/customers/1/reset_mobile_login_password
+  def reset_mobile_login_password
+    user = @customer.login_user
+    return redirect_to(admin_customer_path(@customer), alert: 'This customer has no mobile login.') unless user
+
+    password = Customer::DEFAULT_LOGIN_PASSWORD
+    if user.update(password: password, password_confirmation: password, original_password: password)
+      redirect_to admin_customer_path(@customer), notice: "Mobile login password reset to #{password}"
+    else
+      redirect_to admin_customer_path(@customer), alert: "Could not reset password: #{user.errors.full_messages.to_sentence}"
     end
   end
 
@@ -1335,26 +1329,91 @@ class Admin::CustomersController < Admin::ApplicationController
   end
 
   # Generate a secure password for auto-creation
-  def generate_secure_password
-    # Generate password in format: first 4 letters of name + @ + 4-digit year from DOB
-    # Example: PRAMOD with DOB 26/02/1996 becomes PRAM@1996
+  # Segment/category order follows the product catalog (IncentiveCalculator::DEFAULT_ROWS)
+  MATRIX_SEGMENT_ICONS = {
+    'Insurance' => 'bi-shield-check', 'Investments' => 'bi-graph-up', 'Loans' => 'bi-bank',
+    'Taxation' => 'bi-calculator', 'Travel' => 'bi-airplane'
+  }.freeze
+  HEALTH_SUB_PRODUCTS = { 'Individual' => 'Individual Plan' }.freeze
+  MOTOR_SUB_PRODUCTS = {
+    'Private Car' => 'Car - Pvt Vehicle', 'Two Wheeler' => '2 Wheeler',
+    'Goods Vehicle' => 'Commercial Vehicle', 'Taxi' => 'Taxi - PCV', 'Passenger Vehicle' => 'Taxi - PCV'
+  }.freeze
+  GENERAL_SUB_PRODUCTS = {
+    'Fire Insurance' => 'Fire & Burglary', 'General Liability' => 'Liability Insurance',
+    'Product Liability' => 'Liability Insurance', 'Property Insurance' => 'Home'
+  }.freeze
 
-    # Use first_name for individual, company_name for corporate
-    name_source = @customer.individual? ? @customer.first_name : @customer.company_name
-    first_name = name_source.to_s.strip.upcase
+  # Returns [{ segment:, icon:, categories: [{ name:, subs: [{ name:, drwise: cell, non_drwise: cell }] }] }]
+  # with only the products/sub-products the customer actually holds.
+  def build_product_matrix(customer)
+    entries = []
+    add = lambda do |segment, category, sub, drwise, amount, record, view_type = nil|
+      entries << { segment: segment, category: category, sub: sub.presence || 'Other', drwise: drwise,
+                   amount: amount.to_f, record: record, view_type: view_type }
+    end
+    drwise = ->(p) { p.is_admin_added && !p.is_customer_added && !p.is_agent_added }
 
-    # Get first 4 characters of name, pad with 'X' if less than 4 characters
-    name_part = first_name[0..3].ljust(4, 'X')
-
-    # Get birth year from birth_date
-    if @customer.birth_date.present?
-      year_part = @customer.birth_date.year.to_s
-    else
-      # Default to current year if no birth date
-      year_part = Date.current.year.to_s
+    HealthInsurance.where(customer_id: customer.id).each do |p|
+      add.call('Insurance', 'Health', HEALTH_SUB_PRODUCTS[p.insurance_type] || p.insurance_type, drwise.(p), p.total_premium, p, 'healthinsurance')
+    end
+    LifeInsurance.where(customer_id: customer.id).each do |p|
+      add.call('Insurance', 'Life', p.plan_name, drwise.(p), p.total_premium, p, 'lifeinsurance')
+    end
+    MotorInsurance.where(customer_id: customer.id).each do |p|
+      add.call('Insurance', 'Motor', MOTOR_SUB_PRODUCTS[p.class_of_vehicle] || p.class_of_vehicle, drwise.(p), p.total_premium, p, 'motorinsurance')
+    end
+    OtherInsurance.where(customer_id: customer.id).each do |p|
+      if p.insurance_type.to_s.start_with?('Travel')
+        add.call('Insurance', 'Travel', p.plan_name, drwise.(p), p.total_premium, p)
+      else
+        sub = GENERAL_SUB_PRODUCTS[p.insurance_type] ||
+              (p.insurance_type == 'General Insurance' ? p.plan_name : p.insurance_type)
+        add.call('Insurance', 'General', sub, drwise.(p), p.total_premium, p)
+      end
+    end
+    # Investments / loans have no admin/customer/agent flags yet, so they count as Non-DrWise
+    customer.investments.each do |i|
+      category = i.investment_type == 'Bonds' ? 'Bond' : i.investment_type
+      add.call('Investments', category, i.product_name.presence || i.investment_type, false, i.investment_amount, i)
+    end
+    customer.loans.each do |l|
+      add.call('Loans', "#{l.loan_type} Loan", "#{l.loan_type} Loan", false, l.loan_amount, l)
     end
 
-    "#{name_part}@#{year_part}"
+    catalog = IncentiveCalculator::DEFAULT_ROWS
+    rank = ->(list, value) { list.index(value) || list.size }
+    segments = catalog.map(&:first).uniq
+    categories = (%w[Health Life Motor General Travel].map { |c| ['Insurance', c] } + catalog.map { |r| r[0..1] }).uniq
+    subs = catalog.map { |r| r[0..2] }
+
+    entries.group_by { |e| e[:segment] }.sort_by { |seg, _| rank.(segments, seg) }.map do |segment, seg_entries|
+      {
+        segment: segment,
+        icon: MATRIX_SEGMENT_ICONS.fetch(segment, 'bi-box'),
+        categories: seg_entries.group_by { |e| e[:category] }
+                               .sort_by { |cat, _| rank.(categories, [segment, cat]) }.map do |category, cat_entries|
+          {
+            name: category,
+            subs: cat_entries.group_by { |e| e[:sub] }
+                             .sort_by { |sub, _| [rank.(subs, [segment, category, sub]), sub] }.map do |sub, rows|
+              { name: sub, drwise: matrix_cell(rows.select { |e| e[:drwise] }),
+                non_drwise: matrix_cell(rows.reject { |e| e[:drwise] }) }
+            end
+          }
+        end
+      }
+    end
+  end
+
+  def matrix_cell(rows)
+    {
+      count: rows.size,
+      premium: rows.sum { |e| e[:amount] },
+      latest: rows.map { |e| e[:record].created_at }.max,
+      policy_numbers: rows.map { |e| e[:record].try(:policy_number) }.compact,
+      view_type: rows.first&.dig(:view_type)
+    }
   end
 
   def set_customer

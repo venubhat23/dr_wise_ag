@@ -136,6 +136,44 @@ class Customer < ApplicationRecord
     individual? ? full_name : company_name
   end
 
+  # Mobile app login: password used when none is entered while creating the customer
+  DEFAULT_LOGIN_PASSWORD = 'atma@123'.freeze
+
+  # The User record the customer signs in to the mobile app with (matched by email, then mobile)
+  def login_user
+    return @login_user if defined?(@login_user)
+
+    @login_user = (User.find_by(email: email) if email.present?) ||
+                  (User.where(mobile: [mobile, "+91#{mobile}"]).first if mobile.present?)
+  end
+
+  # Creates the mobile login if missing. Returns the User (existing or new).
+  def create_login_user!(password = nil)
+    return login_user if login_user
+
+    password = password.presence || DEFAULT_LOGIN_PASSWORD
+    @login_user = User.create!(
+      first_name: individual? ? first_name : company_name,
+      last_name: individual? ? (last_name.presence || company_name.presence || first_name) : company_name,
+      email: email,
+      mobile: mobile,
+      password: password,
+      password_confirmation: password,
+      original_password: password,
+      user_type: 'customer',
+      status: true
+    )
+  end
+
+  # Customer-level nominee (captured at registration / admin edit), for mobile API responses
+  def nominee_details
+    {
+      name: nominee_name,
+      relation: nominee_relation,
+      date_of_birth: nominee_date_of_birth&.strftime('%Y-%m-%d')
+    }
+  end
+
   def active?
     status && !deactivated
   end

@@ -426,6 +426,8 @@ Rails.application.routes.draw do
         patch :toggle_status
         patch :deactivate
         patch :activate
+        post :create_mobile_login
+        patch :reset_mobile_login_password
         get :policy_chart
         get :family_members
         get :affiliate_info

@@ -157,7 +157,7 @@
   <div class="card-header bg-transparent border-0">
     <div class="d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Comprehensive Product Matrix</h5>
-      <small class="text-muted">Complete portfolio overview Dr WISE all 17 product categories</small>
+      <small class="text-muted">Products and sub-products this customer holds (DrWise &amp; Non-DrWise)</small>
     </div>
   </div>
   <div class="card-body">
@@ -209,69 +209,28 @@
       </div>
     </div>
 
-    <!-- Comprehensive Product Matrix Table - Side by Side Layout -->
+    <!-- Comprehensive Product Matrix: only products / sub-products the customer holds -->
     <div class="table-responsive product-matrix-side-by-side-container">
-      <%
-        product_categories = [
-          {
-            name: 'Insurance Products',
-            icon: 'bi-shield-check',
-            products: [
-              { name: 'Life Insurance', icon: 'bi-heart-pulse', key: 'Life Insurance' },
-              { name: 'Health Insurance', icon: 'bi-activity', key: 'Health Insurance' },
-              { name: 'Motor Insurance', icon: 'bi-car-front', key: 'Motor Insurance' }
-            ]
-          },
-          {
-            name: 'Investment Products',
-            icon: 'bi-graph-up',
-            products: [
-              { name: 'Mutual Fund', icon: 'bi-pie-chart', key: 'Mutual Fund' },
-              { name: 'Gold', icon: 'bi-coin', key: 'Gold' },
-              { name: 'NPS', icon: 'bi-building', key: 'NPS' },
-              { name: 'Bonds', icon: 'bi-receipt', key: 'Bonds' }
-            ]
-          },
-          {
-            name: 'Loan Products',
-            icon: 'bi-bank',
-            products: [
-              { name: 'Personal Loan', icon: 'bi-person', key: 'Personal Loan' },
-              { name: 'Home Loan', icon: 'bi-house', key: 'Home Loan' },
-              { name: 'Business Loan', icon: 'bi-briefcase', key: 'Business Loan' }
-            ]
-          },
-          {
-            name: 'Taxation Services',
-            icon: 'bi-calculator',
-            products: [
-              { name: 'Income Tax Return (ITR)', icon: 'bi-file-earmark-text', key: 'ITR' }
-            ]
-          },
-          {
-            name: 'Travel Services',
-            icon: 'bi-airplane',
-            products: [
-              { name: 'Domestic Travel', icon: 'bi-geo', key: 'Domestic Travel' },
-              { name: 'International Travel', icon: 'bi-globe', key: 'International Travel' }
-            ]
-          }
-        ]
-      %>
+      <% if @product_matrix.empty? %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+          No DrWise or Non-DrWise products found for this customer
+        </div>
+      <% end %>
 
-      <% product_categories.each do |category| %>
+      <% @product_matrix.each do |segment| %>
         <div class="product-category-section mb-5">
           <div class="category-header-section">
             <h4 class="category-title">
-              <i class="<%= category[:icon] %> me-2"></i>
-              <%= category[:name] %>
+              <i class="<%= segment[:icon] %> me-2"></i>
+              <%= segment[:segment] %>
             </h4>
           </div>
 
           <table class="table table-bordered product-comparison-table">
             <thead class="table-dark">
               <tr>
-                <th style="width: 20%;">Product Type</th>
+                <th style="width: 20%;">Product / Sub-product</th>
                 <th style="width: 8%;" class="text-center">DrWise Status</th>
                 <th style="width: 10%;" class="text-center">DrWise Policies</th>
                 <th style="width: 22%;">DrWise Coverage Details</th>
@@ -281,125 +240,62 @@
               </tr>
             </thead>
             <tbody>
-              <% category[:products].each do |product| %>
-                <%
-                  drwise_data = @drwise_policy_status[product[:key]] || @drwise_product_status[product[:key]]
-                  non_drwise_data = @non_drwise_policy_status[product[:key]] || @non_drwise_product_status[product[:key]]
-                  drwise_opted = drwise_data && drwise_data[:opted]
-                  non_drwise_opted = non_drwise_data && non_drwise_data[:opted]
-                %>
-                <tr class="product-comparison-row">
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <i class="<%= product[:icon] %> me-2 text-primary"></i>
-                      <span class="fw-medium"><%= product[:name] %></span>
-                    </div>
-                  </td>
+              <% segment[:categories].each do |category| %>
+                <% category[:subs].each do |sub| %>
+                  <tr class="product-comparison-row">
+                    <td>
+                      <div class="fw-medium"><%= category[:name] %></div>
+                      <small class="text-muted"><i class="bi bi-arrow-return-right me-1"></i><%= sub[:name] %></small>
+                    </td>
 
-                  <!-- DrWise Status -->
-                  <td class="text-center">
-                    <% if drwise_opted %>
-                      <span class="badge bg-success">
-                        <i class="bi bi-check-circle me-1"></i>Yes
-                      </span>
-                    <% else %>
-                      <span class="badge bg-secondary">
-                        <i class="bi bi-x-circle me-1"></i>No
-                      </span>
-                    <% end %>
-                  </td>
-
-                  <!-- DrWise Policies Count -->
-                  <td class="text-center">
-                    <% if drwise_opted && drwise_data %>
-                      <% count_label = category[:name].include?('Insurance') ? 'policies' : (category[:name].include?('Investment') ? 'investments' : (category[:name].include?('Loan') ? 'loans' : (category[:name].include?('Taxation') ? 'services' : 'packages'))) %>
-                      <span class="badge bg-success"><%= drwise_data[:count] %> <%= count_label %></span>
-                    <% else %>
-                      <span class="text-muted">-</span>
-                    <% end %>
-                  </td>
-
-                  <!-- DrWise Coverage Details -->
-                  <td>
-                    <% if drwise_opted && drwise_data %>
-                      <% if category[:name].include?('Insurance') %>
-                        <div class="small">
-                          <div class="text-success mb-1">
-                            <i class="bi bi-currency-rupee me-1"></i>
-                            Total Premium: <%= indian_currency(drwise_data[:total_premium] || 0) %>
-                          </div>
-                          <% if drwise_data[:latest_policy] %>
-                            <div class="text-muted mb-2">
-                              <i class="bi bi-clock me-1"></i>
-                              Latest: <%= drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
+                    <% [[:drwise, 'drwise', 'bg-success', 'btn-success', 'No DrWise policies found'],
+                        [:non_drwise, 'non-drwise', 'bg-warning', 'btn-warning', 'No Non-DrWise policies found']].each do |side, view_key, badge, btn, empty_text| %>
+                      <% cell = sub[side] %>
+                      <td class="text-center">
+                        <% if cell[:count].positive? %>
+                          <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Yes</span>
+                        <% else %>
+                          <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i>No</span>
+                        <% end %>
+                      </td>
+                      <td class="text-center">
+                        <% if cell[:count].positive? %>
+                          <span class="badge <%= badge %>"><%= pluralize(cell[:count], segment[:segment] == 'Insurance' ? 'policy' : 'item') %></span>
+                        <% else %>
+                          <span class="text-muted">-</span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <% if cell[:count].positive? %>
+                          <div class="small">
+                            <div class="text-success mb-1">
+                              <i class="bi bi-currency-rupee me-1"></i>
+                              <%= segment[:segment] == 'Insurance' ? 'Total Premium' : 'Total Amount' %>: <%= indian_currency(cell[:premium]) %>
                             </div>
-                          <% end %>
-                          <% if ['Motor Insurance', 'Life Insurance', 'Health Insurance'].include?(product[:name]) %>
-                            <button class="btn btn-sm btn-success mt-1" onclick="showInsurancePolicies('<%= @customer.id %>', 'drwise', '<%= product[:name].downcase.gsub(' ', '') %>')">
-                              <i class="bi bi-eye me-1"></i>View Policies
-                            </button>
-                          <% end %>
-                        </div>
-                      <% else %>
-                        <span class="text-muted">Product not yet implemented</span>
-                      <% end %>
-                    <% else %>
-                      <span class="text-muted">No DrWise policies found</span>
-                    <% end %>
-                  </td>
-
-                  <!-- NonDrWise Status -->
-                  <td class="text-center">
-                    <% if non_drwise_opted %>
-                      <span class="badge bg-success">
-                        <i class="bi bi-check-circle me-1"></i>Yes
-                      </span>
-                    <% else %>
-                      <span class="badge bg-secondary">
-                        <i class="bi bi-x-circle me-1"></i>No
-                      </span>
-                    <% end %>
-                  </td>
-
-                  <!-- NonDrWise Policies Count -->
-                  <td class="text-center">
-                    <% if non_drwise_opted && non_drwise_data %>
-                      <% count_label = category[:name].include?('Insurance') ? 'policies' : (category[:name].include?('Investment') ? 'investments' : (category[:name].include?('Loan') ? 'loans' : (category[:name].include?('Taxation') ? 'services' : 'packages'))) %>
-                      <span class="badge bg-warning"><%= non_drwise_data[:count] %> <%= count_label %></span>
-                    <% else %>
-                      <span class="text-muted">-</span>
-                    <% end %>
-                  </td>
-
-                  <!-- NonDrWise Coverage Details -->
-                  <td>
-                    <% if non_drwise_opted && non_drwise_data %>
-                      <% if category[:name].include?('Insurance') %>
-                        <div class="small">
-                          <div class="text-success mb-1">
-                            <i class="bi bi-currency-rupee me-1"></i>
-                            Total Premium: <%= indian_currency(non_drwise_data[:total_premium] || 0) %>
+                            <% if cell[:latest] %>
+                              <div class="text-muted mb-1">
+                                <i class="bi bi-clock me-1"></i>
+                                Latest: <%= cell[:latest].strftime('%b %d, %Y') %>
+                              </div>
+                            <% end %>
+                            <% if cell[:policy_numbers].any? %>
+                              <div class="text-muted mb-2">
+                                <i class="bi bi-hash me-1"></i><%= cell[:policy_numbers].uniq.join(', ') %>
+                              </div>
+                            <% end %>
+                            <% if cell[:view_type] %>
+                              <button class="btn btn-sm <%= btn %> mt-1" onclick="showInsurancePolicies('<%= @customer.id %>', '<%= view_key %>', '<%= cell[:view_type] %>')">
+                                <i class="bi bi-eye me-1"></i>View Policies
+                              </button>
+                            <% end %>
                           </div>
-                          <% if non_drwise_data[:latest_policy] %>
-                            <div class="text-muted mb-2">
-                              <i class="bi bi-clock me-1"></i>
-                              Latest: <%= non_drwise_data[:latest_policy].created_at.strftime('%b %d, %Y') %>
-                            </div>
-                          <% end %>
-                          <% if ['Motor Insurance', 'Life Insurance', 'Health Insurance'].include?(product[:name]) %>
-                            <button class="btn btn-sm btn-warning mt-1" onclick="showInsurancePolicies('<%= @customer.id %>', 'non-drwise', '<%= product[:name].downcase.gsub(' ', '') %>')">
-                              <i class="bi bi-eye me-1"></i>View Policies
-                            </button>
-                          <% end %>
-                        </div>
-                      <% else %>
-                        <span class="text-muted">Product not yet implemented</span>
-                      <% end %>
-                    <% else %>
-                      <span class="text-muted">No Non-DrWise policies found</span>
+                        <% else %>
+                          <span class="text-muted"><%= empty_text %></span>
+                        <% end %>
+                      </td>
                     <% end %>
-                  </td>
-                </tr>
+                  </tr>
+                <% end %>
               <% end %>
             </tbody>
           </table>

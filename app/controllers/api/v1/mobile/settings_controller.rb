@@ -570,6 +570,7 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       })
 
       # Add nominee details for customers
+      base_data[:nominee] = user.nominee_details
       base_data[:nominees] = get_nominee_details(user)
     when SubAgent
       # Get city and state names from IDs using the mapped data
@@ -693,7 +694,10 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
 
     case user
     when Customer
-      params.permit(base_params + [:pincode, :occupation, :annual_income, :marital_status, :education])
+      permitted = params.permit(base_params + [:pincode, :occupation, :annual_income, :marital_status, :education,
+                                           :nominee_name, :nominee_relation, :nominee_date_of_birth])
+      permitted[:nominee_relation] = permitted[:nominee_relation].downcase if permitted[:nominee_relation].present?
+      permitted
     when SubAgent
       params.permit(base_params + [:gst_no, :account_type, :account_holder_name, :account_no, :ifsc_code, :bank_name, :upi_id, :company_name])
     when User

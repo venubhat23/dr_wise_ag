@@ -101,7 +101,7 @@ class Ability
       can [:index, :show], Customer
     when 'update'
       can :update, Customer
-      can [:edit, :toggle_status], Customer
+      can [:edit, :toggle_status, :create_mobile_login, :reset_mobile_login_password], Customer
     when 'delete'
       can :destroy, Customer
     when 'export'

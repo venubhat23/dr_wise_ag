@@ -347,6 +347,89 @@ body {
 <!-- Spacer to ensure proper separation -->
 <div style="clear: both; height: 5px; position: relative; z-index: 10;"></div>
 
+<!-- Mobile Login Section -->
+<% login_user = @customer.login_user %>
+<div class="info-section-card">
+  <div class="section-header" data-bs-toggle="collapse" data-bs-target="#mobileLoginCollapse" aria-expanded="true">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-phone"></i>
+      </div>
+      <h5 class="section-title">Mobile App Login</h5>
+      <% if login_user %>
+        <span class="badge bg-success ms-2">Active</span>
+      <% else %>
+        <span class="badge bg-secondary ms-2">Not created</span>
+      <% end %>
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="mobileLoginCollapse" class="collapse show">
+    <div class="section-body">
+      <% if login_user %>
+        <div class="row g-4 align-items-end">
+          <div class="col-md-3">
+            <div class="info-field">
+              <label>USERNAME (EMAIL)</label>
+              <div class="info-value"><%= login_user.email %></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="info-field">
+              <label>USERNAME (MOBILE)</label>
+              <div class="info-value"><%= login_user.mobile.presence || '-' %></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="info-field">
+              <label>PASSWORD</label>
+              <div class="info-value">
+                <% if login_user.original_password.present? %>
+                  <span id="mobileLoginPassword" data-password="<%= login_user.original_password %>">••••••••</span>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" onclick="toggleMobileLoginPassword(this)" title="Show / hide">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                <% else %>
+                  <span class="text-muted">Not stored</span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 text-md-end">
+            <%= button_to reset_mobile_login_password_admin_customer_path(@customer), method: :patch,
+                  class: "btn btn-sm btn-outline-warning",
+                  form: { data: { turbo_confirm: "Reset this customer's mobile password to #{Customer::DEFAULT_LOGIN_PASSWORD}?" } } do %>
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to <%= Customer::DEFAULT_LOGIN_PASSWORD %>
+            <% end %>
+          </div>
+        </div>
+        <% unless login_user.customer? %>
+          <small class="text-muted d-block mt-2">This email/mobile belongs to a <%= login_user.user_type.humanize.downcase %> account.</small>
+        <% end %>
+      <% elsif @customer.email.blank? %>
+        <div class="text-muted">No mobile login. Add an email to this customer to create one.</div>
+      <% else %>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <span class="text-muted">No mobile login exists for this customer.</span>
+          <%= button_to create_mobile_login_admin_customer_path(@customer), method: :post, class: "btn btn-sm btn-primary" do %>
+            <i class="bi bi-person-plus me-1"></i>Create Mobile Login (<%= Customer::DEFAULT_LOGIN_PASSWORD %>)
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleMobileLoginPassword(btn) {
+    const el = document.getElementById('mobileLoginPassword');
+    const showing = el.dataset.shown === '1';
+    el.textContent = showing ? '••••••••' : el.dataset.password;
+    el.dataset.shown = showing ? '0' : '1';
+    btn.querySelector('i').className = showing ? 'bi bi-eye' : 'bi bi-eye-slash';
+  }
+</script>
+
 <!-- Basic Information Section -->
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="false">
@@ -456,6 +539,53 @@ body {
     </div>
   </div>
 </div>
+
+<!-- Nominee Information Section -->
+<% if @customer.individual? %>
+<div class="info-section-card">
+  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#nomineeCollapse" aria-expanded="false">
+    <div class="d-flex align-items-center">
+      <div class="section-icon">
+        <i class="bi bi-person-heart"></i>
+      </div>
+      <h5 class="section-title">Nominee Information</h5>
+      
+    </div>
+    <i class="bi bi-chevron-down collapse-icon"></i>
+  </div>
+  <div id="nomineeCollapse" class="collapse">
+    <div class="section-body">
+      <% if @customer.nominee_name.present? %>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>NOMINEE NAME</label>
+              <div class="info-value"><%= @customer.nominee_name %></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>RELATION</label>
+              <div class="info-value"><%= @customer.nominee_relation || '-' %></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-field">
+              <label>DATE OF BIRTH</label>
+              <div class="info-value"><%= @customer.nominee_date_of_birth&.strftime("%B %d, %Y") || '-' %></div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div class="text-center text-muted py-4">
+          <i class="bi bi-person-heart fs-3 d-block mb-2"></i>
+          <p class="mb-0">No nominee information added</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+<% end %>
 
 <!-- Professional Information Section -->
 <div class="info-section-card">
@@ -1162,51 +1292,6 @@ body {
   </div>
 </div>
 <% end %>
-
-<!-- Nominee Information Section -->
-<div class="info-section-card">
-  <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#nomineeCollapse" aria-expanded="false">
-    <div class="d-flex align-items-center">
-      <div class="section-icon">
-        <i class="bi bi-person-heart"></i>
-      </div>
-      <h5 class="section-title">Nominee Information</h5>
-      
-    </div>
-    <i class="bi bi-chevron-down collapse-icon"></i>
-  </div>
-  <div id="nomineeCollapse" class="collapse">
-    <div class="section-body">
-      <% if @customer.nominee_name.present? %>
-        <div class="row g-4">
-          <div class="col-md-4">
-            <div class="info-field">
-              <label>NOMINEE NAME</label>
-              <div class="info-value"><%= @customer.nominee_name %></div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="info-field">
-              <label>RELATION</label>
-              <div class="info-value"><%= @customer.nominee_relation || '-' %></div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="info-field">
-              <label>DATE OF BIRTH</label>
-              <div class="info-value"><%= @customer.nominee_date_of_birth&.strftime("%B %d, %Y") || '-' %></div>
-            </div>
-          </div>
-        </div>
-      <% else %>
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-person-heart fs-3 d-block mb-2"></i>
-          <p class="mb-0">No nominee information added</p>
-        </div>
-      <% end %>
-    </div>
-  </div>
-</div>
 
 <!-- Financial Information Section -->
 <div class="info-section-card">
