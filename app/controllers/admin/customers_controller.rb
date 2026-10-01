@@ -557,8 +557,10 @@ class Admin::CustomersController < Admin::ApplicationController
         nps = @customer.investments.where(investment_type: 'NPS')
         bonds = @customer.investments.where(investment_type: 'Bonds')
 
-        @drwise_product_status['Mutual Fund'] = { opted: false, count: 0 }
-        @non_drwise_product_status['Mutual Fund'] = { opted: mutual_funds.exists?, count: mutual_funds.count }
+        mf_drwise_count = MutualFund.drwise.where(customer_id: @customer.id).count
+        mf_non_drwise_count = MutualFund.non_drwise.where(customer_id: @customer.id).count + mutual_funds.count
+        @drwise_product_status['Mutual Fund'] = { opted: mf_drwise_count.positive?, count: mf_drwise_count }
+        @non_drwise_product_status['Mutual Fund'] = { opted: mf_non_drwise_count.positive?, count: mf_non_drwise_count }
 
         @drwise_product_status['Gold'] = { opted: false, count: 0 }
         @non_drwise_product_status['Gold'] = { opted: gold.exists?, count: gold.count }
@@ -703,6 +705,10 @@ class Admin::CustomersController < Admin::ApplicationController
     total_premium += @policy_status.values.sum { |policy| policy[:total_premium] }
 
     # Add counts from other product types (when they have data)
+    customer_mutual_funds = MutualFund.where(customer_id: @customer.id)
+    total_policies += customer_mutual_funds.count
+    total_premium += customer_mutual_funds.sum(:amount)
+
     begin
       if @customer.respond_to?(:investments)
         total_policies += @customer.investments.count
@@ -1332,7 +1338,7 @@ class Admin::CustomersController < Admin::ApplicationController
   # Segment/category order follows the product catalog (IncentiveCalculator::DEFAULT_ROWS)
   MATRIX_SEGMENT_ICONS = {
     'Insurance' => 'bi-shield-check', 'Investments' => 'bi-graph-up', 'Loans' => 'bi-bank',
-    'Taxation' => 'bi-calculator', 'Travel' => 'bi-airplane'
+    'Taxation' => 'bi-calculator', 'Travel' => 'bi-airplane', 'Credit Card' => 'bi-credit-card'
   }.freeze
   HEALTH_SUB_PRODUCTS = { 'Individual' => 'Individual Plan' }.freeze
   MOTOR_SUB_PRODUCTS = {
@@ -1344,8 +1350,26 @@ class Admin::CustomersController < Admin::ApplicationController
     'Product Liability' => 'Liability Insurance', 'Property Insurance' => 'Home'
   }.freeze
 
+  # ClientService#service_type => [segment, category, sub-product] in the product catalog
+  CLIENT_SERVICE_MATRIX_ROWS = {
+    'taxation_itr'            => ['Taxation', 'Tax Planning', 'ITR Filing'],
+    'taxation_tax_planning'   => ['Taxation', 'Tax Planning', 'Tax Planning'],
+    'loans_personal'          => ['Loans', 'Personal Loan', 'Personal Loan'],
+    'loans_home'              => ['Loans', 'Home Loan', 'Home Loan'],
+    'loans_mortgage'          => ['Loans', 'Mortgage Loan', 'Mortgage Loan'],
+    'loans_business'          => ['Loans', 'Business Loan', 'Business Loan'],
+    'travel_domestic'         => ['Travel', 'Domestic', 'Domestic Travel'],
+    'travel_international'    => ['Travel', 'International', 'International Travel'],
+    'credit_card_rewards'     => ['Credit Card', 'Credit Card', 'Rewards Card'],
+    'credit_card_business'    => ['Credit Card', 'Credit Card', 'Business Card'],
+    'credit_card_travel'      => ['Credit Card', 'Credit Card', 'Travel Card'],
+    'investments_mutual_fund' => ['Investments', 'Mutual Fund', 'Mutual Fund'],
+    'investments_fd'          => ['Investments', 'Fixed Deposits', 'FD'],
+    'investments_other'       => ['Investments', 'Other', 'Other Investment']
+  }.freeze
+
   # Returns [{ segment:, icon:, categories: [{ name:, subs: [{ name:, drwise: cell, non_drwise: cell }] }] }]
-  # with only the products/sub-products the customer actually holds.
+  # covering every catalog segment/category, with held sub-products listed per category.
   def build_product_matrix(customer)
     entries = []
     add = lambda do |segment, category, sub, drwise, amount, record, view_type = nil|
@@ -1372,7 +1396,10 @@ class Admin::CustomersController < Admin::ApplicationController
         add.call('Insurance', 'General', sub, drwise.(p), p.total_premium, p)
       end
     end
-    # Investments / loans have no admin/customer/agent flags yet, so they count as Non-DrWise
+    MutualFund.where(customer_id: customer.id).each do |mf|
+      add.call('Investments', 'Mutual Fund', mf.investment_type, drwise.(mf), mf.amount, mf)
+    end
+    # Legacy investments / loans have no admin/customer/agent flags, so they count as Non-DrWise
     customer.investments.each do |i|
       category = i.investment_type == 'Bonds' ? 'Bond' : i.investment_type
       add.call('Investments', category, i.product_name.presence || i.investment_type, false, i.investment_amount, i)
@@ -1380,27 +1407,38 @@ class Admin::CustomersController < Admin::ApplicationController
     customer.loans.each do |l|
       add.call('Loans', "#{l.loan_type} Loan", "#{l.loan_type} Loan", false, l.loan_amount, l)
     end
+    ClientService.where(customer_id: customer.id).each do |s|
+      segment, category, sub = CLIENT_SERVICE_MATRIX_ROWS[s.service_type] ||
+                               ['Other', s.service_category.to_s.humanize, s.service_type.to_s.humanize]
+      add.call(segment, category, sub, drwise.(s), s.amount, s)
+    end
 
     catalog = IncentiveCalculator::DEFAULT_ROWS
     rank = ->(list, value) { list.index(value) || list.size }
     segments = catalog.map(&:first).uniq
     categories = (%w[Health Life Motor General Travel].map { |c| ['Insurance', c] } + catalog.map { |r| r[0..1] }).uniq
     subs = catalog.map { |r| r[0..2] }
+    empty_cell = matrix_cell([])
 
-    entries.group_by { |e| e[:segment] }.sort_by { |seg, _| rank.(segments, seg) }.map do |segment, seg_entries|
+    # Every catalog segment/category is always listed; a category the customer doesn't
+    # hold gets a single "No" row, held ones list each sub-product they hold.
+    by_segment = entries.group_by { |e| e[:segment] }
+    (segments | by_segment.keys).sort_by { |seg| rank.(segments, seg) }.map do |segment|
+      seg_entries = by_segment.fetch(segment, [])
+      by_category = seg_entries.group_by { |e| e[:category] }
+      seg_categories = categories.select { |seg, _| seg == segment }.map(&:last) | by_category.keys
       {
         segment: segment,
         icon: MATRIX_SEGMENT_ICONS.fetch(segment, 'bi-box'),
-        categories: seg_entries.group_by { |e| e[:category] }
-                               .sort_by { |cat, _| rank.(categories, [segment, cat]) }.map do |category, cat_entries|
-          {
-            name: category,
-            subs: cat_entries.group_by { |e| e[:sub] }
-                             .sort_by { |sub, _| [rank.(subs, [segment, category, sub]), sub] }.map do |sub, rows|
-              { name: sub, drwise: matrix_cell(rows.select { |e| e[:drwise] }),
-                non_drwise: matrix_cell(rows.reject { |e| e[:drwise] }) }
-            end
-          }
+        categories: seg_categories.sort_by { |cat| rank.(categories, [segment, cat]) }.map do |category|
+          cat_entries = by_category.fetch(category, [])
+          held_subs = cat_entries.group_by { |e| e[:sub] }
+                                 .sort_by { |sub, _| [rank.(subs, [segment, category, sub]), sub] }.map do |sub, rows|
+            { name: sub, drwise: matrix_cell(rows.select { |e| e[:drwise] }),
+              non_drwise: matrix_cell(rows.reject { |e| e[:drwise] }) }
+          end
+          { name: category,
+            subs: held_subs.presence || [{ name: 'Not opted', drwise: empty_cell, non_drwise: empty_cell }] }
         end
       }
     end
@@ -1411,7 +1449,7 @@ class Admin::CustomersController < Admin::ApplicationController
       count: rows.size,
       premium: rows.sum { |e| e[:amount] },
       latest: rows.map { |e| e[:record].created_at }.max,
-      policy_numbers: rows.map { |e| e[:record].try(:policy_number) }.compact,
+      policy_numbers: rows.map { |e| e[:record].try(:policy_number) || e[:record].try(:folio_number) || e[:record].try(:reference_number) }.compact_blank,
       view_type: rows.first&.dig(:view_type)
     }
   end

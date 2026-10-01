@@ -570,8 +570,8 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
       })
 
       # Add nominee details for customers
-      base_data[:nominees] = user.nominees_list
-      base_data[:policy_nominees] = get_nominee_details(user)
+      base_data[:nominee] = user.nominee_details
+      base_data[:nominees] = get_nominee_details(user)
     when SubAgent
       # Get city and state names from IDs using the mapped data
       city_name = nil
