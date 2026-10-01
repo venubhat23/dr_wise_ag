@@ -75,6 +75,52 @@ class Notification < ApplicationRecord
     )
   end
 
+  # Affiliate in-app message whenever a lead moves to a new stage (admin or app).
+  def self.create_lead_status_notification(lead)
+    return if lead.affiliate.nil?
+
+    create!(
+      recipient: lead.affiliate,
+      notification_type: 'lead_status_updated',
+      title: lead.converted? ? 'Lead Converted' : 'Lead Status Updated',
+      message: "Your lead #{lead.display_name} (#{lead.lead_id}) has moved to #{lead.stage_display_name.sub(/\A\S+\s+/, "")}.",
+      reference: lead,
+      is_read: false
+    )
+  end
+
+  # On a new Health/Life/Motor/Other policy: the customer is told it was added
+  # (or renewed), and the affiliate who sourced it (if any) is told it was issued.
+  def self.create_policy_notifications(policy)
+    renewal = policy.respond_to?(:is_renewal?) && policy.is_renewal?
+    notification_type = renewal ? 'policy_renewed' : 'policy_created'
+    product = policy.class.name.delete_suffix('Insurance').downcase
+    label = "#{product} policy (#{policy.policy_number})"
+    company = policy.try(:insurance_company_name).presence
+
+    if policy.customer
+      create!(
+        recipient: policy.customer,
+        notification_type: notification_type,
+        title: renewal ? 'Policy Renewed' : 'New Policy Added',
+        message: "Your #{label}#{" with #{company}" if company} has been #{renewal ? 'renewed' : 'added to your account'}.",
+        reference: policy,
+        is_read: false
+      )
+    end
+
+    if policy.sub_agent
+      create!(
+        recipient: policy.sub_agent,
+        notification_type: notification_type,
+        title: renewal ? 'Policy Renewed for Your Customer' : 'Policy Created for Your Customer',
+        message: "A #{label} has been #{renewal ? 'renewed' : 'created'} for #{policy.customer&.display_name || 'your customer'}.",
+        reference: policy,
+        is_read: false
+      )
+    end
+  end
+
   private
 
   def set_sent_at

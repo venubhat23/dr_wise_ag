@@ -704,31 +704,23 @@ class Admin::CustomersController < Admin::ApplicationController
     total_policies += @policy_status.values.sum { |policy| policy[:count] }
     total_premium += @policy_status.values.sum { |policy| policy[:total_premium] }
 
-    # Add counts from other product types (when they have data)
-    customer_mutual_funds = MutualFund.where(customer_id: @customer.id)
-    total_policies += customer_mutual_funds.count
-    total_premium += customer_mutual_funds.sum(:amount)
+    # Other product types; each non-empty line is also shown in the card breakdown popovers
+    extra_products = []
+    add_extra = lambda do |label, scope, amount_column|
+      count = scope.count
+      amount = scope.sum(amount_column) || 0
+      extra_products << { label: label, count: count, amount: amount } if count.positive?
+      total_policies += count
+      total_premium += amount
+    end
+
+    add_extra.call('Mutual Funds', MutualFund.where(customer_id: @customer.id), :amount)
 
     begin
-      if @customer.respond_to?(:investments)
-        total_policies += @customer.investments.count
-        total_premium += @customer.investments.sum(:investment_amount) || 0
-      end
-
-      if @customer.respond_to?(:loans)
-        total_policies += @customer.loans.count
-        total_premium += @customer.loans.sum(:loan_amount) || 0
-      end
-
-      if @customer.respond_to?(:tax_services)
-        total_policies += @customer.tax_services.count
-        total_premium += @customer.tax_services.sum(:amount) || 0
-      end
-
-      if @customer.respond_to?(:travel_packages)
-        total_policies += @customer.travel_packages.count
-        total_premium += @customer.travel_packages.sum(:package_amount) || 0
-      end
+      add_extra.call('Investments', @customer.investments, :investment_amount) if @customer.respond_to?(:investments)
+      add_extra.call('Loans', @customer.loans, :loan_amount) if @customer.respond_to?(:loans)
+      add_extra.call('Tax Services', @customer.tax_services, :amount) if @customer.respond_to?(:tax_services)
+      add_extra.call('Travel Packages', @customer.travel_packages, :package_amount) if @customer.respond_to?(:travel_packages)
     rescue
       # Handle cases where tables don't exist yet
     end
@@ -739,6 +731,21 @@ class Admin::CustomersController < Admin::ApplicationController
       opted_count: opted_count,
       total_products: 17, # Total number of product types available
       coverage_percentage: (opted_count.to_f / 17 * 100).round(1)
+    }
+
+    # Line items behind the four summary cards (shown in click popovers)
+    policy_paths = { 'Health Insurance' => :admin_health_insurance_path,
+                     'Life Insurance' => :admin_life_insurance_path,
+                     'Motor Insurance' => :admin_motor_insurance_path }
+    @summary_breakdown = {
+      policies: @policy_status.flat_map do |label, status|
+        status[:policies].order(:created_at).map do |policy|
+          { label: label, policy_number: policy.policy_number, premium: policy.total_premium || 0,
+            drwise: policy.try(:is_admin_added) == true, path: send(policy_paths[label], policy) }
+        end
+      end,
+      extra_products: extra_products,
+      products: @product_status
     }
 
     # Product matrix: every product / sub-product the customer holds, split DrWise vs Non-DrWise
@@ -762,6 +769,10 @@ class Admin::CustomersController < Admin::ApplicationController
        (commission_payouts.policy_type = 'motor' AND motor_insurances.customer_id = ?)",
       @customer.id, @customer.id, @customer.id
     ).includes(:payout_audit_logs)
+
+    @summary_breakdown[:payouts] = @commission_payouts.to_a.group_by(&:status).transform_values do |rows|
+      rows.map { |p| { payout_to: p.payout_to, policy_type: p.policy_type, policy_id: p.policy_id, amount: p.payout_amount || 0 } }
+    end
   end
 
   # GET /admin/customers/new

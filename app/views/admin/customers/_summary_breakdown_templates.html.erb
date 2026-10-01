@@ -1,0 +1,152 @@
+<%# Popover bodies for the four summary cards on trace_commission. Each shows the
+    line items and the sum that produces the number on the card. %>
+<% bd = @summary_breakdown %>
+<% policy_premium = bd[:policies].sum { |p| p[:premium] } %>
+<% extra_count = bd[:extra_products].sum { |e| e[:count] } %>
+<% extra_amount = bd[:extra_products].sum { |e| e[:amount] } %>
+
+<template id="breakdown-policies">
+  <table class="table table-sm mb-2 breakdown-table">
+    <thead><tr><th>#</th><th>Policy</th><th>Type</th><th class="text-end">Premium</th></tr></thead>
+    <tbody>
+      <% bd[:policies].each_with_index do |p, i| %>
+        <tr>
+          <td><%= i + 1 %></td>
+          <td><%= link_to p[:policy_number].presence || 'View', p[:path], target: '_blank' %>
+              <span class="badge bg-<%= p[:drwise] ? 'success' : 'secondary' %> ms-1"><%= p[:drwise] ? 'DrWise' : 'Non-DrWise' %></span></td>
+          <td><%= p[:label].delete_suffix(' Insurance') %></td>
+          <td class="text-end"><%= indian_currency(p[:premium]) %></td>
+        </tr>
+      <% end %>
+      <% bd[:extra_products].each do |e| %>
+        <tr><td>+</td><td colspan="2"><%= e[:label] %></td><td class="text-end"><%= e[:count] %> item(s)</td></tr>
+      <% end %>
+      <% if bd[:policies].empty? && bd[:extra_products].empty? %>
+        <tr><td colspan="4" class="text-muted text-center">No policies</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <div class="small text-muted">
+    <% counts = bd[:policies].group_by { |p| p[:label].delete_suffix(' Insurance') }.transform_values(&:size) %>
+    <%= (counts.map { |k, v| "#{k} #{v}" } + bd[:extra_products].map { |e| "#{e[:label]} #{e[:count]}" }).join(' + ').presence || '0' %>
+    = <strong><%= @commission_summary[:total_policies] %></strong>
+  </div>
+</template>
+
+<template id="breakdown-coverage">
+  <div class="small mb-2">Products held out of <%= @commission_summary[:total_products] %> product types:</div>
+  <div class="d-flex flex-wrap gap-1 mb-2">
+    <% bd[:products].each do |name, opted| %>
+      <span class="badge <%= opted ? 'bg-success' : 'bg-light text-muted border' %>">
+        <i class="bi <%= opted ? 'bi-check-lg' : 'bi-x-lg' %>"></i> <%= name %>
+      </span>
+    <% end %>
+  </div>
+  <div class="small text-muted">
+    <%= @commission_summary[:opted_count] %> held ÷ <%= @commission_summary[:total_products] %> types
+    = <strong><%= @commission_summary[:coverage_percentage] %>%</strong>
+  </div>
+</template>
+
+<template id="breakdown-premium">
+  <table class="table table-sm mb-2 breakdown-table">
+    <thead><tr><th>Policy</th><th>Type</th><th class="text-end">Premium</th></tr></thead>
+    <tbody>
+      <% bd[:policies].each do |p| %>
+        <tr>
+          <td><%= link_to p[:policy_number].presence || 'View', p[:path], target: '_blank' %></td>
+          <td><%= p[:label].delete_suffix(' Insurance') %></td>
+          <td class="text-end"><%= indian_currency(p[:premium]) %></td>
+        </tr>
+      <% end %>
+      <% bd[:extra_products].each do |e| %>
+        <tr><td colspan="2"><%= e[:label] %> (<%= e[:count] %>)</td><td class="text-end"><%= indian_currency(e[:amount]) %></td></tr>
+      <% end %>
+    </tbody>
+    <tfoot>
+      <tr class="fw-bold"><td colspan="2">Total</td><td class="text-end"><%= indian_currency(@commission_summary[:total_premium]) %></td></tr>
+    </tfoot>
+  </table>
+  <div class="small text-muted">
+    Insurance <%= indian_currency(policy_premium) %>
+    <% if extra_count.positive? %> + other products <%= indian_currency(extra_amount) %><% end %>
+    = <strong><%= indian_currency(@commission_summary[:total_premium]) %></strong>
+  </div>
+</template>
+
+<template id="breakdown-commission">
+  <% paid = bd[:payouts]['paid'] || [] %>
+  <% paid_total = paid.sum { |p| p[:amount] } %>
+  <table class="table table-sm mb-2 breakdown-table">
+    <thead><tr><th>Paid to</th><th>Policy</th><th class="text-end">Amount</th></tr></thead>
+    <tbody>
+      <% paid.each do |p| %>
+        <tr><td><%= p[:payout_to].to_s.humanize %></td><td><%= p[:policy_type].to_s.capitalize %> #<%= p[:policy_id] %></td><td class="text-end"><%= indian_currency(p[:amount]) %></td></tr>
+      <% end %>
+      <% if paid.empty? %>
+        <tr><td colspan="3" class="text-muted text-center">No payouts marked paid yet</td></tr>
+      <% end %>
+    </tbody>
+    <tfoot>
+      <tr class="fw-bold"><td colspan="2">Total paid</td><td class="text-end"><%= indian_currency(paid_total) %></td></tr>
+    </tfoot>
+  </table>
+  <% others = bd[:payouts].except('paid') %>
+  <% if others.any? %>
+    <div class="small text-muted">
+      Not counted (not yet paid):
+      <%= others.map { |status, rows| "#{status.to_s.humanize} #{rows.size} (#{indian_currency(rows.sum { |r| r[:amount] })})" }.join(', ') %>
+    </div>
+  <% end %>
+</template>
+
+<style>
+  .summary-breakdown-card { cursor: pointer; transition: box-shadow .15s; }
+  .summary-breakdown-card:hover { box-shadow: 0 .5rem 1rem rgba(0,0,0,.12) !important; }
+  .popover.breakdown-popover { max-width: 460px; }
+  .breakdown-popover .popover-body { max-height: 360px; overflow-y: auto; }
+  .breakdown-table { font-size: .8rem; }
+</style>
+
+<script>
+  (function() {
+    var titles = {
+      policies: 'Total Policies – breakdown',
+      coverage: 'Coverage Score – calculation',
+      premium: 'Total Premium – calculation',
+      commission: 'Commission Paid – calculation'
+    };
+
+    function initBreakdownPopovers() {
+      if (typeof bootstrap === 'undefined') return;
+      var cards = document.querySelectorAll('.summary-breakdown-card');
+      cards.forEach(function(card) {
+        if (bootstrap.Popover.getInstance(card)) return;
+        var tpl = document.getElementById('breakdown-' + card.dataset.breakdown);
+        new bootstrap.Popover(card, {
+          trigger: 'click',
+          placement: 'bottom',
+          html: true,
+          sanitize: false,
+          customClass: 'breakdown-popover',
+          title: titles[card.dataset.breakdown],
+          content: function() { return tpl.innerHTML; }
+        });
+        // Only one popover open at a time
+        card.addEventListener('show.bs.popover', function() {
+          cards.forEach(function(other) {
+            if (other !== card) { var p = bootstrap.Popover.getInstance(other); if (p) p.hide(); }
+          });
+        });
+      });
+
+      // Close when clicking outside a card or its popover
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.summary-breakdown-card, .breakdown-popover')) return;
+        cards.forEach(function(card) { var p = bootstrap.Popover.getInstance(card); if (p) p.hide(); });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initBreakdownPopovers);
+  })();
+</script>

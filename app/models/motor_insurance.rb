@@ -2,6 +2,7 @@ class MotorInsurance < ApplicationRecord
   include PgSearch::Model
   include InsuranceCompanyConstants
   include ClearsAnalyticsCache
+  include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
 
   # Associations

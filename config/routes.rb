@@ -924,6 +924,8 @@ Rails.application.routes.draw do
         post 'settings/helpdesk', to: 'settings#helpdesk'
         get 'settings/notifications', to: 'settings#notification_settings'
         put 'settings/notifications', to: 'settings#update_notification_settings'
+        put 'settings/notifications/read_all', to: 'settings#mark_all_notifications_read'
+        put 'settings/notifications/:id/read', to: 'settings#mark_notification_read'
 
         # Agent Dashboard APIs
         get 'agent/dashboard', to: 'agent#dashboard'

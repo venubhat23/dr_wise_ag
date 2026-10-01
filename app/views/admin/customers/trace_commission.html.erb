@@ -16,14 +16,15 @@
   </div>
 </div>
 
-<!-- Statistics Cards -->
+<!-- Statistics Cards (click a card to see how the number is calculated) -->
+<%= render "summary_breakdown_templates" %>
 <div class="row mb-4">
   <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
+    <div class="card h-100 border-0 shadow-sm summary-breakdown-card" role="button" tabindex="0" data-breakdown="policies">
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Policies</h6>
+            <h6 class="text-muted mb-2">Total Policies <i class="bi bi-info-circle small"></i></h6>
             <h3 class="mb-0 text-primary"><%= @commission_summary[:total_policies] %></h3>
           </div>
           <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -35,11 +36,11 @@
   </div>
 
   <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
+    <div class="card h-100 border-0 shadow-sm summary-breakdown-card" role="button" tabindex="0" data-breakdown="coverage">
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Coverage Score</h6>
+            <h6 class="text-muted mb-2">Coverage Score <i class="bi bi-info-circle small"></i></h6>
             <h3 class="mb-0 text-success"><%= @commission_summary[:opted_count] %> / <%= @commission_summary[:total_products] %></h3>
           </div>
           <div class="bg-success bg-opacity-10 rounded p-3">
@@ -51,11 +52,11 @@
   </div>
 
   <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
+    <div class="card h-100 border-0 shadow-sm summary-breakdown-card" role="button" tabindex="0" data-breakdown="premium">
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Total Premium</h6>
+            <h6 class="text-muted mb-2">Total Premium <i class="bi bi-info-circle small"></i></h6>
             <h3 class="mb-0 text-warning"><%= indian_currency(@commission_summary[:total_premium]) %></h3>
           </div>
           <div class="bg-warning bg-opacity-10 rounded p-3">
@@ -67,11 +68,11 @@
   </div>
 
   <div class="col-xl-3 col-md-6 mb-3">
-    <div class="card h-100 border-0 shadow-sm">
+    <div class="card h-100 border-0 shadow-sm summary-breakdown-card" role="button" tabindex="0" data-breakdown="commission">
       <div class="card-body">
         <div class="d-flex justify-content-between">
           <div>
-            <h6 class="text-muted mb-2">Commission Paid</h6>
+            <h6 class="text-muted mb-2">Commission Paid <i class="bi bi-info-circle small"></i></h6>
             <h3 class="mb-0 text-info"><%= indian_currency(@commission_payouts.where(status: 'paid').sum(:payout_amount)) %></h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">

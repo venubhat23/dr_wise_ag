@@ -1,5 +1,6 @@
 class OtherInsurance < ApplicationRecord
   include ClearsAnalyticsCache
+  include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
   belongs_to :policy, optional: true
   belongs_to :customer

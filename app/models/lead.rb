@@ -81,6 +81,7 @@ class Lead < ApplicationRecord
   before_update :update_stage_timestamp, if: :current_stage_changed?
   after_update :create_vendor_payout_on_conversion, if: -> { vendor_id.present? && saved_change_to_current_stage? && current_stage == 'converted' }
   after_commit :bump_vendor_cache_gen, if: -> { vendor_id.present? }
+  after_update_commit :notify_affiliate_of_stage_change, if: -> { affiliate_id.present? && saved_change_to_current_stage? }
   before_validation :set_name_from_customer_details
   before_validation :set_initial_stage
   before_validation :clean_mobile_number
@@ -578,6 +579,12 @@ class Lead < ApplicationRecord
   end
 
   private
+
+  def notify_affiliate_of_stage_change
+    Notification.create_lead_status_notification(self)
+  rescue StandardError => e
+    Rails.logger.error "Lead stage notification failed for Lead #{id}: #{e.message}"
+  end
 
   def set_initial_stage
     self.current_stage = 'lead_generated' if current_stage.blank?

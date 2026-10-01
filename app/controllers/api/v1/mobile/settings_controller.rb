@@ -418,44 +418,63 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   end
 
   # GET /api/v1/mobile/settings/notifications
+  # Stored in-app notifications (lead submitted / stage moved, policy created /
+  # renewed, helpdesk replies) for the logged-in customer or affiliate, newest
+  # first, followed by any policy expiry reminders due today (customers only).
   def notification_settings
-    customer = current_user
+    page = [params[:page].to_i, 1].max
+    per_page = params[:per_page].to_i
+    per_page = 20 if per_page <= 0
+    per_page = [per_page, 50].min
 
-    # Get all notifications due today for this customer
-    notifications = []
+    scope = Notification.where(recipient: current_user)
+    scope = scope.unread if params[:unread_only].to_s == 'true'
+    total_count = scope.count
+    total_pages = (total_count.to_f / per_page).ceil
 
-    # Get health insurance notifications
-    health_insurances = HealthInsurance.where(customer: customer)
-    health_insurances.each do |insurance|
-      insurance.notifications_due_today.each do |notification|
-        notifications << {
-          id: "health_#{insurance.id}_#{notification['type']}",
-          type: notification['type'],
-          title: notification['title'],
-          message: notification['message'],
-          date: notification['date']
-        }
-      end
+    notifications = scope.recent.limit(per_page).offset((page - 1) * per_page).map do |n|
+      {
+        id: n.id,
+        type: n.notification_type,
+        title: n.title,
+        message: n.message,
+        date: n.sent_at,
+        is_read: n.read?,
+        reference_type: n.reference_type,
+        reference_id: n.reference_id
+      }
     end
 
-    # Get life insurance notifications
-    life_insurances = LifeInsurance.where(customer: customer)
-    life_insurances.each do |insurance|
-      insurance.notifications_due_today.each do |notification|
-        notifications << {
-          id: "life_#{insurance.id}_#{notification['type']}",
-          type: notification['type'],
-          title: notification['title'],
-          message: notification['message'],
-          date: notification['date']
-        }
-      end
-    end
+    notifications.concat(policy_reminders_due_today(current_user)) if page == 1 && current_user.is_a?(Customer)
 
     render json: {
       success: true,
-      data: notifications
+      data: notifications,
+      unread_count: Notification.where(recipient: current_user).unread.count,
+      pagination: {
+        current_page: page,
+        total_pages: total_pages,
+        total_count: total_count,
+        per_page: per_page,
+        has_next_page: page < total_pages,
+        has_prev_page: page > 1
+      }
     }
+  end
+
+  # PUT /api/v1/mobile/settings/notifications/:id/read
+  def mark_notification_read
+    notification = Notification.where(recipient: current_user).find_by(id: params[:id])
+    return render_error('Notification not found', :not_found) unless notification
+
+    notification.mark_as_read! if notification.unread?
+    render json: { success: true, message: 'Notification marked as read' }
+  end
+
+  # PUT /api/v1/mobile/settings/notifications/read_all
+  def mark_all_notifications_read
+    count = Notification.where(recipient: current_user).unread.update_all(is_read: true, read_at: Time.current, updated_at: Time.current)
+    render json: { success: true, message: "#{count} notifications marked as read" }
   end
 
   # PUT /api/v1/mobile/settings/notifications
@@ -475,6 +494,25 @@ class Api::V1::Mobile::SettingsController < Api::V1::Mobile::BaseController
   end
 
   private
+
+  def policy_reminders_due_today(customer)
+    [[HealthInsurance, 'health'], [LifeInsurance, 'life']].flat_map do |model, prefix|
+      model.where(customer: customer).flat_map do |insurance|
+        insurance.notifications_due_today.map do |notification|
+          {
+            id: "#{prefix}_#{insurance.id}_#{notification['type']}",
+            type: notification['type'],
+            title: notification['title'],
+            message: notification['message'],
+            date: notification['date'],
+            is_read: false,
+            reference_type: model.name,
+            reference_id: insurance.id
+          }
+        end
+      end
+    end
+  end
 
   def get_default_terms_content
     # Default terms and conditions if none are set in database

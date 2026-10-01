@@ -3,6 +3,7 @@ class LifeInsurance < ApplicationRecord
   include InsuranceCompanyConstants
   include DashboardOptimizable
   include ClearsAnalyticsCache
+  include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
 
   # Associations
