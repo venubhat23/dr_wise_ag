@@ -1461,8 +1461,25 @@ class Admin::CustomersController < Admin::ApplicationController
       premium: rows.sum { |e| e[:amount] },
       latest: rows.map { |e| e[:record].created_at }.max,
       policy_numbers: rows.map { |e| e[:record].try(:policy_number) || e[:record].try(:folio_number) || e[:record].try(:reference_number) }.compact_blank,
+      links: rows.filter_map { |e| matrix_record_link(e[:record]) },
       view_type: rows.first&.dig(:view_type)
     }
+  end
+
+  MATRIX_RECORD_PATHS = {
+    'HealthInsurance' => :admin_health_insurance_path, 'LifeInsurance' => :admin_life_insurance_path,
+    'MotorInsurance' => :admin_motor_insurance_path, 'OtherInsurance' => :admin_other_insurance_path,
+    'MutualFund' => :admin_mutual_fund_path, 'ClientService' => :admin_client_service_path
+  }.freeze
+
+  # { label:, path: } pointing to the record's admin show page, labelled by its policy/folio/reference number
+  def matrix_record_link(record)
+    route = MATRIX_RECORD_PATHS[record.class.name]
+    return unless route
+
+    label = record.try(:policy_number).presence || record.try(:folio_number).presence ||
+            record.try(:reference_number).presence || "##{record.id}"
+    { label: label, path: public_send(route, record) }
   end
 
   def set_customer

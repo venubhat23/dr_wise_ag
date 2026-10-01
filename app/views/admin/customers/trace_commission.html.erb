@@ -279,9 +279,9 @@
                                 Latest: <%= cell[:latest].strftime('%b %d, %Y') %>
                               </div>
                             <% end %>
-                            <% if cell[:policy_numbers].any? %>
-                              <div class="text-muted mb-2">
-                                <i class="bi bi-hash me-1"></i><%= cell[:policy_numbers].uniq.join(', ') %>
+                            <% if cell[:links].any? %>
+                              <div class="mb-2">
+                                <i class="bi bi-hash me-1 text-muted"></i><%= safe_join(cell[:links].uniq { |l| l[:path] }.map { |l| link_to(l[:label], l[:path], title: 'Open product') }, ', ') %>
                               </div>
                             <% end %>
                             <% if cell[:view_type] %>
