@@ -1,11 +1,13 @@
 // Spotlight-style sidebar search for #sidebar-search-input.
 //
-// While a query is typed the regular menu is hidden and every sidebar link is
-// ranked against it, best match first: exact > prefix > word prefix > substring
-// > fuzzy (letters in order). A link also inherits a (weaker) score from its
-// parent menu and section title, so "wa" lists all the Wallets pages on top.
+// While a query is typed the regular menu is hidden and every sidebar menu is
+// ranked against it: exact > prefix > word prefix > substring > fuzzy (letters
+// in order). A menu also scores through its pages and section title.
 //
-// Keys: Ctrl/Cmd+K or "/" focuses the search, ↑/↓ move, Enter opens, Esc clears.
+// Results are grouped by top-level menu ("Commissions", "Wallets", ...) with
+// its pages listed underneath, best-matching menu first.
+//
+// Keys: ↑/↓ move, Enter opens the selected page, Esc clears.
 
 const MAX_RESULTS = 12
 
@@ -56,55 +58,64 @@ function highlight(label, ranges) {
   return html + escapeHtml(label.slice(pos))
 }
 
-// Every navigable link in the sidebar with its breadcrumb context.
-function collectEntries(sidebar) {
-  const entries = []
+// One group per top-level menu item, with its submenu links as children.
+function collectGroups(sidebar) {
+  const groups = []
   sidebar.querySelectorAll('.sidebar-nav .nav-section').forEach(section => {
     const sectionLabel = text(section.querySelector('.nav-section-title'))
 
     section.querySelectorAll(':scope > .nav-menu > .nav-item').forEach(item => {
       const head = item.querySelector(':scope > .nav-link-modern')
-      const parentLabel = text(head?.querySelector('.nav-text'))
-      const parentIcon = head?.querySelector('.icon-bg')
-
-      if (head?.tagName === 'A') {
-        entries.push({ link: head, label: parentLabel, crumbs: [sectionLabel], parentLabel: '', sectionLabel, icon: parentIcon })
-      }
-
-      item.querySelectorAll('.submenu-list a.nav-link-modern').forEach(link => {
-        entries.push({
-          link,
+      if (!head) return
+      const iconBg = head.querySelector('.icon-bg')
+      groups.push({
+        label: text(head.querySelector('.nav-text')),
+        link: head.tagName === 'A' ? head : null,
+        sectionLabel,
+        gradient: iconBg ? [...iconBg.classList].find(c => c.startsWith('gradient-')) || '' : '',
+        icon: iconClass(iconBg?.querySelector('i')),
+        children: [...item.querySelectorAll('.submenu-list a.nav-link-modern')].map(link => ({
           label: text(link.querySelector('.nav-text')),
-          crumbs: [sectionLabel, parentLabel].filter((c, i, a) => c && a.indexOf(c) === i),
-          parentLabel,
-          sectionLabel,
-          icon: parentIcon,
-          childIcon: link.querySelector(':scope > i.bi')
-        })
+          link,
+          icon: iconClass(link.querySelector(':scope > i.bi'))
+        }))
       })
     })
   })
-  return entries
+  return groups
 }
 
-function rank(entries, query) {
-  return entries
-    .map(entry => {
-      const own = match(entry.label, query)
-      const parent = match(entry.parentLabel, query).score * 0.8
-      const section = match(entry.sectionLabel, query).score * 0.6
-      return { ...entry, ranges: own.ranges, score: Math.max(own.score, parent, section) }
+function iconClass(i) {
+  return i ? [...i.classList].filter(c => c === 'bi' || c.startsWith('bi-')).join(' ') : 'bi bi-dot'
+}
+
+// Groups ordered best match first. A matching menu shows all its pages;
+// otherwise only the pages that match are listed under it.
+function rank(groups, query) {
+  return groups
+    .map(group => {
+      const own = match(group.label, query)
+      const section = match(group.sectionLabel, query).score * 0.5
+      const children = group.children
+        .map(child => ({ ...child, ...match(child.label, query) }))
+      const bestChild = Math.max(0, ...children.map(c => c.score)) * 0.9
+      return {
+        ...group,
+        ranges: own.ranges,
+        score: Math.max(own.score, bestChild, section),
+        children: own.score > 0 || section >= bestChild ? children : children.filter(c => c.score > 0).sort((a, b) => b.score - a.score)
+      }
     })
-    .filter(r => r.score > 0)
-    .sort((a, b) => b.score - a.score || a.label.length - b.label.length)
+    .filter(g => g.score > 0 && (g.link || g.children.length))
+    .sort((a, b) => b.score - a.score || words(a.label) - words(b.label) || a.label.localeCompare(b.label))
     .slice(0, MAX_RESULTS)
 }
 
-function iconHtml(entry) {
-  const bg = entry.icon ? [...entry.icon.classList].find(c => c.startsWith('gradient-')) || '' : ''
-  const icon = entry.childIcon || entry.icon?.querySelector('i')
-  const iconClass = icon ? [...icon.classList].filter(c => c === 'bi' || c.startsWith('bi-')).join(' ') : 'bi bi-arrow-right'
-  return `<span class="ss-icon ${bg}"><i class="${iconClass}"></i></span>`
+const words = label => label.split(' ').length
+
+function badgeHtml(link) {
+  const badge = link?.querySelector('.badge')
+  return badge ? `<span class="ss-badge">${escapeHtml(text(badge))}</span>` : ''
 }
 
 function render(sidebar, query) {
@@ -115,15 +126,17 @@ function render(sidebar, query) {
   sidebar.classList.toggle('searching', query !== '')
   if (!query) {
     panel.innerHTML = ''
+    sidebar._searchTargets = []
     if (count) count.textContent = ''
     return
   }
 
-  const results = rank(collectEntries(sidebar), query)
-  sidebar._searchResults = results
-  if (count) count.textContent = results.length ? `${results.length}` : ''
+  const groups = rank(collectGroups(sidebar), query)
+  const targets = [] // link to open for each selectable row, in display order
+  if (count) count.textContent = groups.length ? `${groups.length}` : ''
 
-  if (!results.length) {
+  if (!groups.length) {
+    sidebar._searchTargets = targets
     panel.innerHTML = `
       <div class="ss-empty">
         <div class="ss-empty-icon"><i class="bi bi-search"></i></div>
@@ -133,23 +146,35 @@ function render(sidebar, query) {
     return
   }
 
-  panel.innerHTML = results.map((r, i) => {
-    const badge = r.link.querySelector('.badge')
-    return `
-      ${i === 0 ? '<div class="ss-heading">Top match</div>' : ''}
-      ${i === 1 ? '<div class="ss-heading">Other results</div>' : ''}
-      <a href="${escapeHtml(r.link.getAttribute('href') || '#')}"
-         class="ss-item ${i === 0 ? 'ss-top is-selected' : ''} ${r.link.classList.contains('active') ? 'is-current' : ''}"
-         data-index="${i}" style="animation-delay:${Math.min(i, 8) * 25}ms">
-        ${iconHtml(r)}
-        <span class="ss-body">
-          <span class="ss-label">${highlight(r.label, r.ranges)}</span>
-          <span class="ss-crumbs">${r.crumbs.map(escapeHtml).join('<i class="bi bi-chevron-right"></i>')}</span>
-        </span>
-        ${badge ? `<span class="ss-badge">${escapeHtml(text(badge))}</span>` : ''}
-        <i class="bi bi-arrow-return-left ss-enter"></i>
-      </a>`
+  const row = (link, cls, inner) => {
+    const i = targets.push(link) - 1
+    const current = link?.classList.contains('active') ? 'is-current' : ''
+    return `<a href="${escapeHtml(link?.getAttribute('href') || '#')}" class="ss-item ${cls} ${current}" data-index="${i}">${inner}</a>`
+  }
+
+  panel.innerHTML = groups.map((g, gi) => {
+    const head = row(g.link || g.children[0]?.link, `ss-head ${gi === 0 ? 'ss-top' : ''}`, `
+      <span class="ss-icon ${g.gradient}"><i class="${g.icon}"></i></span>
+      <span class="ss-body">
+        <span class="ss-label">${g.ranges.length ? highlight(g.label, g.ranges) : escapeHtml(g.label)}</span>
+        <span class="ss-crumbs">${escapeHtml(g.sectionLabel)}${g.children.length ? ` · ${g.children.length} page${g.children.length > 1 ? 's' : ''}` : ''}</span>
+      </span>
+      ${badgeHtml(g.link)}
+      <i class="bi ${g.link ? 'bi-arrow-return-left' : 'bi-chevron-down'} ss-enter"></i>`)
+
+    const children = g.children.map(c => row(c.link, 'ss-child', `
+      <i class="${c.icon} ss-child-icon"></i>
+      <span class="ss-label">${c.ranges?.length ? highlight(c.label, c.ranges) : escapeHtml(c.label)}</span>
+      ${badgeHtml(c.link)}
+      <i class="bi bi-arrow-return-left ss-enter"></i>`)).join('')
+
+    return `<div class="ss-group" style="animation-delay:${Math.min(gi, 8) * 30}ms">
+      ${head}${children ? `<div class="ss-children">${children}</div>` : ''}
+    </div>`
   }).join('')
+
+  sidebar._searchTargets = targets
+  panel.querySelector('.ss-item')?.classList.add('is-selected')
 }
 
 function select(sidebar, index) {
@@ -166,8 +191,8 @@ function selectedIndex(sidebar) {
 }
 
 function open(sidebar, index) {
-  const result = sidebar._searchResults?.[index]
-  if (result) result.link.click() // keeps Turbo navigation and any link data attributes
+  // Clicking the real sidebar link keeps Turbo navigation and its data attributes
+  sidebar._searchTargets?.[index]?.click()
 }
 
 function clear(input) {
@@ -182,27 +207,14 @@ document.addEventListener('input', (event) => {
 })
 
 document.addEventListener('keydown', (event) => {
-  const input = document.getElementById('sidebar-search-input')
-  if (!input) return
+  const input = event.target
+  if (input.id !== 'sidebar-search-input') return
 
-  if (event.target === input) {
-    const sidebar = input.closest('.modern-sidebar')
-    if (event.key === 'Escape') { clear(input); input.blur() }
-    else if (event.key === 'ArrowDown') { event.preventDefault(); select(sidebar, selectedIndex(sidebar) + 1) }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); select(sidebar, selectedIndex(sidebar) - 1) }
-    else if (event.key === 'Enter') { event.preventDefault(); open(sidebar, Math.max(0, selectedIndex(sidebar))) }
-    return
-  }
-
-  const typing = event.target.closest?.('input, textarea, select, [contenteditable="true"]')
-  const shortcut = (event.key === 'k' && (event.ctrlKey || event.metaKey)) || (event.key === '/' && !typing)
-  if (shortcut) {
-    event.preventDefault()
-    const sidebar = input.closest('.modern-sidebar')
-    if (sidebar?.classList.contains('collapsed')) document.getElementById('desktopSidebarToggle')?.click()
-    input.focus()
-    input.select()
-  }
+  const sidebar = input.closest('.modern-sidebar')
+  if (event.key === 'Escape') { clear(input); input.blur() }
+  else if (event.key === 'ArrowDown') { event.preventDefault(); select(sidebar, selectedIndex(sidebar) + 1) }
+  else if (event.key === 'ArrowUp') { event.preventDefault(); select(sidebar, selectedIndex(sidebar) - 1) }
+  else if (event.key === 'Enter') { event.preventDefault(); open(sidebar, Math.max(0, selectedIndex(sidebar))) }
 })
 
 document.addEventListener('click', (event) => {
