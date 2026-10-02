@@ -3,6 +3,8 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import * as bootstrap from "bootstrap"
 import "dynamic_insurance_dropdowns"
+import "table_sort"
+import "sidebar_search"
 
 // Premium Drwise Admin JavaScript
 window.DrwiseAdmin = {

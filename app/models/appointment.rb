@@ -11,6 +11,9 @@ class Appointment < ApplicationRecord
     '05:00 PM', '05:30 PM', '06:00 PM'
   ].freeze
 
+  after_create_commit :notify_customer_scheduled
+  after_update_commit :notify_customer_status_change, if: :saved_change_to_status?
+
   validates :customer_name, presence: true
   validates :appointment_date, presence: true
   validates :time_slot, presence: true, inclusion: { in: TIME_SLOTS }
@@ -39,5 +42,21 @@ class Appointment < ApplicationRecord
 
   def upcoming?
     appointment_date >= Date.current
+  end
+
+  private
+
+  def appointment_when
+    [appointment_date&.strftime('%d %b %Y'), time_slot].compact.join(' at ')
+  end
+
+  def notify_customer_scheduled
+    Notification.notify(customer, 'appointment_scheduled', 'Appointment Scheduled',
+                        "Your appointment on #{appointment_when} has been scheduled.", self)
+  end
+
+  def notify_customer_status_change
+    Notification.notify(customer, 'appointment_status_updated', "Appointment #{status.to_s.humanize}",
+                        "Your appointment on #{appointment_when} is now #{status.to_s.humanize.downcase}.", self)
   end
 end

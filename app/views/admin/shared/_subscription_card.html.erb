@@ -1,6 +1,6 @@
 <%# Subscription card (status, current period, history with per-row edit) for
     the admin affiliate / ambassador show pages. Locals: record, record_url,
-    update_url, name_fallback, owner_label. %>
+    update_url, cancel_url, destroy_url, name_fallback, owner_label. %>
 <% subscriptions = record.subscriptions.to_a %>
 <% sub_status = record.subscription_status %>
 <div class="card border-0 shadow-sm mb-4">
@@ -14,7 +14,13 @@
       <%= { 'active' => 'Active', 'expiring_soon' => 'Expiring soon', 'expired' => 'Expired',
             'unpaid' => 'Unpaid', 'not_applicable' => 'Not subscribed' }[sub_status] %>
     </span>
-    <div class="ms-auto">
+    <div class="ms-auto d-flex gap-2">
+      <% if record.subscription_active? %>
+        <%= button_to cancel_url, method: :patch, class: 'btn btn-sm btn-outline-danger', form: { class: 'd-inline' },
+              data: { turbo_confirm: "Cancel this #{owner_label}'s subscription? It ends today, any upcoming prepaid years are removed, and the #{owner_label} must renew to keep using the app." } do %>
+          <i class="bi bi-x-circle me-1"></i>Cancel Subscription
+        <% end %>
+      <% end %>
       <%= render 'admin/shared/subscription_button', record: record, url: record_url, name_fallback: name_fallback %>
     </div>
   </div>
@@ -65,7 +71,7 @@
               <th>Paid On</th>
               <th>Payment ID</th>
               <th>Status</th>
-              <th class="text-end">Edit</th>
+              <th class="text-end no-sort">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -93,6 +99,11 @@
                           data-edit-sub-amount="<%= sub.amount.to_f %>">
                     <i class="bi bi-pencil"></i>
                   </button>
+                  <%= button_to destroy_url, method: :delete, params: { subscription_id: sub.id },
+                        class: 'btn btn-sm btn-outline-danger', title: 'Remove this subscription', form: { class: 'd-inline' },
+                        data: { turbo_confirm: "Remove the #{sub.starts_at.strftime('%d %b %Y')} - #{sub.expires_at.strftime('%d %b %Y')} subscription? The #{owner_label}'s expiry will be recalculated from the remaining rows." } do %>
+                    <i class="bi bi-trash"></i>
+                  <% end %>
                 </td>
               </tr>
             <% end %>

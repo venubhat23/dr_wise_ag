@@ -547,6 +547,29 @@ class Admin::SubAgentsController < Admin::ApplicationController
     redirect_back fallback_location: admin_sub_agent_path(params[:id]), alert: "Failed to update subscription: #{e.message}"
   end
 
+  # PATCH /admin/sub_agents/1/cancel_subscription
+  # Ends the current subscription now and drops prepaid upcoming years.
+  def cancel_subscription
+    record = SubAgent.find(params[:id])
+    unless record.subscription_active?
+      return redirect_back fallback_location: admin_sub_agent_path(record), alert: 'There is no active subscription to cancel.'
+    end
+
+    record.cancel_subscription!
+    redirect_back fallback_location: admin_sub_agent_path(record),
+                  notice: "Subscription cancelled for #{record.display_name.presence || 'Affiliate'}."
+  end
+
+  # DELETE /admin/sub_agents/1/destroy_subscription?subscription_id=2
+  # Removes one subscription row (e.g. one recorded by mistake).
+  def destroy_subscription
+    record = SubAgent.find(params[:id])
+    subscription = record.subscriptions.find(params[:subscription_id])
+    record.remove_subscription!(subscription)
+    redirect_back fallback_location: admin_sub_agent_path(record),
+                  notice: "Subscription #{subscription.starts_at.strftime('%d %b %Y')} - #{subscription.expires_at.strftime('%d %b %Y')} removed."
+  end
+
   # PATCH /admin/sub_agents/1/deactivate
   def deactivate
     @sub_agent = SubAgent.find(params[:id])

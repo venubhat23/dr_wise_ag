@@ -4,6 +4,8 @@ class MutualFund < ApplicationRecord
   belongs_to :distributor, optional: true
   belongs_to :vendor, optional: true
 
+  after_create_commit :notify_investment_added
+
   has_many :mutual_fund_nominees, dependent: :destroy
   has_many :policy_documents_records, -> { where(policy_type: 'mutual_fund') },
            class_name: 'PolicyDocument',
@@ -67,5 +69,15 @@ class MutualFund < ApplicationRecord
   def main_policy_r2_url
     return nil unless main_policy_document_key.present?
     R2Service.public_url(main_policy_document_key)
+  end
+
+  private
+
+  def notify_investment_added
+    label = [investment_type, fund_name.presence].compact.join(' - ')
+    Notification.notify(customer, 'investment_added', 'New Investment Added',
+                        "Your #{label} investment#{" of Rs. #{amount.to_f.round(2)}" if amount} has been added to your account.", self)
+    Notification.notify(sub_agent, 'investment_added', 'Investment Added for Your Customer',
+                        "A #{label} investment has been added for #{customer&.display_name || 'your customer'}.", self)
   end
 end

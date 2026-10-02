@@ -136,6 +136,29 @@ class Admin::InvestorsController < Admin::ApplicationController
       }
     end
 
+    # Monthly revenue breakup (last 12 months): the investor share earned in a
+    # month (investor commission payouts created that month, paid + pending)
+    # ÷ total shares = per-share amount; each investor gets shares × per-share.
+    month_sql = "to_char(commission_payouts.created_at AT TIME ZONE 'UTC' AT TIME ZONE '#{Time.zone.tzinfo.identifier}', 'YYYY-MM')"
+    monthly_pool = CommissionPayout.where(payout_to: 'investor', created_at: 11.months.ago.beginning_of_month..Time.current.end_of_month)
+                                   .group(Arel.sql(month_sql), :status).sum(:payout_amount)
+    share_holders = @investors_with_shares.order(number_of_shares: :desc).to_a
+    @monthly_breakup = (0..11).map do |i|
+      month = (Date.current - i.months).beginning_of_month
+      key = month.strftime('%Y-%m')
+      paid    = monthly_pool.sum { |(m, status), amt| m == key && status == 'paid' ? amt.to_f : 0 }
+      total   = monthly_pool.sum { |(m, _), amt| m == key ? amt.to_f : 0 }
+      per_share = @total_shares > 0 ? total / @total_shares : 0
+      {
+        key: key, label: month.strftime('%B %Y'), short: month.strftime('%b'), current: i.zero?,
+        total: total, paid: paid, pending: total - paid, per_share: per_share,
+        rows: share_holders.map { |inv| { investor: inv, shares: inv.number_of_shares, amount: inv.number_of_shares * per_share } }
+      }
+    end.reverse
+    # Default to last month (complete), or this month if last month had nothing.
+    previous = @monthly_breakup[-2]
+    @default_breakup_month = (previous && previous[:total].positive? ? previous : @monthly_breakup.last)[:key]
+
     # Investment performance by percentage
     @investors_with_percentage = @investors.where.not(investment_percentage: nil)
     @total_percentage_allocated = @investors_with_percentage.sum(:investment_percentage) || 0

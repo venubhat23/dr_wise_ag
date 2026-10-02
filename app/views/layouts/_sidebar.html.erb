@@ -892,6 +892,60 @@ body.sidebar-collapsed .main-content {
   background: rgba(99, 102, 241, 0.15) !important;
   color: #a5b4fc !important;
 }
+
+/* Sidebar menu search */
+.sidebar-search {
+  position: relative !important;
+  padding: 12px 12px 0 !important;
+  flex-shrink: 0 !important;
+}
+.sidebar-search i {
+  position: absolute !important;
+  left: 24px !important;
+  top: 50% !important;
+  transform: translateY(-25%) !important;
+  color: #94a3b8 !important;
+  font-size: 13px !important;
+  pointer-events: none !important;
+}
+.sidebar-search input {
+  width: 100% !important;
+  padding: 8px 12px 8px 34px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  font-size: 13px !important;
+  outline: none !important;
+}
+.sidebar-search input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+.sidebar-search-empty {
+  padding: 16px 20px 0 !important;
+  color: #94a3b8 !important;
+  font-size: 13px !important;
+  text-align: center !important;
+}
+.sidebar-search-empty[hidden],
+.modern-sidebar [data-search-hidden] {
+  display: none !important;
+}
+/* While searching, open every submenu so matching children are visible */
+.modern-sidebar.searching .submenu {
+  display: block !important;
+  height: auto !important;
+}
+.modern-sidebar.collapsed .sidebar-search,
+.modern-sidebar.collapsed .sidebar-search-empty {
+  display: none !important;
+}
+[data-theme="dark"] .sidebar-search input {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
 </style>
 
 <div class="modern-sidebar" id="sidebar" data-controller="sidebar">
@@ -899,6 +953,13 @@ body.sidebar-collapsed .main-content {
   <button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()">
     <i class="bi bi-list"></i>
   </button>
+
+  <!-- Menu search (filtering lives in app/javascript/sidebar_search.js) -->
+  <div class="sidebar-search">
+    <i class="bi bi-search"></i>
+    <input type="search" id="sidebar-search-input" placeholder="Search menu..." autocomplete="off" aria-label="Search menu">
+  </div>
+  <div class="sidebar-search-empty" hidden>No menu items match</div>
 
   <!-- Navigation Menu -->
   <nav class="sidebar-nav">

@@ -318,6 +318,8 @@
     <%= render 'admin/shared/subscription_card', record: @distributor,
           record_url: record_subscription_admin_distributor_path(@distributor),
           update_url: update_subscription_admin_distributor_path(@distributor),
+          cancel_url: cancel_subscription_admin_distributor_path(@distributor),
+          destroy_url: destroy_subscription_admin_distributor_path(@distributor),
           name_fallback: 'Unnamed Ambassador', owner_label: 'ambassador' %>
   </div>
 

@@ -160,6 +160,32 @@ module Subscribable
     bump_subscription_cache_gen
   end
 
+  # Admin cancellation: the current period ends right now and any prepaid
+  # upcoming years are dropped, so the account is treated as expired (and
+  # blocked until it renews, when there is a fee). Past rows stay as history.
+  def cancel_subscription!
+    transaction do
+      lock!
+      now = Time.current
+      subscriptions.where("starts_at > ?", now).destroy_all
+      subscriptions.where("starts_at <= ? AND expires_at > ?", now, now).update_all(expires_at: now, updated_at: now)
+      update_columns(updated_at: now, subscription_expires_at: subscriptions.maximum(:expires_at))
+    end
+    bump_subscription_cache_gen
+  end
+
+  # Admin removal of one subscription row (e.g. recorded by mistake). The
+  # account's expiry is re-derived from the remaining rows; with none left the
+  # account goes back to "Not subscribed".
+  def remove_subscription!(subscription)
+    transaction do
+      lock!
+      subscription.destroy!
+      update_columns(updated_at: Time.current, subscription_expires_at: subscriptions.maximum(:expires_at))
+    end
+    bump_subscription_cache_gen
+  end
+
   def bump_subscription_cache_gen
     Rails.cache.write(Subscribable::CACHE_GEN_KEY, SecureRandom.hex(4))
   end

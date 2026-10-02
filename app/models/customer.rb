@@ -75,6 +75,7 @@ class Customer < ApplicationRecord
   # Set default values
   after_initialize :set_defaults
   before_create :generate_lead_id_if_missing
+  after_create_commit -> { Notification.notify(self, 'welcome', 'Welcome to DrWise', "Hi #{display_name}, your account is ready. You can view your policies, family members and support requests in the app.") }
 
   def set_defaults
     self.status = true if has_attribute?(:status) && status.nil?

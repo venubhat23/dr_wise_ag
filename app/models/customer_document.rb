@@ -9,6 +9,7 @@ class CustomerDocument < ApplicationRecord
 
   # Callbacks
   after_save :upload_document_file, if: :should_upload_file?
+  after_create_commit -> { Notification.notify(customer, 'document_added', 'Document Added', "A #{document_type.to_s.humanize} document has been added to your profile.", self) }
 
   # Validations
   validates :document_type, presence: true

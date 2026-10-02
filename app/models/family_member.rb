@@ -58,6 +58,7 @@ class FamilyMember < ApplicationRecord
   accepts_nested_attributes_for :documents, allow_destroy: true, reject_if: :all_blank
 
   before_save :calculate_age
+  after_create_commit -> { Notification.notify(customer, 'family_member_added', 'Family Member Added', "#{full_name} (#{relationship.to_s.humanize}) has been added to your family members.", self) }
 
   def full_name
     "#{first_name} #{middle_name} #{last_name}".strip.squeeze(' ')

@@ -43,6 +43,8 @@ class ClientRequest < ApplicationRecord
   before_validation :generate_ticket_number, on: :create
   before_update :set_resolved_at
   after_update :create_admin_response_notification
+  after_create_commit -> { Notification.notify(submitter, 'support_request_submitted', 'Support Request Received', "Your request #{ticket_number} (#{subject}) has been received. We usually respond within 24-48 hours.", self) }
+  after_update_commit -> { Notification.notify(submitter, 'support_request_status_updated', 'Support Request Updated', "Your request #{ticket_number} (#{subject}) is now #{status.to_s.humanize.downcase}.", self) }, if: :saved_change_to_status?
   after_commit :clear_dashboard_stats_cache
 
   # Dashboard stat cards previously ran 5 separate COUNT queries. Combine

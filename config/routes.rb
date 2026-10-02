@@ -345,6 +345,8 @@ Rails.application.routes.draw do
         post :submit_kyc
         post :record_subscription
         patch :update_subscription
+        patch :cancel_subscription
+        delete :destroy_subscription
         get :distributor
         get :documents
         post :create_missing_payouts
@@ -385,6 +387,8 @@ Rails.application.routes.draw do
         post :submit_kyc
         post :record_subscription
         patch :update_subscription
+        patch :cancel_subscription
+        delete :destroy_subscription
       end
       resources :distributor_documents, except: [:show, :index] do
         member do

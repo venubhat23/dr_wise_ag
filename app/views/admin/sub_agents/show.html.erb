@@ -262,6 +262,8 @@
 <%= render 'admin/shared/subscription_card', record: @sub_agent,
       record_url: record_subscription_admin_sub_agent_path(@sub_agent),
       update_url: update_subscription_admin_sub_agent_path(@sub_agent),
+      cancel_url: cancel_subscription_admin_sub_agent_path(@sub_agent),
+      destroy_url: destroy_subscription_admin_sub_agent_path(@sub_agent),
       name_fallback: 'Unnamed Affiliate', owner_label: 'affiliate' %>
 
 <!-- Bank Details -->

@@ -20,6 +20,14 @@ class Notification < ApplicationRecord
     lead_status_updated
     lead_submitted
     general_announcement
+    welcome
+    family_member_added
+    appointment_scheduled
+    appointment_status_updated
+    support_request_submitted
+    support_request_status_updated
+    investment_added
+    document_added
   ].freeze
 
   # Scopes
@@ -50,6 +58,18 @@ class Notification < ApplicationRecord
   end
 
   # Class methods
+
+  # Generic in-app notification. Never raises, so a failed notification can't
+  # roll back or break the activity that triggered it.
+  def self.notify(recipient, type, title, message, reference = nil)
+    return if recipient.nil?
+
+    create!(recipient: recipient, notification_type: type, title: title,
+            message: message, reference: reference, is_read: false)
+  rescue StandardError => e
+    Rails.logger.error "Notification #{type} failed for #{recipient.class.name} #{recipient.id}: #{e.message}"
+    nil
+  end
   def self.create_helpdesk_comment_notification(ticket, recipient)
     create!(
       recipient: recipient,
