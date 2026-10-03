@@ -1,6 +1,9 @@
 require 'ostruct'
 
 class Admin::CommissionTrackingController < ApplicationController
+  # Payout recipients whose "Pay" credits their active wallet (CommissionWalletCredit).
+  WALLET_TRANSFER_TYPES = %w[affiliate ambassador].freeze
+
   before_action :authenticate_user!
   before_action :authorize_admin_access
   before_action :find_policy, only: [:show, :policy_breakdown, :transfer_to_affiliate,
@@ -258,6 +261,10 @@ class Admin::CommissionTrackingController < ApplicationController
     ActiveRecord::Base.transaction do
       amounts.each do |transfer_type, amount|
         payout = CommissionPayout.find_or_initialize_by(policy_type: policy_type, policy_id: @policy.id, payout_to: transfer_type)
+        # Re-settling must not overwrite an affiliate/ambassador payout already
+        # paid (its wallet credit is tracked on that record).
+        next if WALLET_TRANSFER_TYPES.include?(transfer_type) && payout.persisted? && payout.paid?
+
         payout.payout_amount = amount if payout.new_record?
         payout.assign_attributes(
           status: 'paid',
@@ -269,6 +276,11 @@ class Admin::CommissionTrackingController < ApplicationController
         )
         payout.save!
         settled[transfer_type] = amount
+
+        # Affiliate/ambassador commission is paid into their active wallet.
+        if WALLET_TRANSFER_TYPES.include?(transfer_type)
+          CommissionWalletCredit.call(payout, paid_date: paid_date, performed_by: current_user&.email || 'admin')
+        end
 
         begin
           generate_invoice_for_transfer(@policy, payout)
@@ -926,6 +938,10 @@ class Admin::CommissionTrackingController < ApplicationController
       payout_to: transfer_type
     )
 
+    if WALLET_TRANSFER_TYPES.include?(transfer_type) && CommissionWalletCredit.credited?(payout)
+      return { success: false, message: 'This commission is already paid to the wallet' }
+    end
+
     if payout.new_record?
       # Calculate the amount based on commission breakdown
       breakdown = CommissionCalculatorService.calculate_commission_breakdown(policy)
@@ -947,6 +963,11 @@ class Admin::CommissionTrackingController < ApplicationController
     )
 
     if payout.save
+      # Affiliate/ambassador commission is paid into their active wallet.
+      if WALLET_TRANSFER_TYPES.include?(transfer_type)
+        CommissionWalletCredit.call(payout, paid_date: payout.payout_date, performed_by: current_user.email)
+      end
+
       begin
         generate_invoice_for_transfer(policy, payout)
       rescue => e

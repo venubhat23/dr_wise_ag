@@ -21,6 +21,10 @@ class AmbassadorController < ApplicationController
 
     # Monthly commission trends (last 6 months)
     @monthly_trends = get_monthly_commission_trends
+
+    # Wallet summary card (full history lives on the wallet page)
+    @wallet = @distributor.wallet!
+    @recent_wallet_transactions = @wallet.wallet_transactions.recent_first.limit(5)
   end
 
   def commission_details

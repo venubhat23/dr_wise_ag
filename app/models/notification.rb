@@ -28,6 +28,7 @@ class Notification < ApplicationRecord
     support_request_status_updated
     investment_added
     document_added
+    commission_credited
   ].freeze
 
   # Scopes

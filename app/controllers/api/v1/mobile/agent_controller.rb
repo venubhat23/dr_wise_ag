@@ -68,6 +68,11 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # 'all' or nil shows all customers
     end
 
+    # No page/per_page sent -> return every customer on one page.
+    if params[:page].blank? && params[:per_page].blank?
+      per_page = [customers.active.count, 1].max
+    end
+
     customers = customers.includes(:documents, profile_image_attachment: :blob).active.page(page).per(per_page)
 
     # Preload users by email/mobile to fetch original_password without N+1

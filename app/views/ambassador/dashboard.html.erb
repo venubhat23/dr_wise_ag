@@ -251,6 +251,44 @@
 
   <!-- Right Column -->
   <div class="col-xl-4 col-lg-5">
+    <!-- My Wallet -->
+    <div class="card shadow mb-4">
+      <div class="card-header py-3 d-flex align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+          <i class="bi bi-wallet2 me-2"></i>
+          My Wallet
+        </h6>
+        <%= link_to 'View all', ambassador_wallet_path, class: 'small' %>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="text-success"><i class="bi bi-unlock me-1"></i>Active <small class="text-muted">(withdrawable)</small></span>
+          <strong><%= indian_currency(@wallet.balance) %></strong>
+        </div>
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-warning"><i class="bi bi-lock me-1"></i>Inactive <small class="text-muted">(locked)</small></span>
+          <strong><%= indian_currency(@wallet.inactive_balance) %></strong>
+        </div>
+
+        <% if @recent_wallet_transactions.any? %>
+          <div class="small text-muted text-uppercase fw-bold mb-2">Recent wallet history</div>
+          <% @recent_wallet_transactions.each do |txn| %>
+            <div class="d-flex justify-content-between align-items-start py-2 border-top">
+              <div class="me-2">
+                <div class="small"><%= txn.description.presence || (txn.credit? ? 'Amount added' : 'Amount removed') %></div>
+                <div class="small text-muted"><%= txn.created_at.strftime('%d %b %Y') %></div>
+              </div>
+              <span class="small fw-bold text-nowrap <%= txn.credit? ? 'text-success' : 'text-danger' %>">
+                <%= txn.credit? ? '+' : '−' %><%= indian_currency(txn.amount) %>
+              </span>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="small text-muted mb-0">No wallet activity yet.</p>
+        <% end %>
+      </div>
+    </div>
+
     <!-- Recent Commission Activity -->
     <div class="card shadow mb-4">
       <div class="card-header py-3">
@@ -300,6 +338,10 @@
           <%= link_to ambassador_commission_details_path, class: "btn btn-outline-primary" do %>
             <i class="bi bi-list-columns-reverse me-2"></i>
             View Commission Details
+          <% end %>
+          <%= link_to ambassador_wallet_path, class: "btn btn-outline-warning" do %>
+            <i class="bi bi-wallet2 me-2"></i>
+            My Wallet &amp; History
           <% end %>
           <%= link_to ambassador_payout_history_path, class: "btn btn-outline-success" do %>
             <i class="bi bi-wallet2 me-2"></i>

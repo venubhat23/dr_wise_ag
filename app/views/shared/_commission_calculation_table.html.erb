@@ -221,30 +221,10 @@
                   <i class="bi bi-check-circle-fill me-1"></i>Paid
                 <% end %>
                 <div class="payout-date mt-1"><%= _amb_payout.payout_date&.strftime('%d %b %Y') %></div>
-              <% elsif _amb_payout %>
+              <% else %>
                 <span class="payout-badge payout-pending">
                   <i class="bi bi-clock me-1"></i>Pending
                 </span>
-                <button type="button" class="btn btn-xs-pay btn-pay mt-1" data-bs-toggle="modal" data-bs-target="#commissionPayoutModal"
-                        data-payout-type="ambassador" data-payout-label="Ambassador"
-                        data-payout-url="<%= transfer_to_ambassador_admin_commission_tracking_path(policy.id) %>"
-                        data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>"
-                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
-                  <i class="bi bi-credit-card me-1"></i>Pay
-                </button>
-              <% else %>
-                <span class="payout-badge payout-none">
-                  <i class="bi bi-dash-circle me-1"></i>No Payout
-                </span>
-                <button type="button" class="btn btn-xs-pay btn-create mt-1" data-bs-toggle="modal" data-bs-target="#commissionPayoutModal"
-                        data-payout-type="ambassador" data-payout-label="Ambassador"
-                        data-payout-url="<%= transfer_to_ambassador_admin_commission_tracking_path(policy.id) %>"
-                        data-policy-type="<%= _policy_type %>"
-                        data-amount="<%= (policy.try(:ambassador_after_tds_value) || policy.try(:ambassador_commission_amount) || 0).to_f %>"
-                        <%= 'disabled title="Main Agent commission must be paid first"' unless _main_agent_paid %>>
-                  <i class="bi bi-plus-circle me-1"></i>Pay
-                </button>
               <% end %>
             </td>
           </tr>
