@@ -365,9 +365,11 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
 
               <td>
                 <%
-                  main_payout = CommissionPayout.find_by(
-                    policy_type: type, policy_id: policy.id, payout_to: 'main_agent'
-                  )
+                  main_payout = if @main_agent_payouts
+                                  @main_agent_payouts[[type, policy.id]]
+                                else
+                                  CommissionPayout.find_by(policy_type: type, policy_id: policy.id, payout_to: 'main_agent')
+                                end
                 %>
                 <% if main_payout&.status == 'paid' %>
                   <div class="text-success fw-semibold" style="font-size:13px;">

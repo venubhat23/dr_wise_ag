@@ -8,6 +8,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="browser-extension-disable" content="true">
     <%= csrf_meta_tags %>
+    <% if @server_sort_columns.present? && @show_pagination %>
+      <meta name="server-sort-columns" content="<%= @server_sort_columns.join(',') %>">
+    <% end %>
     <%= csp_meta_tag %>
 
     <!-- Apply theme immediately to prevent flash -->

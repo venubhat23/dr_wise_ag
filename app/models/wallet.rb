@@ -30,6 +30,9 @@ class Wallet < ApplicationRecord
 
   # Money that is still locked (the INACTIVE wallet), waiting for its unlock rule.
   def inactive_balance
+    # Use preloaded holds when a list page did `includes(wallet: :wallet_holds)`.
+    return wallet_holds.select(&:locked?).sum(BigDecimal(0), &:amount) if wallet_holds.loaded?
+
     wallet_holds.locked.sum(:amount)
   end
 

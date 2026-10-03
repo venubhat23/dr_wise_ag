@@ -298,8 +298,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     affiliates_data = []
 
     # Get all affiliate commission payouts
-    affiliate_payouts = CommissionPayout.where(payout_to: 'affiliate')
-                                       .group_by { |payout| extract_affiliate_info(payout) }
+    affiliate_payouts = CommissionPayout.preload_policies!(CommissionPayout.where(payout_to: 'affiliate').to_a)
+                                        .group_by { |payout| extract_affiliate_info(payout) }
 
     affiliate_payouts.each do |affiliate_info, payouts|
       next if affiliate_info.nil?
@@ -342,8 +342,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def fetch_affiliate_detailed_payouts(affiliate_id)
-    affiliate_payouts = CommissionPayout.where(payout_to: 'affiliate')
-                                       .select do |payout|
+    affiliate_payouts = CommissionPayout.preload_policies!(CommissionPayout.where(payout_to: 'affiliate').to_a)
+                                        .select do |payout|
       affiliate_info = extract_affiliate_info(payout)
       affiliate_info&.dig(:id) == affiliate_id.to_i
     end
@@ -414,7 +414,11 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
     }
   end
 
+  # CommissionPayout#policy is memoized (and filled in bulk by
+  # CommissionPayout.preload_policies!), so repeat lookups cost no query.
   def get_policy_from_payout(payout)
+    return payout.policy if payout.is_a?(CommissionPayout)
+
     case payout.policy_type
     when 'health'
       HealthInsurance.find_by(id: payout.policy_id)
@@ -428,6 +432,8 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
   end
 
   def get_policy_from_commission_payout(commission_payout)
+    return commission_payout.policy if commission_payout.is_a?(CommissionPayout)
+
     case commission_payout.policy_type
     when 'health'
       HealthInsurance.find_by(id: commission_payout.policy_id)

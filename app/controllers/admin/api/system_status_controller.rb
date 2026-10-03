@@ -26,13 +26,17 @@ module Admin
             Rails.logger.error "Error fetching active affiliate ids: #{e.message}"
           end
 
-          affiliates = SubAgent.where(id: active_ids).order(:id)
+          affiliates = SubAgent.where(id: active_ids).order(:id).to_a
+
+          # Per-affiliate counts/sums in a fixed number of grouped queries
+          # (was ~14 queries per affiliate).
+          stats = batch_affiliate_stats(affiliates.map(&:id))
 
           affiliate_data = []
 
-          affiliates.find_each do |affiliate|
+          affiliates.each do |affiliate|
             begin
-              policies_count = calculate_affiliate_policies(affiliate)
+              policies_count = stats[:policies][affiliate.id]
 
               # Only include affiliates with at least one policy
               next if policies_count == 0
@@ -49,9 +53,9 @@ module Admin
                 status: affiliate.status || 'active',
                 joined_date: affiliate.created_at ? affiliate.created_at.strftime('%d %b %Y') : 'N/A',
                 total_policies: policies_count,
-                total_premium: calculate_affiliate_premium(affiliate),
-                commission_pending: calculate_affiliate_commission(affiliate, 'pending'),
-                commission_paid: calculate_affiliate_commission(affiliate, 'paid')
+                total_premium: stats[:premium][affiliate.id],
+                commission_pending: stats[:commission][[affiliate.id, 'pending']],
+                commission_paid: stats[:commission][[affiliate.id, 'paid']]
               }
             rescue => e
               Rails.logger.error "Error processing affiliate #{affiliate.id}: #{e.message}"
@@ -276,19 +280,23 @@ module Admin
           { range: 'Above Rs. 2,00,000', min: 200000, max: Float::INFINITY }
         ]
 
-        range_data = premium_ranges.map do |range|
-          count = 0
-          if range[:max] == Float::INFINITY
-            count += HealthInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
-            count += LifeInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
-            count += MotorInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
-            count += OtherInsurance.where(admin_scope).where('net_premium >= ?', range[:min]).count rescue 0
-          else
-            count += HealthInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
-            count += LifeInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
-            count += MotorInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
-            count += OtherInsurance.where(admin_scope).where(net_premium: range[:min]...range[:max]).count rescue 0
-          end
+        # One query per policy table (COUNT ... FILTER per range) instead of
+        # one COUNT per range per table. Same conditions as before:
+        # [min, max) for bounded ranges, >= min for the open-ended one.
+        range_sql = premium_ranges.map do |r|
+          cond = r[:max] == Float::INFINITY ? "net_premium >= #{r[:min].to_i}" : "net_premium >= #{r[:min].to_i} AND net_premium < #{r[:max].to_i}"
+          Arel.sql("COUNT(*) FILTER (WHERE #{cond})")
+        end
+        range_counts = Array.new(premium_ranges.size, 0)
+        [HealthInsurance, LifeInsurance, MotorInsurance, OtherInsurance].each do |klass|
+          counts = (klass.where(admin_scope).pick(*range_sql) rescue nil)
+          next unless counts
+
+          counts.each_with_index { |c, i| range_counts[i] += c.to_i }
+        end
+
+        range_data = premium_ranges.each_with_index.map do |range, i|
+          count = range_counts[i]
 
           {
             range: range[:range],
@@ -330,12 +338,14 @@ module Admin
         begin
           # Enhanced commission details with calculation breakdown
           pending_commissions = CommissionPayout.where(status: 'pending')
-                                               .order(created_at: :desc)
+                                               .order(created_at: :desc).to_a
+          # One query per policy type (with customers) instead of 2 per payout.
+          CommissionPayout.preload_policies!(pending_commissions)
 
           # Preload sub_agents for affiliate name lookup
           all_sub_agent_ids = []
           pending_commissions.each do |payout|
-            pol = get_policy_for_payout(payout)
+            pol = payout.policy
             all_sub_agent_ids << pol.try(:sub_agent_id) if pol
           end
           sub_agents_map = SubAgent.where(id: all_sub_agent_ids.compact.uniq)
@@ -346,7 +356,7 @@ module Admin
           leads_map = Lead.where(lead_id: display_lead_ids).index_by(&:lead_id)
 
           commission_data = pending_commissions.map do |payout|
-            policy = get_policy_for_payout(payout)
+            policy = payout.policy
             percentage = payout.distribution_percentage || calculate_percentage_from_policy(policy, payout)
 
             customer_name = policy&.customer&.display_name || 'N/A'
@@ -409,8 +419,8 @@ module Admin
 
           render json: {
             success: true,
-            total_amount: CommissionPayout.where(status: 'pending').sum(:payout_amount),
-            total_count: CommissionPayout.where(status: 'pending').count,
+            total_amount: type_summary.values.sum(BigDecimal(0)),
+            total_count: pending_commissions.size,
             data: commission_data,
             summary_by_recipient: type_summary,
             summary_by_policy_type: policy_type_summary,
@@ -542,6 +552,43 @@ module Admin
       end
 
       private
+
+      AFFILIATE_POLICY_CLASSES = { 'health' => HealthInsurance, 'life' => LifeInsurance,
+                                   'motor' => MotorInsurance, 'other' => OtherInsurance }.freeze
+
+      # Same numbers as calculate_affiliate_policies / _premium / _commission,
+      # for many affiliates at once. Values are summed per policy type in the
+      # same order (and with the same 0 default) so the JSON is unchanged.
+      def batch_affiliate_stats(ids)
+        policies = Hash.new(0)
+        premium = Hash.new(0)
+        commission = Hash.new(0)
+        return { policies: policies, premium: premium, commission: commission } if ids.empty?
+
+        AFFILIATE_POLICY_CLASSES.except('other').each_value do |klass|
+          scope = klass.where(sub_agent_id: ids).group(:sub_agent_id)
+          counts = (scope.count rescue {})
+          sums = (scope.sum(:total_premium) rescue {})
+          ids.each do |id|
+            policies[id] += counts[id] || 0
+            premium[id] += sums[id] || BigDecimal(0) # AR sums an empty decimal column to 0.0
+          end
+        end
+
+        AFFILIATE_POLICY_CLASSES.each do |ptype, klass|
+          table = klass.table_name
+          sums = (CommissionPayout.where(policy_type: ptype, payout_to: %w[sub_agent affiliate], status: %w[pending paid])
+                                  .joins("JOIN #{table} ON commission_payouts.policy_id = #{table}.id")
+                                  .where(table => { sub_agent_id: ids })
+                                  .group("#{table}.sub_agent_id", :status)
+                                  .sum(:payout_amount) rescue {})
+          ids.each do |id|
+            %w[pending paid].each { |st| commission[[id, st]] += sums[[id, st]] || BigDecimal(0) }
+          end
+        end
+
+        { policies: policies, premium: premium, commission: commission }
+      end
 
       def calculate_affiliate_policies(affiliate)
         count = 0

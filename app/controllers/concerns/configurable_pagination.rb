@@ -18,6 +18,7 @@ module ConfigurablePagination
 
   def paginate_records(records, total_count = nil)
     per_page = per_page_param
+    records = apply_column_sort(records)
 
     # Use provided total_count or calculate it safely
     total_count ||= begin
@@ -48,6 +49,31 @@ module ConfigurablePagination
     # Force-load now so `.any?` (checked before `.each` in every index view) reads
     # from the already-loaded records instead of firing its own EXISTS query.
     paginated.load
+  end
+
+  # Click-to-sort across ALL records (not just the visible page): table_sort.js
+  # sends ?sort=<column>&direction=asc|desc. Only real columns of the listed
+  # model's own table are accepted; anything else is ignored. The accepted
+  # columns are exposed to the page (layout meta tag) so the JS knows which
+  # headers can be sorted server-side.
+  def apply_column_sort(records)
+    return records unless records.respond_to?(:reorder) && records.respond_to?(:klass)
+    # GROUP BY / DISTINCT-with-custom-select queries can't take an arbitrary ORDER BY.
+    return records if records.group_values.present? || (records.distinct_value && records.select_values.present?)
+
+    klass = records.klass
+    @server_sort_columns = klass.column_names - %w[encrypted_password password_digest original_password
+                                                 reset_password_token confirmation_token]
+    column = params[:sort].to_s
+    return records unless @server_sort_columns.include?(column)
+
+    direction = params[:direction].to_s.downcase == 'desc' ? 'DESC' : 'ASC'
+    @current_sort = { column: column, direction: direction.downcase }
+    quoted = "#{klass.connection.quote_table_name(klass.table_name)}.#{klass.connection.quote_column_name(column)}"
+    records.reorder(Arel.sql("#{quoted} #{direction} NULLS LAST"), klass.arel_table[klass.primary_key].desc)
+  rescue StandardError => e
+    Rails.logger.warn "Column sort skipped (#{params[:sort]}): #{e.message}"
+    records
   end
 
   # Helper method to check if pagination should be shown

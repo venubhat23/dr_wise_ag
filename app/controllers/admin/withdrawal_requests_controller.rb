@@ -9,13 +9,10 @@ class Admin::WithdrawalRequestsController < Admin::ApplicationController
   def index
     @tab = TABS.include?(params[:status]) ? params[:status] : 'pending'
 
-    @tab_counts = {
-      'pending'  => WithdrawalRequest.pending.count,
-      'approved' => WithdrawalRequest.approved.count,
-      'rejected' => WithdrawalRequest.rejected.count
-    }
+    counts = WithdrawalRequest.group(:status).count # one query for all three tabs
+    @tab_counts = TABS.index_with { |tab| counts[tab] || 0 }
 
-    scope = WithdrawalRequest.where(status: @tab).includes(:owner)
+    scope = WithdrawalRequest.where(status: @tab).includes(owner: { wallet: :wallet_holds })
     @withdrawal_requests = paginate_records(scope.recent_first)
   end
 

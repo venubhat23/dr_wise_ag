@@ -96,6 +96,10 @@ class Admin::Payout2Controller < Admin::ApplicationController
       "COALESCE(life_insurances.company_expenses_percentage, health_insurances.company_expenses_percentage, 0) as company_percentage"
     ).group_by { |cp| "#{cp.policy_type}_#{cp.policy_id}" }
 
+    # `first_commission.policy_number` below is CommissionPayout#policy_number
+    # (it shadows the selected column) and loads the policy - batch-load them.
+    CommissionPayout.preload_policies!(commission_data.values.map(&:first))
+
     payouts = []
 
     commission_data.each do |policy_key, commissions|

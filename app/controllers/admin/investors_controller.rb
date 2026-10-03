@@ -144,13 +144,22 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_percentage_allocated = @investors_with_percentage.sum(:investment_percentage) || 0
 
     # Monthly data for charts (last 12 months)
+    # One query for the whole window, bucketed in Ruby with the same
+    # boundaries the per-month `where(created_at: Date..Date)` used (a Date
+    # range compares against midnight, so month_end means 00:00 of that day).
     @monthly_data = []
+    window_start = (Date.current - 11.months).beginning_of_month
+    window_end = Date.current.beginning_of_month.end_of_month
+    investor_rows = Investor.where(created_at: window_start..window_end).pluck(:created_at, :invested_amount)
     12.times do |i|
       month_start = (Date.current - i.months).beginning_of_month
       month_end = month_start.end_of_month
+      from = month_start.to_time(:utc)
+      to = month_end.to_time(:utc)
+      in_month = investor_rows.select { |created_at, _| created_at >= from && created_at <= to }
 
-      investors_count = Investor.where(created_at: month_start..month_end).count
-      investment_amount = Investor.where(created_at: month_start..month_end).sum(:invested_amount) || 0
+      investors_count = in_month.size
+      investment_amount = in_month.sum(BigDecimal(0)) { |_, amount| amount || 0 }
 
       @monthly_data.unshift({
         month: month_start.strftime('%b %Y'),

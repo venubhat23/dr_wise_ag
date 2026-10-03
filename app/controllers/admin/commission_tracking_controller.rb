@@ -728,7 +728,7 @@ class Admin::CommissionTrackingController < ApplicationController
                    end
 
     offset = (page - 1) * per_page
-    payouts = payout_scope.order(created_at: :desc).limit(per_page).offset(offset)
+    payouts = payout_scope.order(created_at: :desc).limit(per_page).offset(offset).includes(:commission_payouts)
     @total_policies_count = payout_scope.count
     @total_pages = (@total_policies_count.to_f / per_page).ceil
     @has_next_page = page < @total_pages
@@ -767,6 +767,8 @@ class Admin::CommissionTrackingController < ApplicationController
 
         next unless policy && policy.customer
 
+        payout.instance_variable_set(:@policy, policy) # Payout#policy memo - skips a find_by per row
+
         all_policies << {
           policy: OpenStruct.new(
             id: policy.id,
@@ -790,6 +792,15 @@ class Admin::CommissionTrackingController < ApplicationController
         Rails.logger.warn "Error processing payout #{payout.id}: #{e.message}"
         next
       end
+    end
+
+    # Main-agent payout per listed policy, looked up by the index view
+    # (was a CommissionPayout.find_by per table row).
+    keys = all_policies.map { |pd| [pd[:type], pd[:policy].id] }
+    @main_agent_payouts = {}
+    keys.group_by(&:first).each do |ptype, pairs|
+      CommissionPayout.where(payout_to: 'main_agent', policy_type: ptype, policy_id: pairs.map(&:last))
+                      .order(:id).each { |cp| @main_agent_payouts[[ptype, cp.policy_id]] ||= cp }
     end
 
     all_policies
