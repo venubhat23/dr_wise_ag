@@ -16,7 +16,7 @@ class Admin::Settings::SystemController < Admin::Settings::BaseController
     @renewal_alert_days_after_expiry = SystemSetting.renewal_alert_days_after_expiry.join(', ')
 
     @system_settings = {
-      app_name: 'InsureBook Admin',
+      app_name: 'Dr WISE CRM',
       version: '1.0.0',
       maintenance_mode: false,
       email_notifications: true,
