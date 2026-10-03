@@ -273,7 +273,7 @@
                 <span class="legend-value">20%</span>
               </div>
               <div class="legend-item">
-                <span class="legend-dot" style="background: linear-gradient(135deg, #43e97b, #38f9d7)"></span>
+                <span class="legend-dot" style="background: linear-gradient(135deg, #059669, #0d9488)"></span>
                 <span>Company</span>
                 <span class="legend-value">20%</span>
               </div>
@@ -716,10 +716,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(67, 233, 123, 0.1);
-  border: 1px solid rgba(67, 233, 123, 0.3);
+  background: rgba(5, 150, 105, 0.1);
+  border: 1px solid rgba(5, 150, 105, 0.3);
   border-radius: 20px;
-  color: #43e97b;
+  color: #059669;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -728,7 +728,7 @@
 .live-dot {
   width: 8px;
   height: 8px;
-  background: #43e97b;
+  background: #059669;
   border-radius: 50%;
   animation: blink 2s infinite;
 }
@@ -794,7 +794,7 @@
 .gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
 .gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-.gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.gradient-4 { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); }
 
 .metric-icon-wrapper i {
   font-size: 24px;
@@ -812,8 +812,8 @@
 }
 
 .metric-trend.positive {
-  background: rgba(67, 233, 123, 0.1);
-  color: #43e97b;
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
 }
 
 .metric-trend.negative {
@@ -1133,7 +1133,7 @@
 .amount-value {
   font-size: 14px;
   font-weight: 700;
-  color: #43e97b;
+  color: #059669;
 }
 
 .activity-time {
@@ -1271,7 +1271,7 @@
 }
 
 .commission {
-  color: #43e97b;
+  color: #059669;
 }
 
 .status-badge {
@@ -1284,9 +1284,9 @@
 }
 
 .status-badge.success {
-  background: rgba(67, 233, 123, 0.1);
-  color: #43e97b;
-  border: 1px solid rgba(67, 233, 123, 0.3);
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.3);
 }
 
 .status-badge.pending {
@@ -1854,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', function() {
         enabled: false
       }
     },
-    colors: ['#43e97b'],
+    colors: ['#059669'],
     dataLabels: {
       enabled: false
     },
@@ -1934,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', function() {
         enabled: false
       }
     },
-    colors: ['#667eea', '#43e97b'],
+    colors: ['#667eea', '#059669'],
     dataLabels: {
       enabled: false
     },
@@ -2019,7 +2019,7 @@ document.addEventListener('DOMContentLoaded', function() {
       background: 'transparent'
     },
     labels: ['Main Agent', 'Affiliate', 'Ambassador', 'Company'],
-    colors: ['#667eea', '#f093fb', '#4facfe', '#43e97b'],
+    colors: ['#667eea', '#f093fb', '#4facfe', '#059669'],
     plotOptions: {
       pie: {
         donut: {
@@ -2086,7 +2086,7 @@ document.addEventListener('DOMContentLoaded', function() {
         distributed: true
       }
     },
-    colors: ['#667eea', '#f093fb', '#4facfe', '#43e97b'],
+    colors: ['#667eea', '#f093fb', '#4facfe', '#059669'],
     dataLabels: {
       enabled: false
     },
@@ -2171,7 +2171,7 @@ document.addEventListener('DOMContentLoaded', function() {
   createSparkline('revenueSparkline', [40, 45, 50, 48, 55, 60, 58, 65, 70, 75, 80, 85], '#667eea');
   createSparkline('policiesSparkline', [30, 35, 32, 38, 40, 42, 45, 48, 50, 52, 55, 58], '#f093fb');
   createSparkline('commissionSparkline', [60, 55, 58, 52, 50, 48, 45, 47, 43, 45, 42, 40], '#4facfe');
-  createSparkline('growthSparkline', [20, 22, 25, 28, 30, 32, 35, 38, 40, 42, 45, 48], '#43e97b');
+  createSparkline('growthSparkline', [20, 22, 25, 28, 30, 32, 35, 38, 40, 42, 45, 48], '#059669');
 
   // Theme Toggle
   const themeToggle = document.querySelector('.theme-toggle');

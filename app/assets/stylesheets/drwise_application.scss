@@ -18,7 +18,7 @@
 :root {
   --insurance-primary: #667eea;
   --insurance-secondary: #764ba2;
-  --insurance-success: #43e97b;
+  --insurance-success: #059669;
   --insurance-warning: #ffc107;
   --insurance-danger: #ef4444;
   --insurance-info: #00f2fe;
@@ -155,7 +155,7 @@ body {
 }
 
 .alert-success {
-  background: rgba(67, 233, 123, 0.1) !important;
+  background: rgba(5, 150, 105, 0.1) !important;
   border-left-color: var(--insurance-success) !important;
   color: var(--insurance-text-primary) !important;
 }

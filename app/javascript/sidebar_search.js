@@ -114,6 +114,7 @@ function rank(groups, query) {
       return {
         ...group,
         ranges: own.ranges,
+        ownScore: own.score,
         score: Math.max(own.score, bestChild, section),
         children: own.score > 0 || section >= bestChild ? children : children.filter(c => c.score > 0).sort((a, b) => b.score - a.score)
       }
@@ -177,7 +178,11 @@ function render(sidebar, query) {
     </div>`
   }).join('')
 
-  panel.querySelector('.ss-item')?.classList.add('is-selected')
+  // Preselect the top hit; when only one of its pages matched (not the menu
+  // itself), preselect that page so Enter opens it directly
+  const first = panel.querySelector('.ss-group')
+  const top = groups[0].ownScore > 0 ? first.querySelector('.ss-item') : first.querySelector('.ss-child') || first.querySelector('.ss-item')
+  top.classList.add('is-selected')
 }
 
 function select(sidebar, index) {

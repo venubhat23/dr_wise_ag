@@ -315,13 +315,6 @@
           <% end %>
         </div>
 
-        <div class="col-md-4 mb-3">
-          <%= form.label :claim_process, "Claim Process", class: "form-label" %>
-          <%= form.select :claim_process,
-              options_for_select(HealthInsurance::CLAIM_PROCESSES.map { |process| [process, process] }, @health_insurance.claim_process),
-              { prompt: 'Select Claim Process' },
-              { class: "form-control", id: "claim_process_select" } %>
-        </div>
 
         <!-- Additional fields from edit form -->
         <div class="col-md-4 mb-3">
@@ -1454,17 +1447,6 @@ document.addEventListener('DOMContentLoaded', function() {
       closeOnSelect: true
     });
 
-    // Initialize Select2 for Claim Process dropdown
-    $('#claim_process_select').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Select Claim Process...',
-      allowClear: false,
-      width: '100%',
-      dropdownParent: $('body'),
-      dropdownCssClass: 'select2-dropdown-large',
-      minimumResultsForSearch: -1, // Disable search for small lists
-      closeOnSelect: true
-    });
 
     // Load policy holder options when customer changes (with policy holder preservation)
     function loadPolicyHolderOptions() {

@@ -286,13 +286,6 @@
           <% end %>
         </div>
 
-        <div class="col-md-4 mb-3">
-          <%= form.label :claim_process, "Claim Process", class: "form-label" %>
-          <%= form.select :claim_process,
-              options_for_select(HealthInsurance::CLAIM_PROCESSES.map { |process| [process, process] }),
-              { prompt: 'Select Claim Process' },
-              { class: "form-control", id: "claim_process_select" } %>
-        </div>
       </div>
     </div>
   </div>
@@ -1281,17 +1274,6 @@ document.addEventListener('DOMContentLoaded', function() {
       closeOnSelect: true
     });
 
-    // Initialize Select2 for Claim Process dropdown
-    $('#claim_process_select').select2({
-      theme: 'bootstrap-5',
-      placeholder: 'Select Claim Process...',
-      allowClear: false,
-      width: '100%',
-      dropdownParent: $('body'),
-      dropdownCssClass: 'select2-dropdown-large',
-      minimumResultsForSearch: -1, // Disable search for small lists
-      closeOnSelect: true
-    });
 
     // Sum Insured Text Handler
     function parseIndianAmountText(text) {

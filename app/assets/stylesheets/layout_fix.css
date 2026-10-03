@@ -218,7 +218,7 @@ html {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #43e97b 100%);
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #059669 100%);
 }
 
 /* Ensure stats cards and content fit within boundaries */
@@ -417,8 +417,8 @@ html {
 }
 
 .alert-success {
-  background: rgba(67, 233, 123, 0.1) !important;
-  border-left-color: #43e97b !important;
+  background: rgba(5, 150, 105, 0.1) !important;
+  border-left-color: #059669 !important;
   color: #2d3748 !important;
 }
 

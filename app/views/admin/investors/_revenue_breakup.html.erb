@@ -1,0 +1,230 @@
+<%# Monthly / yearly revenue breakup: period's investor share ÷ total shares = per share;
+    each investor gets shares × per share. Pass `investor:` to show only that investor.
+    Mode toggle and period strip switch panels client-side. %>
+<% investor = local_assigns[:investor] %>
+<% total_shares = breakup[:total_shares] %>
+<% inv_shares = investor&.number_of_shares.to_i %>
+<% modes = [
+     { id: 'monthly', name: 'Monthly', periods: breakup[:monthly], default: breakup[:default_month] },
+     { id: 'yearly',  name: 'Yearly',  periods: breakup[:yearly],  default: breakup[:default_year] }
+   ] %>
+<div class="card border-0 shadow-sm mb-4 mrb" id="revenue-breakup">
+  <div class="card-header bg-white border-0 pt-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h5 class="mb-0"><i class="bi bi-calendar3 text-primary me-2"></i>Revenue Breakup</h5>
+        <small class="text-muted">
+          <% if investor %>
+            This investor's share of the investor pool — <%= pluralize(inv_shares, 'share') %> of <%= number_with_delimiter(total_shares.to_i) %>
+          <% else %>
+            Investor share earned each month / financial year (Apr–Mar), split equally per share
+          <% end %>
+        </small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="btn-group btn-group-sm" role="group">
+          <% modes.each_with_index do |mode, i| %>
+            <button type="button" class="btn <%= i.zero? ? 'btn-primary' : 'btn-outline-primary' %>" data-mrb-mode="<%= mode[:id] %>"><%= mode[:name] %></button>
+          <% end %>
+        </div>
+        <span class="badge rounded-pill bg-primary-subtle text-primary mrb-pill">
+          <i class="bi bi-pie-chart me-1"></i><%= number_with_delimiter(total_shares.to_i) %> shares · <%= breakup[:holders_count] %> investors
+        </span>
+      </div>
+    </div>
+
+    <!-- Period strips: bar height = that period's investor share -->
+    <% modes.each_with_index do |mode, i| %>
+      <% max_total = [mode[:periods].map { |p| p[:total] }.max.to_f, 1].max %>
+      <div class="mrb-strip mt-3 <%= 'd-none' unless i.zero? %>" data-mrb-strip="<%= mode[:id] %>"
+           style="grid-template-columns: repeat(<%= mode[:periods].size %>, minmax(48px, <%= mode[:id] == 'yearly' ? '120px' : '1fr' %>));">
+        <% mode[:periods].each do |p| %>
+          <% amt = investor ? inv_shares * p[:per_share] : p[:total] %>
+          <button type="button" class="mrb-month <%= 'active' if p[:key] == mode[:default] %>" data-mrb-period="<%= p[:key] %>"
+                  title="<%= p[:label] %>: <%= indian_currency(amt) %>">
+            <span class="mrb-bar-wrap"><span class="mrb-bar" style="height: <%= [(p[:total] / max_total * 100).round, p[:total].positive? ? 6 : 2].max %>%"></span></span>
+            <span class="mrb-month-label"><%= p[:short] %><%= ' ●' if p[:current] %></span>
+            <span class="mrb-month-amt"><%= amt.positive? ? number_to_human(amt, units: { unit: '', thousand: 'K', million: 'M' }, precision: 3, significant: true, format: "%n%u") : '–' %></span>
+          </button>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="card-body pt-2">
+    <% modes.each_with_index do |mode, mi| %>
+      <% mode[:periods].each do |m| %>
+        <div class="mrb-panel <%= 'd-none' unless mi.zero? && m[:key] == mode[:default] %>" data-mrb-panel="<%= m[:key] %>">
+          <!-- Formula hero -->
+          <div class="mrb-hero mb-4">
+            <div class="mrb-hero-title"><i class="bi bi-stars me-1"></i><%= m[:label] %><%= " (#{mode[:id] == 'yearly' ? 'year' : 'month'} in progress)" if m[:current] %></div>
+            <div class="mrb-formula">
+              <div class="mrb-term">
+                <div class="mrb-term-label">Investor share</div>
+                <div class="mrb-term-value"><%= indian_currency(m[:total]) %></div>
+                <div class="mrb-term-sub">Paid <%= indian_currency(m[:paid]) %> · Pending <%= indian_currency(m[:pending]) %></div>
+              </div>
+              <div class="mrb-op">÷</div>
+              <div class="mrb-term">
+                <div class="mrb-term-label">Total shares</div>
+                <div class="mrb-term-value"><%= number_with_delimiter(total_shares.to_i) %></div>
+                <div class="mrb-term-sub">held by <%= breakup[:holders_count] %> investors</div>
+              </div>
+              <div class="mrb-op">=</div>
+              <div class="mrb-term <%= 'mrb-term-result' unless investor %>">
+                <div class="mrb-term-label">Per share</div>
+                <div class="mrb-term-value"><%= indian_currency(m[:per_share]) %></div>
+                <div class="mrb-term-sub">for <%= m[:label] %></div>
+              </div>
+              <% if investor %>
+                <div class="mrb-op">×</div>
+                <div class="mrb-term">
+                  <div class="mrb-term-label">Shares held</div>
+                  <div class="mrb-term-value"><%= inv_shares %></div>
+                  <div class="mrb-term-sub"><%= investor.full_name %></div>
+                </div>
+                <div class="mrb-op">=</div>
+                <div class="mrb-term mrb-term-result">
+                  <div class="mrb-term-label">Investor gets</div>
+                  <div class="mrb-term-value"><%= indian_currency(inv_shares * m[:per_share]) %></div>
+                  <div class="mrb-term-sub">for <%= m[:label] %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <% if investor && inv_shares.zero? %>
+            <div class="alert alert-warning mb-0">
+              <i class="bi bi-exclamation-triangle me-1"></i>This investor holds no shares, so they get no part of the investor share.
+            </div>
+          <% elsif m[:total].zero? %>
+            <div class="text-center text-muted py-4">
+              <i class="bi bi-inbox fs-2 d-block mb-2"></i>No investor share recorded for <%= m[:label] %>.
+            </div>
+          <% else %>
+            <% unless investor %>
+              <!-- Per investor -->
+              <div class="row g-3">
+                <% m[:rows].each do |r| %>
+                  <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="mrb-inv h-100">
+                      <div class="d-flex align-items-center mb-2">
+                        <div class="mrb-avatar"><%= r[:investor].full_name.to_s.strip.first.to_s.upcase %></div>
+                        <div class="ms-2 text-truncate">
+                          <div class="fw-semibold text-truncate"><%= link_to r[:investor].full_name.to_s.upcase, admin_investor_path(r[:investor]), class: "text-reset text-decoration-none" %></div>
+                          <small class="text-muted"><%= pluralize(r[:shares], 'share') %></small>
+                        </div>
+                      </div>
+                      <div class="mrb-calc"><%= r[:shares] %> × <%= indian_currency(m[:per_share]) %></div>
+                      <div class="mrb-amount"><%= indian_currency(r[:amount]) %></div>
+                      <div class="progress mrb-progress mt-2" title="<%= number_with_precision(r[:shares].to_f / total_shares * 100, precision: 1) %>% of shares">
+                        <div class="progress-bar" style="width: <%= (r[:shares].to_f / total_shares * 100).round(1) %>%"></div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+              <div class="mrb-total mt-3">
+                <span><i class="bi bi-check2-circle me-1"></i>Total distributed for <%= m[:label] %></span>
+                <strong><%= indian_currency(m[:rows].sum { |r| r[:amount] }) %></strong>
+              </div>
+            <% end %>
+
+            <% if m[:months] %>
+              <!-- Month-by-month within the financial year -->
+              <div class="table-responsive <%= 'mt-4' unless investor %>">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Month</th>
+                      <th class="text-end">Investor share</th>
+                      <th class="text-end">Per share</th>
+                      <% if investor %><th class="text-end">Investor gets (<%= pluralize(inv_shares, 'share') %>)</th><% end %>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% m[:months].each do |row| %>
+                      <tr class="<%= 'text-muted' if row[:total].zero? %>">
+                        <td><%= row[:label] %></td>
+                        <td class="text-end"><%= indian_currency(row[:total]) %></td>
+                        <td class="text-end"><%= indian_currency(row[:per_share]) %></td>
+                        <% if investor %><td class="text-end fw-semibold"><%= indian_currency(inv_shares * row[:per_share]) %></td><% end %>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                  <tfoot>
+                    <tr class="fw-bold">
+                      <td><%= m[:label] %> total</td>
+                      <td class="text-end"><%= indian_currency(m[:total]) %></td>
+                      <td class="text-end"><%= indian_currency(m[:per_share]) %></td>
+                      <% if investor %><td class="text-end text-success"><%= indian_currency(inv_shares * m[:per_share]) %></td><% end %>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<style>
+  .mrb .bg-primary-subtle { background: #e7f0ff; }
+  .mrb-pill { font-weight: 500; padding: .5em .9em; }
+  .mrb-strip { display: grid; gap: 6px; overflow-x: auto; }
+  .mrb-month { border: 1px solid #e9ecef; background: #fff; border-radius: 10px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all .15s; }
+  .mrb-month:hover { border-color: #9ec5fe; transform: translateY(-1px); }
+  .mrb-month.active { border-color: #0d6efd; background: #f3f8ff; box-shadow: 0 2px 8px rgba(13,110,253,.15); }
+  .mrb-bar-wrap { height: 44px; width: 14px; display: flex; align-items: flex-end; }
+  .mrb-bar { width: 100%; border-radius: 4px 4px 0 0; background: #b6d4fe; }
+  .mrb-month.active .mrb-bar { background: linear-gradient(180deg, #4f8cff, #0d6efd); }
+  .mrb-month-label { font-size: .75rem; font-weight: 600; margin-top: 4px; color: #495057; }
+  .mrb-month-amt { font-size: .68rem; color: #6c757d; }
+  .mrb-hero { background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%); color: #fff; border-radius: 16px; padding: 20px 24px; }
+  .mrb-hero-title { font-size: .9rem; opacity: .9; margin-bottom: 12px; font-weight: 500; }
+  .mrb-formula { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .mrb-term { background: rgba(255,255,255,.12); border-radius: 12px; padding: 12px 18px; flex: 1 1 150px; }
+  .mrb-term-result { background: #fff; color: #212529; }
+  .mrb-term-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; opacity: .85; }
+  .mrb-term-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+  .mrb-term-result .mrb-term-value { color: #0d6efd; }
+  .mrb-term-sub { font-size: .75rem; opacity: .8; }
+  .mrb-op { font-size: 1.8rem; font-weight: 300; opacity: .9; }
+  .mrb-inv { border: 1px solid #edf0f3; border-radius: 12px; padding: 14px; background: #fff; transition: box-shadow .15s; }
+  .mrb-inv:hover { box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+  .mrb-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4f8cff, #6f42c1); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+  .mrb-calc { font-size: .8rem; color: #6c757d; }
+  .mrb-amount { font-size: 1.35rem; font-weight: 700; color: #198754; }
+  .mrb-progress { height: 5px; }
+  .mrb-total { display: flex; justify-content: space-between; align-items: center; background: #f1f9f4; border: 1px dashed #a3cfbb; color: #146c43; border-radius: 10px; padding: 10px 16px; }
+  @media (max-width: 576px) { .mrb-op { width: 100%; text-align: center; } }
+</style>
+
+<script>
+  (function() {
+    function showPanel(card, key) {
+      card.querySelectorAll('[data-mrb-panel]').forEach(function(p) { p.classList.toggle('d-none', p.dataset.mrbPanel !== key); });
+    }
+    document.addEventListener('click', function(e) {
+      var modeBtn = e.target.closest('[data-mrb-mode]');
+      var periodBtn = e.target.closest('[data-mrb-period]');
+      var card = (modeBtn || periodBtn) && (modeBtn || periodBtn).closest('.mrb');
+      if (!card) return;
+      if (modeBtn) {
+        var mode = modeBtn.dataset.mrbMode;
+        card.querySelectorAll('[data-mrb-mode]').forEach(function(b) {
+          b.classList.toggle('btn-primary', b === modeBtn);
+          b.classList.toggle('btn-outline-primary', b !== modeBtn);
+        });
+        card.querySelectorAll('[data-mrb-strip]').forEach(function(s) { s.classList.toggle('d-none', s.dataset.mrbStrip !== mode); });
+        var active = card.querySelector('[data-mrb-strip="' + mode + '"] .mrb-month.active');
+        if (active) showPanel(card, active.dataset.mrbPeriod);
+      } else {
+        periodBtn.closest('[data-mrb-strip]').querySelectorAll('[data-mrb-period]').forEach(function(b) { b.classList.toggle('active', b === periodBtn); });
+        showPanel(card, periodBtn.dataset.mrbPeriod);
+      }
+    });
+  })();
+</script>

@@ -416,7 +416,7 @@
                     <%= appt.appointment_date.strftime('%A, %d %B %Y') %>
                   </div>
                 <% end %>
-                <% colors = ['#667eea','#764ba2','#f093fb','#43e97b','#f5576c','#4facfe','#fa709a','#30cfd0'] %>
+                <% colors = ['#667eea','#764ba2','#f093fb','#059669','#f5576c','#4facfe','#fa709a','#30cfd0'] %>
                 <% color = colors[appt.id % colors.length] %>
                 <div class="appt-item" onclick="showAppointmentDetail(<%= appt.id %>)">
                   <div class="appt-avatar" style="background:<%= color %>22;color:<%= color %>;">
@@ -511,7 +511,7 @@
         <div class="reminder-section-label"><i class="bi bi-arrow-right-circle-fill" style="color:#667eea;"></i> Upcoming Today</div>
         <% upcoming_today.each do |appt| %>
           <%
-            colors = ['#667eea','#764ba2','#f093fb','#43e97b','#f5576c','#4facfe','#fa709a','#30cfd0']
+            colors = ['#667eea','#764ba2','#f093fb','#059669','#f5576c','#4facfe','#fa709a','#30cfd0']
             color  = colors[appt.id % colors.length]
             slot_parts = appt.time_slot.match(/(\d+):(\d+)\s*(AM|PM)/i)
             is_now = false
@@ -571,7 +571,7 @@
         <div class="reminder-section-label"><i class="bi bi-check2-circle" style="color:#9ca3af;"></i> Earlier / Done</div>
         <% past_today.each do |appt| %>
           <%
-            colors = ['#667eea','#764ba2','#f093fb','#43e97b','#f5576c','#4facfe','#fa709a','#30cfd0']
+            colors = ['#667eea','#764ba2','#f093fb','#059669','#f5576c','#4facfe','#fa709a','#30cfd0']
             color  = colors[appt.id % colors.length]
           %>
           <div class="reminder-card status-<%= appt.status %> is-past" onclick="showAppointmentDetail(<%= appt.id %>)">

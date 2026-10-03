@@ -345,8 +345,8 @@
 }
 
 [data-theme="dark"] .alert-success {
-  background: rgba(67, 233, 123, 0.1) !important;
-  border-left-color: #43e97b !important;
+  background: rgba(5, 150, 105, 0.1) !important;
+  border-left-color: #059669 !important;
   color: #6ee7b7 !important;
 }
 
@@ -470,7 +470,7 @@
 /* ── Toast notifications ── */
 [data-theme="dark"] #toast-notification.toast-success {
   background: var(--bg-primary) !important;
-  border: 1px solid rgba(67, 233, 123, 0.4) !important;
+  border: 1px solid rgba(5, 150, 105, 0.4) !important;
   color: #6ee7b7 !important;
 }
 

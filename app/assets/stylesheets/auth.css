@@ -1,7 +1,7 @@
 /* Enhanced Insurance-themed animated login page */
 body.auth-page {
   min-height: 100vh !important;
-  background: linear-gradient(-45deg, #667eea, #764ba2, #4facfe, #00f2fe, #f093fb, #43e97b) !important;
+  background: linear-gradient(-45deg, #667eea, #764ba2, #4facfe, #00f2fe, #f093fb, #059669) !important;
   background-size: 400% 400% !important;
   animation: gradientBG 15s ease infinite !important;
   position: relative !important;

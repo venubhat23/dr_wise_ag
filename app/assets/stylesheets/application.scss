@@ -61,7 +61,7 @@
   // Modern Colorful Gradients
   --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --gradient-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-green: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-green: linear-gradient(135deg, #059669 0%, #0d9488 100%);
   --gradient-purple: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   --gradient-orange: linear-gradient(135deg, #fd9644 0%, #fe7a36 100%);
   --gradient-pink: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -788,9 +788,9 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     &.gradient-green {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 50%, #00b894 100%);
+      background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%);
       box-shadow:
-        0 8px 25px rgba(67, 233, 123, 0.4),
+        0 8px 25px rgba(5, 150, 105, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     &.gradient-purple {
@@ -830,7 +830,7 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     &.gradient-teal {
-      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #38f9d7 100%);
+      background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #0d9488 100%);
       box-shadow:
         0 8px 25px rgba(168, 237, 234, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -848,13 +848,13 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     &.gradient-lime {
-      background: linear-gradient(135deg, #00b894 0%, #55efc4 50%, #43e97b 100%);
+      background: linear-gradient(135deg, #00b894 0%, #55efc4 50%, #059669 100%);
       box-shadow:
         0 8px 25px rgba(0, 184, 148, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     &.gradient-emerald {
-      background: linear-gradient(135deg, #00b09b 0%, #96c93d 50%, #43e97b 100%);
+      background: linear-gradient(135deg, #00b09b 0%, #96c93d 50%, #059669 100%);
       box-shadow:
         0 8px 25px rgba(0, 176, 155, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -1491,7 +1491,7 @@ body {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
     &.success {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
     }
     &.warning {
       background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
@@ -1889,19 +1889,19 @@ body {
 
   // Success button with nature vibes
   &.btn-success {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 50%, #00b894 100%);
+    background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #047857 100%);
     background-size: 200% 200%;
     animation: gradientShift 4s ease-in-out infinite;
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow:
-      0 8px 25px rgba(67, 233, 123, 0.3),
+      0 8px 25px rgba(5, 150, 105, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
 
     &:hover {
       background-position: 100% 100%;
       box-shadow:
-        0 16px 40px rgba(67, 233, 123, 0.4),
+        0 16px 40px rgba(5, 150, 105, 0.4),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
     }
   }
@@ -1962,19 +1962,23 @@ body {
     }
   }
 
+  // Solid white inside so the dark green text stays readable; the old
+  // light-green gradient showed through and hid the text
   &.btn-outline-success {
     border: 2px solid transparent;
     background:
-      linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1)) padding-box,
-      linear-gradient(135deg, #43e97b, #38f9d7) border-box;
-    color: #43e97b;
+      linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(135deg, #059669, #0d9488) border-box;
+    color: #047857;
     backdrop-filter: blur(10px);
 
-    &:hover {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    &:hover,
+    &.active,
+    .btn-check:checked + & {
+      background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
       color: white;
       border-color: transparent;
-      box-shadow: 0 12px 30px rgba(67, 233, 123, 0.4);
+      box-shadow: 0 12px 30px rgba(5, 150, 105, 0.35);
     }
   }
 
@@ -2908,7 +2912,7 @@ canvas {
 :root {
   --insurance-primary: #667eea;
   --insurance-secondary: #764ba2;
-  --insurance-success: #43e97b;
+  --insurance-success: #059669;
   --insurance-warning: #ffc107;
   --insurance-danger: #ef4444;
   --insurance-info: #00f2fe;
@@ -2971,7 +2975,7 @@ canvas {
 }
 
 .alert-success {
-  background: rgba(67, 233, 123, 0.1) !important;
+  background: rgba(5, 150, 105, 0.1) !important;
   border-left-color: var(--insurance-success) !important;
   color: var(--insurance-text-primary) !important;
 }
