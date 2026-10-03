@@ -3,9 +3,9 @@
 // Typing shows a suggestion dropdown of matching menus (best match first:
 // exact > prefix > word prefix > substring > fuzzy), with matching sub-pages
 // listed under their menu. Picking a suggestion moves that menu's whole
-// section to the top of the sidebar and highlights the item, so menus far
-// down the list don't need scrolling. The choice is remembered across page
-// loads until the Reset button restores the default order.
+// section to the top of the sidebar, expands its dropdown and opens the
+// picked page (picking a dropdown heading just expands it). The section stays
+// on top across page loads until the Reset button restores the default order.
 //
 // Keys: ↑/↓ move, Enter picks, Esc closes.
 
@@ -263,6 +263,21 @@ function pick(sidebar, index) {
 
   sidebar.querySelector('.sidebar-nav').scrollTo({ top: 0, behavior: 'smooth' })
   flash(target.el)
+
+  // Open the picked page; dropdown headings have no page of their own
+  const href = target.el.getAttribute('href')
+  if (href && href !== '#' && !href.startsWith('javascript:')) {
+    if (window.Turbo?.visit) window.Turbo.visit(href)
+    else window.location.href = href
+  }
+}
+
+// Keep the dropdown holding the current page open after it loads.
+function expandActive(sidebar) {
+  sidebar.querySelectorAll('.submenu-list a.nav-link-modern.active').forEach(link => {
+    const item = link.closest('.collapse.submenu')?.parentElement
+    if (item) expand(item)
+  })
 }
 
 // Re-apply the remembered section after every page load.
@@ -270,6 +285,7 @@ function applyPinned() {
   const sidebar = document.querySelector('.modern-sidebar')
   if (!sidebar) return
   rememberOrder(sidebar)
+  expandActive(sidebar)
   const title = storage('get')
   const section = title && sections(sidebar).find(s => text(s.querySelector('.nav-section-title')) === title)
   if (section) moveToTop(sidebar, section)
