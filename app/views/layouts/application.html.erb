@@ -19,6 +19,8 @@
     </script>
 
     <%= javascript_importmap_tags %>
+    <%# Loaded directly: app/assets/javascripts/application.js shadows app/javascript/application.js, so its imports never run %>
+    <script type="module">import "sidebar_search"</script>
 
     <%= yield :head %>
 

@@ -275,9 +275,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   // Monthly Chart
   const monthlyData = <%= raw @monthly_data.to_json %>;
-  const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-
-  new Chart(monthlyCtx, {
+  // The chart canvases may not be on the page; skip a chart whose canvas is missing
+  const monthlyCanvas = document.getElementById('monthlyChart');
+  if (monthlyCanvas) new Chart(monthlyCanvas.getContext('2d'), {
     type: 'bar',
     data: {
       labels: monthlyData.map(d => d.month),
@@ -342,9 +342,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Status Chart
-  const statusCtx = document.getElementById('statusChart').getContext('2d');
-
-  new Chart(statusCtx, {
+  const statusCanvas = document.getElementById('statusChart');
+  if (statusCanvas) new Chart(statusCanvas.getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: ['Active', 'Inactive'],
