@@ -10,6 +10,10 @@
      { id: 'monthly', name: 'Monthly', periods: breakup[:monthly], default: breakup[:default_month] },
      { id: 'yearly',  name: 'Yearly',  periods: breakup[:yearly],  default: breakup[:default_year] }
    ] %>
+<%# ?breakup_period=y2025 (e.g. after Pay) opens that period's mode and panel %>
+<% open_mode = modes.find { |md| md[:periods].any? { |p| p[:key] == params[:breakup_period] } } %>
+<% open_mode[:default] = params[:breakup_period] if open_mode %>
+<% active_mode = (open_mode || modes.first)[:id] %>
 <div class="card border-0 shadow-sm mb-4 mrb" id="revenue-breakup">
   <div class="card-header bg-white border-0 pt-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -26,7 +30,7 @@
       <div class="d-flex align-items-center gap-2">
         <div class="btn-group btn-group-sm" role="group">
           <% modes.each_with_index do |mode, i| %>
-            <button type="button" class="btn <%= i.zero? ? 'btn-primary' : 'btn-outline-primary' %>" data-mrb-mode="<%= mode[:id] %>"><%= mode[:name] %></button>
+            <button type="button" class="btn <%= mode[:id] == active_mode ? 'btn-primary' : 'btn-outline-primary' %>" data-mrb-mode="<%= mode[:id] %>"><%= mode[:name] %></button>
           <% end %>
         </div>
         <span class="badge rounded-pill bg-primary-subtle text-primary mrb-pill">
@@ -38,14 +42,17 @@
     <!-- Period strips: bar height = that period's investor share -->
     <% modes.each_with_index do |mode, i| %>
       <% max_total = [mode[:periods].map { |p| p[:total] }.max.to_f, 1].max %>
-      <div class="mrb-strip mt-3 <%= 'd-none' unless i.zero? %>" data-mrb-strip="<%= mode[:id] %>"
+      <div class="mrb-strip mt-3 <%= 'd-none' unless mode[:id] == active_mode %>" data-mrb-strip="<%= mode[:id] %>"
            style="grid-template-columns: repeat(<%= mode[:periods].size %>, minmax(48px, <%= mode[:id] == 'yearly' ? '120px' : '1fr' %>));">
         <% mode[:periods].each do |p| %>
           <% amt = investor ? inv_shares * p[:per_share] : p[:total] %>
           <button type="button" class="mrb-month <%= 'active' if p[:key] == mode[:default] %>" data-mrb-period="<%= p[:key] %>"
                   title="<%= p[:label] %>: <%= indian_currency(amt) %>">
             <span class="mrb-bar-wrap"><span class="mrb-bar" style="height: <%= [(p[:total] / max_total * 100).round, p[:total].positive? ? 6 : 2].max %>%"></span></span>
-            <span class="mrb-month-label"><%= p[:short] %><%= ' ●' if p[:current] %><% if investor && mode[:id] == 'yearly' && yearly_payouts[p[:key].delete('y').to_i] %> <i class="bi bi-check-circle-fill text-success" title="Paid"></i><% end %></span>
+            <span class="mrb-month-label"><%= p[:short] %><%= ' ●' if p[:current] %></span>
+            <% if investor && mode[:id] == 'yearly' && yearly_payouts[p[:key].delete('y').to_i] %>
+              <span class="badge bg-success mrb-paid-chip"><i class="bi bi-check-circle me-1"></i>Paid</span>
+            <% end %>
             <span class="mrb-month-amt"><%= amt.positive? ? number_to_human(amt, units: { unit: '', thousand: 'K', million: 'M' }, precision: 3, significant: true, format: "%n%u") : '–' %></span>
           </button>
         <% end %>
@@ -56,10 +63,14 @@
   <div class="card-body pt-2">
     <% modes.each_with_index do |mode, mi| %>
       <% mode[:periods].each do |m| %>
-        <div class="mrb-panel <%= 'd-none' unless mi.zero? && m[:key] == mode[:default] %>" data-mrb-panel="<%= m[:key] %>">
+        <div class="mrb-panel <%= 'd-none' unless mode[:id] == active_mode && m[:key] == mode[:default] %>" data-mrb-panel="<%= m[:key] %>">
           <!-- Formula hero -->
           <div class="mrb-hero mb-4">
-            <div class="mrb-hero-title"><i class="bi bi-stars me-1"></i><%= m[:label] %><%= " (#{mode[:id] == 'yearly' ? 'year' : 'month'} in progress)" if m[:current] %></div>
+            <div class="mrb-hero-title"><i class="bi bi-stars me-1"></i><%= m[:label] %><%= " (#{mode[:id] == 'yearly' ? 'year' : 'month'} in progress)" if m[:current] %>
+              <% if investor && mode[:id] == 'yearly' && yearly_payouts[m[:key].delete('y').to_i] %>
+                <span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill me-1"></i>PAID</span>
+              <% end %>
+            </div>
             <div class="mrb-formula">
               <div class="mrb-term">
                 <div class="mrb-term-label">Investor share</div>
@@ -103,11 +114,18 @@
                 <div>
                   <span class="badge bg-success me-2"><i class="bi bi-check-circle me-1"></i>Paid</span>
                   <strong><%= indian_currency(payout.amount) %></strong> for <%= m[:label] %>
+                  <div class="mt-1">
+                    <i class="bi bi-info-circle text-success me-1"></i>The <%= m[:label] %> share of <strong><%= indian_currency(payout.amount) %></strong> has been paid to <strong><%= investor.full_name %></strong> on <%= payout.paid_at.in_time_zone.strftime('%d %b %Y') %><%= " by #{payout.paid_by.try(:full_name).presence || payout.paid_by.try(:email)}" if payout.paid_by %>. Nothing more is due for this year.
+                  </div>
                   <small class="text-muted d-block mt-1">
-                    Paid on <%= payout.paid_at.in_time_zone.strftime('%d %b %Y, %I:%M %p') %><%= " by #{payout.paid_by.try(:full_name).presence || payout.paid_by.try(:email)}" if payout.paid_by %>
+                    Paid at <%= payout.paid_at.in_time_zone.strftime('%d %b %Y, %I:%M %p') %>
                     · <%= pluralize(payout.shares, 'share') %> × <%= indian_currency(payout.per_share) %>
                   </small>
                 </div>
+                <%= button_to unpay_yearly_admin_investor_path(investor, financial_year: fy), method: :delete, class: "btn btn-outline-danger btn-sm",
+                      form: { data: { turbo_confirm: "Mark #{m[:label]} as NOT paid for #{investor.full_name}? The paid record will be removed and the Pay option will come back." } } do %>
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Mark as not paid
+                <% end %>
               <% else %>
                 <div>
                   <span class="badge bg-warning text-dark me-2"><i class="bi bi-hourglass-split me-1"></i>Unpaid</span>
@@ -221,6 +239,7 @@
   .mrb-bar { width: 100%; border-radius: 4px 4px 0 0; background: #b6d4fe; }
   .mrb-month.active .mrb-bar { background: linear-gradient(180deg, #4f8cff, #0d6efd); }
   .mrb-month-label { font-size: .75rem; font-weight: 600; margin-top: 4px; color: #495057; }
+  .mrb-paid-chip { font-size: .62rem; margin-top: 2px; }
   .mrb-month-amt { font-size: .68rem; color: #6c757d; }
   .mrb-hero { background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%); color: #fff; border-radius: 16px; padding: 20px 24px; }
   .mrb-hero-title { font-size: .9rem; opacity: .9; margin-bottom: 12px; font-weight: 500; }

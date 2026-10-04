@@ -1,7 +1,7 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary, :pay_yearly]
+  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary, :pay_yearly, :unpay_yearly]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   # GET /admin/investors
@@ -451,12 +451,13 @@ class Admin::InvestorsController < Admin::ApplicationController
   # recomputed here (shares × per share), never taken from the form.
   def pay_yearly
     fy = params[:financial_year].to_i
+    back = admin_investor_path(@investor, breakup_period: "y#{fy}", anchor: 'revenue-breakup')
     period = InvestorRevenueBreakupService.new(investor: @investor).call[:yearly].find { |p| p[:key] == "y#{fy}" }
     shares = @investor.number_of_shares.to_i
     amount = period ? (shares * period[:per_share]).round(2) : 0
 
     if period.nil? || amount <= 0
-      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), alert: 'Nothing to pay for that financial year.'
+      redirect_to back, alert: 'Nothing to pay for that financial year.'
       return
     end
 
@@ -465,9 +466,23 @@ class Admin::InvestorsController < Admin::ApplicationController
       paid_at: Time.current, paid_by: current_user
     )
     if payout.save
-      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), notice: "#{payout.fy_label} marked paid: #{helpers.indian_currency(amount)}."
+      redirect_to back, notice: "#{payout.fy_label} marked paid: #{helpers.indian_currency(amount)}."
     else
-      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), alert: payout.errors.full_messages.to_sentence
+      redirect_to back, alert: payout.errors.full_messages.to_sentence
+    end
+  end
+
+  # DELETE /admin/investors/1/unpay_yearly?financial_year=2025
+  # Undo: removes the paid record so the year shows Unpaid with Pay again.
+  def unpay_yearly
+    fy = params[:financial_year].to_i
+    back = admin_investor_path(@investor, breakup_period: "y#{fy}", anchor: 'revenue-breakup')
+    payout = @investor.investor_yearly_payouts.find_by(financial_year: fy)
+
+    if payout&.destroy
+      redirect_to back, notice: "#{payout.fy_label} marked as not paid."
+    else
+      redirect_to back, alert: 'That financial year is not marked paid.'
     end
   end
 
