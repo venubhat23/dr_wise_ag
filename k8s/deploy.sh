@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kubernetes deployment script for Insurebook Rails application
+# Kubernetes deployment script for Dr WISE CRM Rails application
 
 set -e
 

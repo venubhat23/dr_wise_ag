@@ -20,7 +20,7 @@ namespace :mobile_api do
         birth_date: 30.years.ago + rand(10.years),
         gender: ['male', 'female'].sample,
         pan_no: "ABCDE#{1000 + i}F",
-        company_name: "InsureBook Agent #{i + 1}",
+        company_name: "Dr WISE CRM Agent #{i + 1}",
         address: "#{100 + i} Agent Street, Mumbai, Maharashtra",
         bank_name: "HDFC Bank",
         account_no: "123456#{1000 + i}",

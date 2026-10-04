@@ -2935,10 +2935,48 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
-    async function runOCR(file, offset, scale, lang) {
+    // Grayscale + 1%-99% contrast stretch at ~2000px wide. Lifts faint printed
+    // text (e.g. the PAN number) off tinted/patterned card backgrounds.
+    function preprocessImageGray(file) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function() {
+          var scale = img.width < 2000 ? 2000 / img.width : 1;
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          var ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var d = id.data, n = d.length / 4, hist = new Array(256).fill(0), gray = new Uint8Array(n);
+          for (var i = 0; i < n; i++) {
+            var v = Math.round(0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2]);
+            gray[i] = v; hist[v]++;
+          }
+          var lo = 0, hi = 255, acc = 0;
+          for (; lo < 255; lo++) { acc += hist[lo]; if (acc > n * 0.01) break; }
+          acc = 0;
+          for (; hi > 0; hi--) { acc += hist[hi]; if (acc > n * 0.01) break; }
+          var range = Math.max(1, hi - lo);
+          for (var j = 0; j < n; j++) {
+            var g = Math.min(255, Math.max(0, (gray[j] - lo) * 255 / range));
+            d[j*4] = d[j*4+1] = d[j*4+2] = g;
+          }
+          ctx.putImageData(id, 0, 0);
+          canvas.toBlob(function(blob) { URL.revokeObjectURL(url); resolve(blob); }, 'image/png');
+        };
+        img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    async function runOCR(file, offset, scale, lang, mode) {
       offset = offset || 0; scale = scale || 1; lang = lang || 'eng';
       setProgress(offset + 1 * scale, 'Enhancing image...');
-      var processedFile = await preprocessImage(file);
+      var processedFile = mode === 'gray' ? await preprocessImageGray(file) : await preprocessImage(file);
       var worker = await Tesseract.createWorker(lang, 1, {
         logger: function(m) {
           if (m.status === 'loading tesseract core') setProgress(offset + 2 * scale, 'Loading OCR engine...');
@@ -2975,7 +3013,20 @@ document.addEventListener('DOMContentLoaded', function() {
               extractedData = parseAadhaarText(frontText, backText);
             } else if (selectedDocType === 'pan') {
               var panFile = document.getElementById('pan_input').files[0];
-              if (panFile) { setProgress(0, 'Processing PAN card...'); var text = await runOCR(panFile, 0, 1, 'eng+hin+kan'); extractedData = parsePanText(text); }
+              if (panFile) {
+                setProgress(0, 'Processing PAN card...');
+                var text = await runOCR(panFile, 0, 0.6, 'eng+hin+kan');
+                extractedData = parsePanText(text);
+                // The PAN number sits on the card's patterned background, which
+                // the colour + Hindi/Kannada pass often garbles. Retry English-only
+                // on a grayscale, contrast-stretched copy to recover it.
+                if (!extractedData.pan_no) {
+                  setProgress(60, 'Re-reading PAN number...');
+                  var grayText = await runOCR(panFile, 60, 0.4, 'eng', 'gray');
+                  var panRetry = parsePanText(grayText);
+                  Object.keys(panRetry).forEach(function(k) { if (!extractedData[k]) extractedData[k] = panRetry[k]; });
+                }
+              }
             } else if (selectedDocType === 'cheque') {
               var chequeFile = document.getElementById('cheque_input').files[0];
               if (chequeFile) { setProgress(0, 'Processing cheque...'); var text = await runOCR(chequeFile, 0, 1); extractedData = parseChequeText(text); }
@@ -3428,8 +3479,33 @@ document.addEventListener('DOMContentLoaded', function() {
         'Saraswat Bank','AU Small Finance Bank','Jana Small Finance Bank',
         'Equitas Small Finance Bank','ESAF Small Finance Bank','SBI'
       ];
+      // The printed bank name is usually a logo/stylised font that OCR misses,
+      // but the IFSC's first 4 letters identify the bank exactly - use that first.
+      var IFSC_BANKS = {
+        SBIN: 'State Bank of India', PUNB: 'Punjab National Bank', BARB: 'Bank of Baroda',
+        CNRB: 'Canara Bank', UBIN: 'Union Bank of India', IDIB: 'Indian Bank',
+        CBIN: 'Central Bank of India', UCBA: 'UCO Bank', MAHB: 'Bank of Maharashtra',
+        BKID: 'Bank of India', IOBA: 'Indian Overseas Bank', PSIB: 'Punjab & Sind Bank',
+        CORP: 'Corporation Bank', ALLA: 'Allahabad Bank', ORBC: 'Oriental Bank of Commerce',
+        ANDB: 'Andhra Bank', VIJB: 'Vijaya Bank', BKDN: 'Dena Bank', SYNB: 'Syndicate Bank',
+        HDFC: 'HDFC Bank', ICIC: 'ICICI Bank', UTIB: 'Axis Bank', KKBK: 'Kotak Mahindra Bank',
+        YESB: 'Yes Bank', INDB: 'IndusInd Bank', FDRL: 'Federal Bank', IBKL: 'IDBI Bank',
+        IDFB: 'IDFC First Bank', NTBL: 'Nainital Bank', KARB: 'Karnataka Bank',
+        SIBL: 'South Indian Bank', CIUB: 'City Union Bank', KVBL: 'Karur Vysya Bank',
+        LAVB: 'Lakshmi Vilas Bank', BDBL: 'Bandhan Bank', RATN: 'RBL Bank',
+        SRCB: 'Saraswat Bank', AUBL: 'AU Small Finance Bank', JSFB: 'Jana Small Finance Bank',
+        ESFB: 'Equitas Small Finance Bank', ESMF: 'ESAF Small Finance Bank',
+        TMBL: 'Tamilnad Mercantile Bank', DLXB: 'Dhanlaxmi Bank', CSBK: 'CSB Bank',
+        KVGB: 'Karnataka Vikas Grameena Bank', PKGB: 'Karnataka Gramin Bank',
+        DBSS: 'DBS Bank', SCBL: 'Standard Chartered Bank', HSBC: 'HSBC', CITI: 'Citibank',
+        AIRP: 'Airtel Payments Bank', PYTM: 'Paytm Payments Bank', IPOS: 'India Post Payments Bank',
+        UJVN: 'Ujjivan Small Finance Bank', SURY: 'Suryoday Small Finance Bank'
+      };
+      if (result.ifsc_code && IFSC_BANKS[result.ifsc_code.slice(0, 4)]) {
+        result.bank_name = IFSC_BANKS[result.ifsc_code.slice(0, 4)];
+      }
       var fullText = text.toLowerCase();
-      for (var b = 0; b < BANKS.length; b++) {
+      for (var b = 0; !result.bank_name && b < BANKS.length; b++) {
         if (fullText.indexOf(BANKS[b].toLowerCase()) !== -1) {
           result.bank_name = BANKS[b]; break;
         }
@@ -3471,6 +3547,8 @@ document.addEventListener('DOMContentLoaded', function() {
           var ln = lines[i];
           if (/bank|branch|ifsc|micr|account|cheque|cheque|date|rupees|amount|pay|sign|nominee|address|swift|code|valid|multi|city|prefix|order|only|lacs|state/i.test(ln)) continue;
           if (/\d/.test(ln)) continue;
+          // Skip OCR noise like "Ce Re" - a real name has at least one 3+ letter word
+          if (!/[A-Za-z]{3,}/.test(ln)) continue;
           // ALL-CAPS two-word+ name (common on Indian cheques)
           if (/^[A-Z]{2,}(?:\s+[A-Z]{2,})+$/.test(ln) && ln.length >= 5 && ln.length <= 50) {
             result.full_name = ln; break;
