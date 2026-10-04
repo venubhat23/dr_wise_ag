@@ -73,7 +73,21 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       per_page = [customers.active.count, 1].max
     end
 
-    customers = customers.includes(:documents, profile_image_attachment: :blob).active.page(page).per(per_page)
+    # Policies this agent can see — used for the date sort and the per-customer counts/premiums
+    if is_admin?(agent)
+      agent_health_scope, agent_life_scope, agent_motor_scope = HealthInsurance.all, LifeInsurance.all, MotorInsurance.all
+    elsif agent.is_a?(SubAgent)
+      agent_health_scope = HealthInsurance.where(sub_agent_id: agent.id)
+      agent_life_scope = LifeInsurance.where(sub_agent_id: agent.id)
+      agent_motor_scope = MotorInsurance.where(sub_agent_id: agent.id)
+    else
+      agent_health_scope, agent_life_scope, agent_motor_scope, _ = get_agent_policies(agent)
+    end
+
+    # sort: 'date' (default, latest business/created first) or 'name' (A-Z)
+    customers = customers.includes(:documents, profile_image_attachment: :blob).active
+                         .order(Arel.sql(customer_sort_order(params[:sort], [agent_health_scope, agent_life_scope, agent_motor_scope])))
+                         .page(page).per(per_page)
 
     # Preload users by email/mobile to fetch original_password without N+1
     customer_emails  = customers.map(&:email).compact
@@ -93,20 +107,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     # fixed number of queries instead of get_customer_policies_count/get_customer_total_premium
     # re-querying per customer (was ~6-9 extra queries per customer).
     page_customer_ids = customers.map(&:id)
-    if is_admin?(agent)
-      page_health_scope = HealthInsurance.where(customer_id: page_customer_ids)
-      page_life_scope = LifeInsurance.where(customer_id: page_customer_ids)
-      page_motor_scope = MotorInsurance.where(customer_id: page_customer_ids)
-    elsif agent.is_a?(SubAgent)
-      page_health_scope = HealthInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
-      page_life_scope = LifeInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
-      page_motor_scope = MotorInsurance.where(customer_id: page_customer_ids, sub_agent_id: agent.id)
-    else
-      agent_health_policies, agent_life_policies, agent_motor_policies, _ = get_agent_policies(agent)
-      page_health_scope = agent_health_policies.where(customer_id: page_customer_ids)
-      page_life_scope = agent_life_policies.where(customer_id: page_customer_ids)
-      page_motor_scope = agent_motor_policies.where(customer_id: page_customer_ids)
-    end
+    page_health_scope = agent_health_scope.where(customer_id: page_customer_ids)
+    page_life_scope = agent_life_scope.where(customer_id: page_customer_ids)
+    page_motor_scope = agent_motor_scope.where(customer_id: page_customer_ids)
 
     page_health_counts = page_health_scope.group(:customer_id).count
     page_life_counts = page_life_scope.group(:customer_id).count
@@ -1723,6 +1726,26 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Sort by creation date (newest first)
     policies.sort_by { |p| -p[:created_at].to_time.to_i }
+  end
+
+  # ORDER BY clause for GET /customers ?sort=
+  #   'name' -> alphabetical by display name (A-Z)
+  #   'date' / default -> latest activity first: the newer of the customer's created_at
+  #     and the most recent of the given policy scopes (the agent's own business)
+  def customer_sort_order(sort, policy_scopes)
+    if sort.to_s == 'name'
+      <<~SQL.squish
+        LOWER(TRIM(CASE WHEN customers.customer_type = 'individual'
+          THEN CONCAT_WS(' ', customers.first_name, customers.middle_name, customers.last_name)
+          ELSE customers.company_name END)) ASC, customers.id ASC
+      SQL
+    else
+      latest_policy_sql = policy_scopes.map do |scope|
+        table = scope.klass.table_name
+        "(#{scope.unscope(:order, :select).where("#{table}.customer_id = customers.id").select("MAX(#{table}.created_at)").to_sql})"
+      end
+      "GREATEST(customers.created_at, #{latest_policy_sql.join(', ')}) DESC, customers.id DESC"
+    end
   end
 
   def determine_drwise_policy(policy)
