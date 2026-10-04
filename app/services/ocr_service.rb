@@ -254,6 +254,13 @@ class OcrService
     MASKED_NUMBER_PATTERN = /\b([Xx*]{4}\s?[Xx*]{4}\s?\d{4})\b/
     DOB_PATTERN = /\b(\d{2}\/\d{2}\/\d{4})\b/
     YOB_PATTERN = /Year of Birth\s*[:\-]?\s*(\d{4})/i
+    # "DOB: 23/04/1999" / "Date of Birth: ..." - allows a few non-digit chars
+    # (colon, spaces, a line break) between the label and the date.
+    LABELED_DOB_PATTERN = /(?:\bD\.?O\.?B\b|Date\s+of\s+Birth)[^\d]{0,15}(\d{2}\/\d{2}\/\d{4})/i
+    # Cards also print other dates - "Aadhaar no. issued: 20/06/2011" running
+    # vertically beside the photo, "Download Date", "Print Date" on
+    # e-Aadhaar - which must never be mistaken for the DOB.
+    NON_DOB_DATE_LINE_PATTERN = /issue|download|print|generat/i
     GENDER_PATTERN = /\b(Male|Female|Transgender)\b/i
     ADDRESS_LABEL_PATTERN = /\bAddress\s*[:\-]?\s*/i
     PINCODE_PATTERN = /\b\d{6}\b/
@@ -265,19 +272,34 @@ class OcrService
       {
         "aadhaar_number" => text[NUMBER_PATTERN, 1]&.gsub(/\s+/, " ")&.strip,
         "aadhaar_number_masked" => text[MASKED_NUMBER_PATTERN, 1]&.gsub(/\s+/, " ")&.strip&.upcase,
-        "dob" => text[DOB_PATTERN, 1] || text[YOB_PATTERN, 1],
+        "dob" => extract_dob(text, lines),
         "gender" => text[GENDER_PATTERN, 1]&.capitalize,
-        "name" => guess_name(lines),
+        "name" => guess_name(lines, extract_dob(text, lines)),
         "address" => guess_address(lines)
       }.compact
+    end
+
+    # Prefers the date printed right after a DOB label. Without one, ignores
+    # dates on issue/download/print lines and picks the earliest remaining
+    # date - a birth date always predates any date the card was issued.
+    def self.extract_dob(text, lines)
+      labeled = text[LABELED_DOB_PATTERN, 1]
+      return labeled if labeled
+
+      candidates = lines.reject { |l| l.match?(NON_DOB_DATE_LINE_PATTERN) }
+                        .flat_map { |l| l.scan(DOB_PATTERN).flatten }
+      candidates = text.scan(DOB_PATTERN).flatten if candidates.empty?
+      earliest = candidates.min_by { |d| Date.strptime(d, "%d/%m/%Y") rescue Date::Infinity.new }
+      earliest || text[YOB_PATTERN, 1]
     end
 
     # Aadhaar has no printed "Name:" label - the name is just a standalone
     # line, usually right above the DOB/Year-of-Birth/gender line. Walk
     # upward from there and take the first line that reads like a plain name
     # (letters/spaces only, 2-5 words) and isn't boilerplate card text.
-    def self.guess_name(lines)
-      anchor = lines.index { |l| l.match?(DOB_PATTERN) || l.match?(YOB_PATTERN) || l.match?(GENDER_PATTERN) }
+    def self.guess_name(lines, dob = nil)
+      anchor = (dob && lines.index { |l| l.include?(dob) }) ||
+               lines.index { |l| l.match?(YOB_PATTERN) || l.match?(GENDER_PATTERN) }
       return nil unless anchor
 
       (anchor - 1).downto([anchor - 3, 0].max) do |i|
