@@ -171,6 +171,7 @@ Rails.application.routes.draw do
         post :auto_distribute
         get :reports
         get :summary
+        post :pay_yearly
         get 'policies/:policy_id/actions', action: :policy_actions, as: :policy_actions
       end
     end
@@ -190,6 +191,7 @@ Rails.application.routes.draw do
         get :dashboard
         get :modern_dashboard
         get :summary
+        post :pay_yearly
         get :policy_search
         get :search_customers
         post :manual_transfer
@@ -407,6 +409,7 @@ Rails.application.routes.draw do
         get :download_r2_document
         delete :delete_r2_document
         get :summary
+        post :pay_yearly
       end
       resources :investor_documents, only: [:destroy]
     end

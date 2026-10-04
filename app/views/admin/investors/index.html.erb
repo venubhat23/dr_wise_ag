@@ -99,12 +99,16 @@
               <tr>
                 <td>
                   <div class="d-flex align-items-center">
-                    <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
-                      <i class="bi bi-person text-primary"></i>
+                    <% last_paid = @latest_yearly_payouts[investor.id] %>
+                    <div class="avatar-sm <%= last_paid ? 'bg-success' : 'bg-primary' %> bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3 position-relative"
+                         title="<%= last_paid ? "#{last_paid.fy_label} paid #{indian_currency(last_paid.amount)}" : '' %>">
+                      <i class="bi bi-person <%= last_paid ? 'text-success' : 'text-primary' %>"></i>
+                      <% if last_paid %><i class="bi bi-check-circle-fill text-success position-absolute bottom-0 end-0 bg-white rounded-circle" style="font-size:.75rem; line-height:1;"></i><% end %>
                     </div>
                     <div>
                       <h6 class="mb-0"><%= investor.full_name %></h6>
                       <small class="text-muted">Investor ID: <%= investor.id %></small>
+                      <% if last_paid %><span class="badge bg-success-subtle text-success border border-success-subtle ms-1"><i class="bi bi-check-circle me-1"></i><%= last_paid.fy_label %> paid</span><% end %>
                     </div>
                   </div>
                 </td>

@@ -6,6 +6,7 @@ class Investor < ApplicationRecord
 
   # Associations
   has_many :investor_documents, dependent: :destroy
+  has_many :investor_yearly_payouts, dependent: :destroy
   has_many :health_insurances, dependent: :nullify
   has_many :motor_insurances, dependent: :nullify
   # Note: other_insurances don't have investor_id column, so no direct association

@@ -1,7 +1,7 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary]
+  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary, :pay_yearly]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   # GET /admin/investors
@@ -73,6 +73,10 @@ class Admin::InvestorsController < Admin::ApplicationController
     @total_investor_amount = payout_totals[:total]
     @paid_investor_amount = payout_totals[:paid]
     @pending_investor_amount = payout_totals[:pending]
+
+    # Latest financial year marked paid per investor (avatar paid marker)
+    @latest_yearly_payouts = InvestorYearlyPayout.where(investor_id: @investors.map(&:id))
+                                                 .order(:financial_year).index_by(&:investor_id)
   end
 
   # GET /admin/investors/investor_summary
@@ -138,6 +142,7 @@ class Admin::InvestorsController < Admin::ApplicationController
 
     # Monthly + yearly revenue breakup (investor share ÷ total shares = per share)
     @revenue_breakup = InvestorRevenueBreakupService.new.call
+    @yearly_payouts = InvestorYearlyPayout.all.index_by { |p| [p.investor_id, p.financial_year] }
 
     # Investment performance by percentage
     @investors_with_percentage = @investors.where.not(investment_percentage: nil)
@@ -438,6 +443,32 @@ class Admin::InvestorsController < Admin::ApplicationController
   def show
     @documents = @investor.investor_documents.order(:created_at)
     @revenue_breakup = InvestorRevenueBreakupService.new(investor: @investor).call
+    @yearly_payouts = @investor.investor_yearly_payouts.index_by(&:financial_year)
+  end
+
+  # POST /admin/investors/1/pay_yearly?financial_year=2025
+  # Marks this investor's share for one financial year as paid. The amount is
+  # recomputed here (shares × per share), never taken from the form.
+  def pay_yearly
+    fy = params[:financial_year].to_i
+    period = InvestorRevenueBreakupService.new(investor: @investor).call[:yearly].find { |p| p[:key] == "y#{fy}" }
+    shares = @investor.number_of_shares.to_i
+    amount = period ? (shares * period[:per_share]).round(2) : 0
+
+    if period.nil? || amount <= 0
+      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), alert: 'Nothing to pay for that financial year.'
+      return
+    end
+
+    payout = @investor.investor_yearly_payouts.new(
+      financial_year: fy, amount: amount, shares: shares, per_share: period[:per_share],
+      paid_at: Time.current, paid_by: current_user
+    )
+    if payout.save
+      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), notice: "#{payout.fy_label} marked paid: #{helpers.indian_currency(amount)}."
+    else
+      redirect_to admin_investor_path(@investor, anchor: 'revenue-breakup'), alert: payout.errors.full_messages.to_sentence
+    end
   end
 
   # GET /admin/investors/new

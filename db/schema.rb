@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_09_26_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_04_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -816,6 +816,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_26_100000) do
     t.string "r2_content_type"
     t.bigint "r2_file_size"
     t.index ["investor_id"], name: "index_investor_documents_on_investor_id"
+  end
+
+  create_table "investor_yearly_payouts", force: :cascade do |t|
+    t.bigint "investor_id", null: false
+    t.integer "financial_year", null: false
+    t.decimal "amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.integer "shares", default: 0, null: false
+    t.decimal "per_share", precision: 14, scale: 4, default: "0.0", null: false
+    t.datetime "paid_at", null: false
+    t.bigint "paid_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["investor_id", "financial_year"], name: "idx_on_investor_id_financial_year_8f1d716d40", unique: true
+    t.index ["investor_id"], name: "index_investor_yearly_payouts_on_investor_id"
+    t.index ["paid_by_id"], name: "index_investor_yearly_payouts_on_paid_by_id"
   end
 
   create_table "investors", force: :cascade do |t|
@@ -2238,6 +2253,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_09_26_100000) do
   add_foreign_key "helpdesk_tickets", "sub_agents"
   add_foreign_key "investments", "customers"
   add_foreign_key "investor_documents", "investors"
+  add_foreign_key "investor_yearly_payouts", "investors"
+  add_foreign_key "investor_yearly_payouts", "users", column: "paid_by_id"
   add_foreign_key "invoice_items", "invoices"
   add_foreign_key "leads", "distributors", column: "ambassador_id"
   add_foreign_key "leads", "vendors"
