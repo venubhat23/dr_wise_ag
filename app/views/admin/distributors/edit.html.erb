@@ -424,7 +424,7 @@
     </div>
     <div class="card-body">
       <!-- Document Display Section (like sub_agent show) -->
-      <% if @distributor.upload_main_document.attached? || @distributor.distributor_documents.any? %>
+      <% if @distributor.upload_main_document.attached? %>
         <div class="mb-4">
           <h6 class="mb-3">Current Documents</h6>
 
@@ -456,56 +456,6 @@
             </div>
           <% end %>
 
-          <!-- Additional Documents -->
-          <% if @distributor.distributor_documents.any? %>
-            <div class="mb-4">
-              <h6 class="mb-3 text-muted">Additional Documents</h6>
-              <div class="row">
-                <% @distributor.distributor_documents.reject(&:new_record?).each do |document| %>
-                  <div class="col-md-6 mb-3">
-                    <div class="card h-100">
-                      <div class="card-body">
-                        <div class="d-flex align-items-start">
-                          <div class="me-3">
-                            <i class="bi bi-file-earmark fs-4 text-primary"></i>
-                          </div>
-                          <div class="flex-grow-1">
-                            <h6 class="card-title mb-1"><%= document.document_type %></h6>
-                            <p class="card-text mb-2">
-                              <small class="text-muted">
-                                <% if document.has_document? %>
-                                  <%= document.document_name.truncate(30) %>
-                                <% else %>
-                                  No file attached
-                                <% end %>
-                              </small>
-                            </p>
-                            <small class="text-muted">
-                              Uploaded: <%= document.created_at ? time_ago_in_words(document.created_at) + ' ago' : 'Date not available' %>
-                            </small>
-                          </div>
-                        </div>
-                        <div class="mt-3">
-                          <% if document.has_document? %>
-                            <%= link_to document.document_url,
-                                       target: '_blank',
-                                       class: "btn btn-sm btn-outline-primary me-2" do %>
-                              <i class="bi bi-eye me-1"></i>View
-                            <% end %>
-                            <%= link_to document.document_url,
-                                       download: document.r2_filename,
-                                       class: "btn btn-sm btn-outline-secondary" do %>
-                              <i class="bi bi-download me-1"></i>Download
-                            <% end %>
-                          <% end %>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
         </div>
         <hr class="my-4">
       <% end %>
