@@ -118,3 +118,5 @@ group :development do
   # Detects N+1 queries and unused eager loading at runtime [https://github.com/flyerhzm/bullet]
   gem "bullet"
 end
+
+gem "anthropic", "~> 1.76"

@@ -10,10 +10,18 @@
     <% end %>
   </div>
 
-  <div class="trust-seal">
-    <i class="bi bi-shield-check seal-icon"></i>
-    <span>Save Policy</span>
+  <div class="d-flex align-items-center gap-3">
+    <button type="button" class="btn ai-btn ai-launch" data-bs-toggle="modal" data-bs-target="#aiUploadModal" title="Upload a policy document and let AI fill the form (beta)">
+      <i class="bi bi-stars me-1"></i>AI Upload <span class="badge ai-beta ms-1">Beta</span>
+    </button>
+    <div class="trust-seal">
+      <i class="bi bi-shield-check seal-icon"></i>
+      <span>Save Policy</span>
+    </div>
   </div>
 </div>
 
 <%= render 'form' %>
+
+<%# AI Upload (beta) - optional document reader that pre-fills the form above %>
+<%= render 'ai_upload' %>

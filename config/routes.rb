@@ -474,6 +474,8 @@ Rails.application.routes.draw do
     end
 
     # Life Insurance
+    # AI Upload (beta): read a policy document and pre-fill the new life policy form
+    post 'insurance/life/ai_extract', to: 'life_insurance_ai_extracts#create', as: :life_insurance_ai_extract
     resources :life_insurances, path: 'insurance/life' do
       collection do
         get :download
