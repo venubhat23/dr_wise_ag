@@ -229,12 +229,22 @@ Rails.application.routes.draw do
         member do
           post :add_funds
           post :remove_funds
+          post :set_balance
+          patch 'transactions/:txn_id', action: :update_transaction, as: :update_transaction
+          delete 'transactions/:txn_id', action: :destroy_transaction, as: :destroy_transaction
+          patch 'holds/:hold_id', action: :update_hold, as: :update_hold
+          post 'holds/:hold_id/unlock', action: :unlock_hold, as: :unlock_hold
         end
       end
       resources :ambassador_wallets, only: [:index, :show] do
         member do
           post :add_funds
           post :remove_funds
+          post :set_balance
+          patch 'transactions/:txn_id', action: :update_transaction, as: :update_transaction
+          delete 'transactions/:txn_id', action: :destroy_transaction, as: :destroy_transaction
+          patch 'holds/:hold_id', action: :update_hold, as: :update_hold
+          post 'holds/:hold_id/unlock', action: :unlock_hold, as: :unlock_hold
         end
       end
     end
@@ -332,6 +342,10 @@ Rails.application.routes.draw do
 
     # Sub Agent management (legacy)
     resources :sub_agents do
+      # Pre-tracking membership history + member since (see Admin::OlderSubscriptionsController)
+      resources :older_subscriptions, only: [:create, :update, :destroy] do
+        collection { patch :member_since }
+      end
       collection do
         get :download
       end
@@ -376,6 +390,10 @@ Rails.application.routes.draw do
 
     # Distributor management
     resources :distributors do
+      # Pre-tracking membership history + member since (see Admin::OlderSubscriptionsController)
+      resources :older_subscriptions, only: [:create, :update, :destroy] do
+        collection { patch :member_since }
+      end
       collection do
         get :download
       end
@@ -978,6 +996,7 @@ Rails.application.routes.draw do
         # Yearly subscription (affiliate + ambassador): status, history, renewal via Razorpay
         get  'subscription',        to: 'subscription#show'
         get  'subscription/history', to: 'subscription#history'
+        get  'subscription/older',   to: 'subscription#older'
         post 'subscription/order',  to: 'subscription#create_order'
         post 'subscription/verify', to: 'subscription#verify'
 

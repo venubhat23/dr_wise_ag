@@ -266,6 +266,11 @@
       destroy_url: destroy_subscription_admin_sub_agent_path(@sub_agent),
       name_fallback: 'Unnamed Affiliate', owner_label: 'affiliate' %>
 
+<!-- Membership history: member since + older (pre-app) subscriptions -->
+<%= render 'admin/shared/older_subscriptions_card', record: @sub_agent,
+      base_url: admin_sub_agent_older_subscriptions_path(@sub_agent),
+      member_since_url: member_since_admin_sub_agent_older_subscriptions_path(@sub_agent) %>
+
 <!-- Bank Details -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">

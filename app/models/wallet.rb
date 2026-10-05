@@ -81,7 +81,7 @@ class Wallet < ApplicationRecord
   end
 
   def edit_transaction!(txn, amount: nil, description: nil, performed_by: nil)
-    with_lock do
+    with_lock(requires_new: true) do
       if amount.present? && amount.to_d != txn.amount
         raise ArgumentError, "#{txn.link_reason} - only the note can be changed" if txn.linked?
 
@@ -100,7 +100,7 @@ class Wallet < ApplicationRecord
   end
 
   def delete_transaction!(txn)
-    with_lock do
+    with_lock(requires_new: true) do
       raise ArgumentError, "#{txn.link_reason} - it cannot be deleted" if txn.linked?
 
       opening = opening_balance

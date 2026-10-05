@@ -23,6 +23,8 @@ module Subscribable
 
   included do
     has_many :subscriptions, -> { recent_first }, as: :subscriber, dependent: :destroy
+    # Paid before tracking began - history only, never affects status.
+    has_many :older_subscriptions, -> { order(starts_on: :desc, id: :desc) }, as: :subscriber, dependent: :destroy
 
     # Admin Subscriptions page tabs.
     scope :subscription_active,        -> { where("#{table_name}.subscription_expires_at > ?", Time.current) }
@@ -186,6 +188,12 @@ module Subscribable
     bump_subscription_cache_gen
   end
 
+  # Admin-set member_since, else the earliest subscription (older or
+  # tracked), else the account creation date.
+  def effective_member_since
+    member_since || [older_subscriptions.minimum(:starts_on), subscriptions.minimum(:starts_at)&.to_date, created_at&.to_date].compact.min
+  end
+
   def bump_subscription_cache_gen
     Rails.cache.write(Subscribable::CACHE_GEN_KEY, SecureRandom.hex(4))
   end
@@ -204,7 +212,8 @@ module Subscribable
       expires_at: subscription_expires_at,
       next_renewal_date: subscription_expires_at&.to_date,
       days_left: subscription_days_left,
-      renewal_window_days: RENEWAL_WINDOW_DAYS
+      renewal_window_days: RENEWAL_WINDOW_DAYS,
+      member_since: effective_member_since
     }
   end
 

@@ -53,6 +53,11 @@ module WalletManagement
     @transactions = paginate_records(@wallet.wallet_transactions.recent_first)
     @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
     @inactive_balance = @locked_holds.sum(&:amount)
+
+    # Entries a withdrawal / unlocked amount points at: note-only edits, no delete
+    txn_ids = @transactions.map(&:id)
+    @linked_txn_reasons = WithdrawalRequest.where(wallet_transaction_id: txn_ids).pluck(:wallet_transaction_id).index_with { 'approved withdrawal' }
+                                           .merge(WalletHold.where(wallet_transaction_id: txn_ids).pluck(:wallet_transaction_id).index_with { 'unlocked amount' })
   end
 
   def add_funds

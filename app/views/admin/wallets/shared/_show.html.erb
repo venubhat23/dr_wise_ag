@@ -21,6 +21,9 @@
     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#removeFundsModal">
       <i class="bi bi-dash-circle me-1"></i> Remove Amount
     </button>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#setBalanceModal">
+      <i class="bi bi-pencil-square me-1"></i> Set Balance
+    </button>
   </div>
 </div>
 
@@ -77,7 +80,7 @@
       <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
           <thead class="bg-light">
-            <tr><th class="border-0">Added on</th><th class="border-0">For</th><th class="border-0 text-end">Amount</th><th class="border-0">Unlocks</th></tr>
+            <tr><th class="border-0">Added on</th><th class="border-0">For</th><th class="border-0 text-end">Amount</th><th class="border-0">Unlocks</th><th class="border-0 text-end">Actions</th></tr>
           </thead>
           <tbody>
             <% @locked_holds.each do |hold| %>
@@ -86,6 +89,19 @@
                 <td><%= hold.description %></td>
                 <td class="text-end fw-semibold"><%= indian_currency(hold.amount) %></td>
                 <td><%= hold.unlock_condition %></td>
+                <td class="text-end text-nowrap">
+                  <button type="button" class="btn btn-sm btn-outline-primary" title="Edit locked amount"
+                          data-bs-toggle="modal" data-bs-target="#editHoldModal"
+                          data-url="<%= url_for(action: :update_hold, id: @owner.id, hold_id: hold.id) %>"
+                          data-amount="<%= hold.amount.to_f %>" data-description="<%= hold.description %>">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <%= button_to url_for(action: :unlock_hold, id: @owner.id, hold_id: hold.id), method: :post,
+                        class: "btn btn-sm btn-outline-success", title: "Unlock now", form_class: "d-inline",
+                        form: { data: { turbo_confirm: "Unlock #{indian_currency(hold.amount)} now? It moves to the active (withdrawable) wallet." } } do %>
+                    <i class="bi bi-unlock"></i> Unlock
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -112,6 +128,7 @@
               <th class="border-0 text-end">Balance After</th>
               <th class="border-0">Note</th>
               <th class="border-0">By</th>
+              <th class="border-0 text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -133,8 +150,34 @@
                   <%= txn.credit? ? '+' : '−' %><%= indian_currency(txn.amount) %>
                 </td>
                 <td class="text-end"><%= indian_currency(txn.balance_after) %></td>
-                <td><%= txn.description.presence || "—" %></td>
+                <td>
+                  <%= txn.description.presence || "—" %>
+                  <% if txn.edited? %>
+                    <span class="badge bg-secondary-subtle text-secondary ms-1" title="Edited <%= txn.edited_at.strftime('%d %b %Y, %I:%M %p') %> by <%= txn.edited_by.presence || 'admin' %>">edited</span>
+                  <% end %>
+                </td>
                 <td><small class="text-muted"><%= txn.performed_by.presence || "system" %></small></td>
+                <td class="text-end text-nowrap">
+                  <% linked = @linked_txn_reasons[txn.id] %>
+                  <button type="button" class="btn btn-sm btn-outline-primary" title="Edit"
+                          data-bs-toggle="modal" data-bs-target="#editTxnModal"
+                          data-url="<%= url_for(action: :update_transaction, id: @owner.id, txn_id: txn.id) %>"
+                          data-amount="<%= txn.amount.to_f %>" data-description="<%= txn.description %>"
+                          data-kind="<%= txn.credit? ? 'Amount Added' : 'Amount Removed' %>" data-linked="<%= linked %>">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <% if linked %>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Linked to an <%= linked %> - cannot be deleted">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  <% else %>
+                    <%= button_to url_for(action: :destroy_transaction, id: @owner.id, txn_id: txn.id), method: :delete,
+                          class: "btn btn-sm btn-outline-danger", title: "Delete", form_class: "d-inline",
+                          form: { data: { turbo_confirm: "Delete this #{txn.credit? ? 'credit' : 'debit'} of #{indian_currency(txn.amount)}? The wallet balance will be recalculated." } } do %>
+                      <i class="bi bi-trash"></i>
+                    <% end %>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -224,3 +267,126 @@
     </div>
   </div>
 </div>
+
+<!-- Set Balance Modal -->
+<div class="modal fade" id="setBalanceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: url_for(action: :set_balance, id: @owner.id), method: :post, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Set Active Balance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Current active balance: <strong><%= indian_currency(@wallet.balance) %></strong>.
+            The difference is recorded as an adjustment in the transaction history.
+          </p>
+          <div class="mb-3">
+            <label class="form-label">New active balance <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rs.</span>
+              <%= form.number_field :balance, step: '0.01', min: '0', required: true, class: "form-control", value: @wallet.balance.to_f %>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Note</label>
+            <%= form.text_field :description, class: "form-control", placeholder: "e.g. Correction after reconciliation" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Set Balance", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Transaction Modal (filled from the clicked row) -->
+<div class="modal fade" id="editTxnModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: '#', method: :patch, local: true, id: 'editTxnForm' do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Transaction &mdash; <span data-field="kind"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning small py-2 d-none" data-field="linked-note"></div>
+          <div class="mb-3">
+            <label class="form-label">Amount <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rs.</span>
+              <%= form.number_field :amount, step: '0.01', min: '0.01', required: true, class: "form-control" %>
+            </div>
+            <div class="form-text">Every later "Balance After" and the wallet balance are recalculated.</div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Note</label>
+            <%= form.text_field :description, class: "form-control" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Save Changes", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Locked Amount Modal -->
+<div class="modal fade" id="editHoldModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: '#', method: :patch, local: true, id: 'editHoldForm' do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Locked Amount</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Amount <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text">Rs.</span>
+              <%= form.number_field :amount, step: '0.01', min: '0.01', required: true, class: "form-control" %>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">For</label>
+            <%= form.text_field :description, class: "form-control" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Save Changes", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fill the shared edit modals from the clicked row's data-* attributes
+  document.querySelectorAll('#editTxnModal, #editHoldModal').forEach(function(modal) {
+    modal.addEventListener('show.bs.modal', function(e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var form = modal.querySelector('form');
+      form.action = btn.dataset.url;
+      var amount = form.querySelector('[name="amount"]');
+      amount.value = btn.dataset.amount;
+      form.querySelector('[name="description"]').value = btn.dataset.description || '';
+      var kind = modal.querySelector('[data-field="kind"]');
+      if (kind) kind.textContent = btn.dataset.kind;
+      var note = modal.querySelector('[data-field="linked-note"]');
+      if (note) {
+        var linked = btn.dataset.linked;
+        amount.readOnly = !!linked;
+        note.classList.toggle('d-none', !linked);
+        note.textContent = linked ? 'Linked to an ' + linked + ' - only the note can be changed.' : '';
+      }
+    });
+  });
+</script>

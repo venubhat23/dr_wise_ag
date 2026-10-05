@@ -1,0 +1,167 @@
+<%# Member since + older (pre-tracking) subscriptions for the admin affiliate /
+    ambassador show pages. History only - never changes subscription status.
+    Locals: record (SubAgent / Distributor), base_url (…/older_subscriptions),
+    member_since_url. %>
+<% olders = record.older_subscriptions.to_a %>
+<div class="card border-0 shadow-sm mb-4" id="older-subscriptions">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center flex-wrap gap-2">
+    <i class="bi bi-clock-history me-1 text-primary"></i>
+    <h5 class="mb-0">Membership History</h5>
+    <span class="badge bg-primary-subtle text-primary">
+      <i class="bi bi-award me-1"></i>Member since <%= record.effective_member_since&.strftime('%d %b %Y') || '—' %>
+      <%= '(auto)' unless record.member_since %>
+    </span>
+    <div class="ms-auto d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#memberSinceModal">
+        <i class="bi bi-calendar-event me-1"></i>Member Since
+      </button>
+      <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#olderSubModal"
+              data-url="<%= base_url %>" data-method="post" data-title="Add Older Subscription">
+        <i class="bi bi-plus-circle me-1"></i>Add Older Subscription
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Subscriptions paid before the app tracked them. They are shown in the app's membership history only and
+      do not change the current subscription status.
+    </p>
+    <% if olders.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Period</th><th class="text-end">Amount Paid</th><th>Paid On</th><th>Note</th><th class="text-end">Actions</th></tr>
+          </thead>
+          <tbody>
+            <% olders.each do |o| %>
+              <tr>
+                <td><%= o.starts_on.strftime('%d %b %Y') %> – <%= o.ends_on.strftime('%d %b %Y') %></td>
+                <td class="text-end fw-semibold"><%= indian_currency(o.amount) %></td>
+                <td><%= o.paid_on&.strftime('%d %b %Y') || '—' %></td>
+                <td><%= o.notes.presence || '—' %></td>
+                <td class="text-end text-nowrap">
+                  <button type="button" class="btn btn-sm btn-outline-primary" title="Edit"
+                          data-bs-toggle="modal" data-bs-target="#olderSubModal"
+                          data-url="<%= "#{base_url}/#{o.id}" %>" data-method="patch" data-title="Edit Older Subscription"
+                          data-starts-on="<%= o.starts_on %>" data-ends-on="<%= o.ends_on %>" data-amount="<%= o.amount.to_f %>"
+                          data-paid-on="<%= o.paid_on %>" data-notes="<%= o.notes %>">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <%= button_to "#{base_url}/#{o.id}", method: :delete, class: "btn btn-sm btn-outline-danger", title: "Delete", form_class: "d-inline",
+                        form: { data: { turbo_confirm: "Remove the older subscription #{o.starts_on.strftime('%d %b %Y')} – #{o.ends_on.strftime('%d %b %Y')}?" } } do %>
+                    <i class="bi bi-trash"></i>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot>
+            <tr class="fw-bold">
+              <td>Total (<%= pluralize(olders.size, 'period') %>)</td>
+              <td class="text-end text-success"><%= indian_currency(olders.sum(&:amount)) %></td>
+              <td colspan="3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center text-muted py-3">
+        <i class="bi bi-inbox fs-3 d-block mb-1"></i>No older subscriptions recorded.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Member Since Modal -->
+<div class="modal fade" id="memberSinceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: member_since_url, method: :patch, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title">Member Since</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Member since</label>
+          <%= form.date_field :member_since, value: record.member_since, class: "form-control" %>
+          <div class="form-text">Leave blank to use the earliest subscription date (or the account creation date).</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Save", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Older Subscription Modal (filled from the clicked button) -->
+<div class="modal fade" id="olderSubModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: base_url, method: :post, local: true do |form| %>
+        <div class="modal-header">
+          <h5 class="modal-title" data-field="title">Add Older Subscription</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">From <span class="text-danger">*</span></label>
+              <%= form.date_field :starts_on, required: true, class: "form-control" %>
+            </div>
+            <div class="col-6">
+              <label class="form-label">To <span class="text-danger">*</span></label>
+              <%= form.date_field :ends_on, required: true, class: "form-control" %>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Amount paid <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">Rs.</span>
+                <%= form.number_field :amount, step: '0.01', min: '0', required: true, class: "form-control" %>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Paid on</label>
+              <%= form.date_field :paid_on, class: "form-control" %>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Note</label>
+              <%= form.text_field :notes, class: "form-control", placeholder: "e.g. Paid by cheque, offline receipt no." %>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= form.submit "Save", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var modal = document.getElementById('olderSubModal');
+    if (!modal) return;
+    modal.addEventListener('show.bs.modal', function(e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var form = modal.querySelector('form');
+      form.action = btn.dataset.url;
+      // Rails reads the real verb from the hidden _method field
+      var methodInput = form.querySelector('input[name="_method"]');
+      if (!methodInput) {
+        methodInput = document.createElement('input');
+        methodInput.type = 'hidden'; methodInput.name = '_method';
+        form.appendChild(methodInput);
+      }
+      methodInput.value = btn.dataset.method || 'post';
+      modal.querySelector('[data-field="title"]').textContent = btn.dataset.title;
+      ['starts_on', 'ends_on', 'amount', 'paid_on', 'notes'].forEach(function(name) {
+        var key = name.replace(/_(\w)/g, function(_, c) { return c.toUpperCase(); });
+        form.querySelector('[name="' + name + '"]').value = btn.dataset[key] || '';
+      });
+    });
+  })();
+</script>

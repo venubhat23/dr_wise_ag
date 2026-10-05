@@ -351,6 +351,11 @@
           cancel_url: cancel_subscription_admin_distributor_path(@distributor),
           destroy_url: destroy_subscription_admin_distributor_path(@distributor),
           name_fallback: 'Unnamed Ambassador', owner_label: 'ambassador' %>
+
+    <!-- Membership history: member since + older (pre-app) subscriptions -->
+    <%= render 'admin/shared/older_subscriptions_card', record: @distributor,
+          base_url: admin_distributor_older_subscriptions_path(@distributor),
+          member_since_url: member_since_admin_distributor_older_subscriptions_path(@distributor) %>
   </div>
 
   <!-- Sidebar -->

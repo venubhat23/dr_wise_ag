@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_05_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -551,6 +551,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
     t.string "nominee_relation"
     t.date "nominee_date_of_birth"
     t.string "nominee_mobile"
+    t.date "member_since"
     t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
@@ -1432,6 +1433,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
     t.index ["sent_at"], name: "index_notifications_on_sent_at"
   end
 
+  create_table "older_subscriptions", force: :cascade do |t|
+    t.string "subscriber_type", null: false
+    t.bigint "subscriber_id", null: false
+    t.date "starts_on", null: false
+    t.date "ends_on", null: false
+    t.decimal "amount", precision: 10, scale: 2, default: "0.0", null: false
+    t.date "paid_on"
+    t.text "notes"
+    t.string "created_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["subscriber_type", "subscriber_id"], name: "index_older_subscriptions_on_subscriber"
+  end
+
   create_table "other_insurance_documents", force: :cascade do |t|
     t.bigint "other_insurance_id", null: false
     t.string "document_type"
@@ -1968,6 +1983,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
     t.string "nominee_relation"
     t.date "nominee_date_of_birth"
     t.string "nominee_mobile"
+    t.date "member_since"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true
@@ -2198,6 +2214,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
     t.string "performed_by"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "edited_at"
+    t.string "edited_by"
     t.index ["created_at"], name: "index_wallet_transactions_on_created_at"
     t.index ["wallet_id"], name: "index_wallet_transactions_on_wallet_id"
   end

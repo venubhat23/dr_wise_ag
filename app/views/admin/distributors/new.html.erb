@@ -115,6 +115,11 @@
           <%= form.label :birth_date, "Birth Date", class: "form-label" %>
           <%= form.date_field :birth_date, class: "form-control", min: "1900-01-01", max: "2099-12-31" %>
         </div>
+        <div class="col-md-4">
+          <%= form.label :member_since, "Member Since", class: "form-label" %>
+          <%= form.date_field :member_since, class: "form-control", max: Date.today.strftime("%Y-%m-%d") %>
+          <small class="form-text text-muted">Leave blank to use the first subscription / joining date.</small>
+        </div>
       </div>
 
       <div class="row mt-3">

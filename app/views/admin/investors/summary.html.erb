@@ -487,8 +487,8 @@
         <!-- Ambassador direct policies -->
         <% if row[:policy_rows].any? %>
           <div class="aff-section" style="border-top:1px solid #f0f0f0;">
-            <button class="aff-toggle" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#amb-pol-<%= idx %>"
+            <button class="aff-toggle" type="button"
+                    data-aff-collapse="#amb-pol-<%= idx %>"
                     aria-expanded="false" aria-controls="amb-pol-<%= idx %>">
               <i class="bi bi-file-earmark-text me-1"></i>
               Ambassador Policies (<%= row[:policies] %>)
@@ -506,8 +506,8 @@
         <!-- Affiliates section -->
         <% if row[:affiliates].any? %>
           <div class="aff-section" style="border-top:1px solid #f0f0f0;">
-            <button class="aff-toggle" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#aff-<%= idx %>"
+            <button class="aff-toggle" type="button"
+                    data-aff-collapse="#aff-<%= idx %>"
                     aria-expanded="false" aria-controls="aff-<%= idx %>"
                     style="border-color:#f9d8a0; background:#fef9ec; color:#b7650c;">
               <i class="bi bi-people me-1"></i>
@@ -525,8 +525,8 @@
                   <span class="<%= af[:commission_paid] > 0 ? 'paid-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Paid: <%= indian_currency(af[:commission_paid].round(2)) %></span>
                   <span class="<%= af[:commission_pending] > 0 ? 'pending-amt' : 'zero-amt' %>" style="font-size:.8rem; font-weight:600;">Pending: <%= indian_currency(af[:commission_pending].round(2)) %></span>
                   <% if af[:policy_rows].any? %>
-                    <button class="aff-toggle ms-auto" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#af-pol-<%= idx %>-<%= aidx %>"
+                    <button class="aff-toggle ms-auto" type="button"
+                            data-aff-collapse="#af-pol-<%= idx %>-<%= aidx %>"
                             aria-expanded="false" aria-controls="af-pol-<%= idx %>-<%= aidx %>"
                             style="border-color:#a9dfbf; background:#eafaf1; color:#1a7a45;">
                       <i class="bi bi-list-ul me-1"></i> Policy Breakdown
@@ -943,7 +943,21 @@
   <i class="bi bi-printer me-1"></i> Print Report
 </button>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<%# Bootstrap JS comes from the layout - loading it again here doubled every toggle handler %>
+<script>
+  // Ambassador Policies / Affiliates / Policy Breakdown toggles. Own handler
+  // (not data-bs-toggle) so the layout's Bootstrap and application.js's
+  // collapse handler can't both fire and re-open a section being closed.
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-aff-collapse]');
+    if (!btn) return;
+    var target = document.querySelector(btn.dataset.affCollapse);
+    if (!target) return;
+    var open = !target.classList.contains('show');
+    target.classList.toggle('show', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>
 (function() {

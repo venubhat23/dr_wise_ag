@@ -5,6 +5,7 @@
 #
 #   GET  /api/v1/mobile/subscription          current status + next renewal date
 #   GET  /api/v1/mobile/subscription/history  every paid year
+#   GET  /api/v1/mobile/subscription/older    member since + older (pre-app) paid periods
 #   POST /api/v1/mobile/subscription/order    create Razorpay order (renewal or first payment)
 #   POST /api/v1/mobile/subscription/verify   verify Checkout signature, extend by 1 year
 class Api::V1::Mobile::SubscriptionController < Api::V1::Mobile::BaseController
@@ -18,6 +19,24 @@ class Api::V1::Mobile::SubscriptionController < Api::V1::Mobile::BaseController
     render_success({
       subscription: @owner.subscription_summary,
       history: @owner.subscriptions.map(&:as_api_json)
+    })
+  end
+
+  # Older subscriptions (paid before the app tracked them, entered by admin),
+  # what was paid, and the member-since date.
+  def older
+    older = @owner.older_subscriptions.to_a
+    older_total = older.sum(&:amount)
+    tracked_total = @owner.subscriptions.sum(&:amount)
+
+    render_success({
+      member_since: @owner.effective_member_since,
+      member_since_set_by_admin: @owner.member_since.present?,
+      older_subscriptions: older.map(&:as_api_json),
+      older_subscriptions_count: older.size,
+      older_total_paid: older_total.to_f,
+      subscriptions_total_paid: tracked_total.to_f,
+      total_paid: (older_total + tracked_total).to_f
     })
   end
 
