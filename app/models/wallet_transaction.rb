@@ -15,4 +15,24 @@ class WalletTransaction < ApplicationRecord
   def debit?
     txn_type == 'debit'
   end
+
+  # Entries other records point at: their amount must stay as is.
+  def linked?
+    link_reason.present?
+  end
+
+  def link_reason
+    return @link_reason if defined?(@link_reason)
+
+    @link_reason =
+      if WithdrawalRequest.exists?(wallet_transaction_id: id)
+        'This entry is an approved withdrawal'
+      elsif WalletHold.exists?(wallet_transaction_id: id)
+        'This entry is an unlocked amount'
+      end
+  end
+
+  def edited?
+    edited_at.present?
+  end
 end

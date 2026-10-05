@@ -14,7 +14,8 @@ module WalletManagement
 
   included do
     include ConfigurablePagination
-    before_action :set_owner, only: [:show, :add_funds, :remove_funds]
+    before_action :set_owner, only: [:show, :add_funds, :remove_funds, :set_balance,
+                                     :update_transaction, :destroy_transaction, :update_hold, :unlock_hold]
     before_action :build_wallet_config
   end
 
@@ -62,7 +63,62 @@ module WalletManagement
     apply_wallet_change(:debit)
   end
 
+  # Admin corrections. The mobile wallet APIs read these same rows, so the
+  # app shows the change on its next load.
+
+  def set_balance
+    wallet_action do |wallet|
+      wallet.set_balance!(parse_amount(params[:balance]), description: params[:description].to_s.strip, performed_by: current_user&.email)
+      "Active balance set to #{helpers.indian_currency(wallet.reload.balance)}."
+    end
+  end
+
+  def update_transaction
+    wallet_action do |wallet|
+      txn = wallet.wallet_transactions.find(params[:txn_id])
+      wallet.edit_transaction!(txn, amount: params[:amount].presence && parse_amount(params[:amount]),
+                                    description: params[:description].to_s.strip, performed_by: current_user&.email)
+      'Transaction updated and balances recalculated.'
+    end
+  end
+
+  def destroy_transaction
+    wallet_action do |wallet|
+      wallet.delete_transaction!(wallet.wallet_transactions.find(params[:txn_id]))
+      'Transaction deleted and balances recalculated.'
+    end
+  end
+
+  def update_hold
+    wallet_action do |wallet|
+      hold = wallet.wallet_holds.find(params[:hold_id])
+      wallet.edit_hold!(hold, amount: params[:amount].presence && parse_amount(params[:amount]), description: params[:description].to_s.strip)
+      'Locked amount updated.'
+    end
+  end
+
+  def unlock_hold
+    wallet_action do |wallet|
+      hold = wallet.wallet_holds.find(params[:hold_id])
+      raise ArgumentError, 'This amount is already unlocked' unless wallet.release_hold!(hold, performed_by: current_user&.email)
+      "#{helpers.indian_currency(hold.amount)} unlocked and moved to the active wallet."
+    end
+  end
+
   private
+
+  def wallet_action
+    begin
+      flash[:notice] = yield(@owner.wallet!)
+    rescue ArgumentError, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
+      flash[:alert] = e.message
+    end
+    redirect_to wallet_entity_path(@owner)
+  end
+
+  def parse_amount(value)
+    value.to_s.gsub(/[,\s]/, '').to_d
+  end
 
   def apply_wallet_change(direction)
     wallet = @owner.wallet!

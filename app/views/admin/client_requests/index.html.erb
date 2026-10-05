@@ -167,7 +167,7 @@
           </thead>
           <tbody>
             <% @client_requests.each do |request| %>
-              <tr>
+              <tr class="<%= 'table-success cr-row-resolved' if request.status == 'resolved' %>">
                 <td>
                   <div class="d-flex align-items-center">
                     <span class="badge bg-primary-subtle text-primary">
@@ -277,6 +277,11 @@
     <% end %>
   </div>
 </div>
+
+<style>
+  /* Resolved requests: whole row green with a green edge */
+  .cr-row-resolved > td:first-child { border-left: 4px solid #198754; }
+</style>
 
 <script>
 function updateStatus(requestId, status) {

@@ -62,6 +62,63 @@ class Wallet < ApplicationRecord
     end
   end
 
+  # --- Admin corrections -------------------------------------------------
+  # Each one rewrites the ledger and then recalculates every balance_after
+  # (oldest first) and the wallet balance, rolling back if the balance would
+  # go below zero at any point.
+
+  # Sets the active balance to `target` by recording the difference as a
+  # credit / debit, so the history still adds up.
+  def set_balance!(target, description: nil, performed_by: nil)
+    target = target.to_d
+    raise ArgumentError, 'Balance cannot be negative' if target.negative?
+
+    diff = target - balance
+    raise ArgumentError, "Balance is already #{balance.to_f}" if diff.zero?
+
+    note = description.presence || "Balance adjusted from #{balance.to_f} to #{target.to_f}"
+    diff.positive? ? credit!(diff, description: note, performed_by: performed_by) : debit!(-diff, description: note, performed_by: performed_by)
+  end
+
+  def edit_transaction!(txn, amount: nil, description: nil, performed_by: nil)
+    with_lock do
+      if amount.present? && amount.to_d != txn.amount
+        raise ArgumentError, "#{txn.link_reason} - only the note can be changed" if txn.linked?
+
+        txn.amount = normalize_amount(amount)
+      end
+      txn.description = description unless description.nil?
+      return txn unless txn.changed?
+
+      opening = opening_balance
+      txn.edited_at = Time.current
+      txn.edited_by = performed_by
+      txn.save!
+      recalculate_balances!(opening)
+      txn
+    end
+  end
+
+  def delete_transaction!(txn)
+    with_lock do
+      raise ArgumentError, "#{txn.link_reason} - it cannot be deleted" if txn.linked?
+
+      opening = opening_balance
+      txn.destroy!
+      recalculate_balances!(opening)
+    end
+  end
+
+  # Locked (inactive) amounts: change amount / note while still locked.
+  def edit_hold!(hold, amount: nil, description: nil)
+    raise ArgumentError, 'Only locked amounts can be edited' unless hold.locked?
+
+    hold.amount = normalize_amount(amount) if amount.present?
+    hold.description = description unless description.nil?
+    hold.save!
+    hold
+  end
+
   def total_credited
     wallet_transactions.where(txn_type: 'credit').sum(:amount)
   end
@@ -86,6 +143,24 @@ class Wallet < ApplicationRecord
         performed_by: performed_by
       )
     end
+  end
+
+  # Whatever part of the balance the ledger doesn't explain (0 for a clean
+  # ledger) - kept as the starting point so a recalculation never moves it.
+  def opening_balance
+    balance - (total_credited - total_debited)
+  end
+
+  def recalculate_balances!(opening)
+    running = opening
+    wallet_transactions.reload.sort_by { |t| [t.created_at, t.id] }.each do |t|
+      running += t.credit? ? t.amount : -t.amount
+      if running.negative?
+        raise ArgumentError, "This change would make the balance negative on #{t.created_at.strftime('%d %b %Y')} (#{t.description})"
+      end
+      t.update_columns(balance_after: running) if t.balance_after != running
+    end
+    update!(balance: running)
   end
 
   def normalize_amount(amount)
