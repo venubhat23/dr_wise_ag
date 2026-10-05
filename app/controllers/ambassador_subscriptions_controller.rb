@@ -12,6 +12,8 @@ class AmbassadorSubscriptionsController < ApplicationController
   def show
     @amount = @distributor.payment_amount_due
     @subscriptions = @distributor.subscriptions.to_a
+    @older_subscriptions = @distributor.older_subscriptions.to_a
+    @member_since = @distributor.effective_member_since
   end
 
   # POST /ambassador/subscription/order (AJAX)

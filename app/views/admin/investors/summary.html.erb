@@ -948,15 +948,20 @@
   // Ambassador Policies / Affiliates / Policy Breakdown toggles. Own handler
   // (not data-bs-toggle) so the layout's Bootstrap and application.js's
   // collapse handler can't both fire and re-open a section being closed.
-  document.addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-aff-collapse]');
-    if (!btn) return;
-    var target = document.querySelector(btn.dataset.affCollapse);
-    if (!target) return;
-    var open = !target.classList.contains('show');
-    target.classList.toggle('show', open);
-    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
+  // Bound once per browser tab: Turbo re-runs this script on every visit but
+  // keeps `document`, and a second listener would undo each click.
+  if (!window.affCollapseBound) {
+    window.affCollapseBound = true;
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-aff-collapse]');
+      if (!btn) return;
+      var target = document.querySelector(btn.dataset.affCollapse);
+      if (!target) return;
+      var open = !target.classList.contains('show');
+      target.classList.toggle('show', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script>

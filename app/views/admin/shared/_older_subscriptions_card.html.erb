@@ -149,6 +149,11 @@
       if (!btn) return;
       var form = modal.querySelector('form');
       form.action = btn.dataset.url;
+      // Per-form token is bound to the original URL/verb; once those change
+      // Rails rejects it, so send the page's session token instead.
+      var meta = document.querySelector('meta[name="csrf-token"]');
+      var tokenInput = form.querySelector('input[name="authenticity_token"]');
+      if (meta && tokenInput) tokenInput.value = meta.content;
       // Rails reads the real verb from the hidden _method field
       var methodInput = form.querySelector('input[name="_method"]');
       if (!methodInput) {

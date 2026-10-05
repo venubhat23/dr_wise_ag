@@ -53,6 +53,10 @@
         <span class="sub-card__stat-value"><%= expires_at.strftime('%d %b %Y') %></span>
       </div>
       <div>
+        <span class="sub-card__stat-label">Member Since</span>
+        <span class="sub-card__stat-value"><%= distributor.effective_member_since&.strftime('%d %b %Y') || "-" %></span>
+      </div>
+      <div>
         <span class="sub-card__stat-label">Amount Paid</span>
         <span class="sub-card__stat-value"><%= current&.amount ? indian_currency(current.amount.to_i) : "-" %></span>
       </div>

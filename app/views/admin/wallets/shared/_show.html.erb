@@ -368,6 +368,14 @@
 </div>
 
 <script>
+  // The form's own token is per-form (bound to its placeholder URL), so once
+  // the action changes Rails rejects it - use the page's session token.
+  function useSessionCsrfToken(form) {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var input = form.querySelector('input[name="authenticity_token"]');
+    if (meta && input) input.value = meta.content;
+  }
+
   // Fill the shared edit modals from the clicked row's data-* attributes
   document.querySelectorAll('#editTxnModal, #editHoldModal').forEach(function(modal) {
     modal.addEventListener('show.bs.modal', function(e) {
@@ -375,6 +383,7 @@
       if (!btn) return;
       var form = modal.querySelector('form');
       form.action = btn.dataset.url;
+      useSessionCsrfToken(form);
       var amount = form.querySelector('[name="amount"]');
       amount.value = btn.dataset.amount;
       form.querySelector('[name="description"]').value = btn.dataset.description || '';

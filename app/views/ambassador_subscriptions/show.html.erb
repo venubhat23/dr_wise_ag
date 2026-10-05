@@ -25,6 +25,9 @@
   .sub-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 12px; background: #f8f9fd; border: 1px solid #f0f1f8; margin-bottom: 8px; font-size: 13px; }
   .sub-row .kind { font-weight: 600; text-transform: capitalize; }
   .sub-row .period { color: #6b7280; font-size: 12px; }
+  .sub-member { margin: 16px 22px 0; padding: 10px 14px; border-radius: 12px; background: #f3f1ff; color: #4338ca; font-size: 13px; font-weight: 600; text-align: center; }
+  .sub-row.older { background: #fbfaf5; border-color: #f1ecd9; }
+  .sub-total { display: flex; justify-content: space-between; padding: 10px 12px; font-size: 13px; font-weight: 700; color: #065f46; background: #ecfdf5; border-radius: 12px; }
 </style>
 
 <div class="sub-wrap">
@@ -71,6 +74,10 @@
       <% end %>
     </div>
 
+    <% if @member_since %>
+      <div class="sub-member"><i class="fas fa-award me-1"></i>Member since <%= @member_since.strftime('%d %b %Y') %></div>
+    <% end %>
+
     <div class="sub-actions">
       <div id="payErrorBox" class="alert alert-danger small mb-3 text-start" style="display:none;"></div>
       <% if @distributor.subscription_payment_due? %>
@@ -95,6 +102,25 @@
             <div class="fw-bold"><%= indian_currency(sub.amount) %></div>
           </div>
         <% end %>
+      </div>
+    <% end %>
+
+    <% if @older_subscriptions.any? %>
+      <div class="sub-history">
+        <h2>Older subscriptions</h2>
+        <% @older_subscriptions.each do |older| %>
+          <div class="sub-row older">
+            <div>
+              <div class="kind">Membership<%= " · #{older.notes}" if older.notes.present? %></div>
+              <div class="period"><%= older.starts_on.strftime('%d %b %Y') %> → <%= older.ends_on.strftime('%d %b %Y') %><%= " · paid #{older.paid_on.strftime('%d %b %Y')}" if older.paid_on %></div>
+            </div>
+            <div class="fw-bold"><%= indian_currency(older.amount) %></div>
+          </div>
+        <% end %>
+        <div class="sub-total">
+          <span>Total paid (all years)</span>
+          <span><%= indian_currency(@older_subscriptions.sum(&:amount) + @subscriptions.sum(&:amount)) %></span>
+        </div>
       </div>
     <% end %>
   </div>
