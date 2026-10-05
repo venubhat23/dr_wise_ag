@@ -5,6 +5,7 @@ class LifeInsurance < ApplicationRecord
   include ClearsAnalyticsCache
   include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
+  include CompanyExpensesAmount
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count

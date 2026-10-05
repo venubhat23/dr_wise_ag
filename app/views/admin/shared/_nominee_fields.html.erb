@@ -1,0 +1,32 @@
+<%# Nominee section for affiliate (sub_agent) / ambassador (distributor) forms. Locals: form, record %>
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-people me-2 text-danger"></i>
+    <h5 class="mb-0">Nominee Details <span class="text-muted fw-normal fs-6">(Optional)</span></h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <%= form.label :nominee_name, "Nominee Name", class: "form-label" %>
+        <%= form.text_field :nominee_name, class: "form-control", placeholder: "Enter nominee full name" %>
+      </div>
+      <div class="col-md-6">
+        <%= form.label :nominee_relation, "Relationship", class: "form-label" %>
+        <%= form.select :nominee_relation,
+            options_for_select(Customer::NOMINEE_RELATIONS.map { |r| [r.titleize, r] }, record.nominee_relation),
+            { prompt: 'Select Relationship' },
+            { class: "form-select" } %>
+      </div>
+    </div>
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <%= form.label :nominee_date_of_birth, "Nominee Date of Birth", class: "form-label" %>
+        <%= form.date_field :nominee_date_of_birth, class: "form-control", max: Date.current %>
+      </div>
+      <div class="col-md-6">
+        <%= form.label :nominee_mobile, "Nominee Mobile", class: "form-label" %>
+        <%= form.telephone_field :nominee_mobile, class: "form-control", placeholder: "Enter 10-digit mobile", maxlength: 10, pattern: "[6-9][0-9]{9}" %>
+      </div>
+    </div>
+  </div>
+</div>

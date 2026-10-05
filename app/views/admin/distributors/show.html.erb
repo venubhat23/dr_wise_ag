@@ -147,6 +147,36 @@
       </div>
     </div>
 
+    <!-- Nominee Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent border-0">
+        <h5 class="mb-0">
+          <i class="bi bi-people me-2 text-danger"></i>
+          Nominee Details
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Nominee Name</label>
+            <p class="mb-0"><%= @distributor.nominee_name.presence || 'Not provided' %></p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Relationship</label>
+            <p class="mb-0"><%= @distributor.nominee_relation&.titleize.presence || 'Not provided' %></p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Date of Birth</label>
+            <p class="mb-0"><%= @distributor.nominee_date_of_birth&.strftime('%d %b %Y') || 'Not provided' %></p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label text-muted">Mobile</label>
+            <p class="mb-0"><%= @distributor.nominee_mobile.presence || 'Not provided' %></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Assigned Affiliates -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center header-affiliates">

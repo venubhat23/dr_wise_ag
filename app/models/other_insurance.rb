@@ -2,6 +2,7 @@ class OtherInsurance < ApplicationRecord
   include ClearsAnalyticsCache
   include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
+  include CompanyExpensesAmount
   belongs_to :policy, optional: true
   belongs_to :customer
   belongs_to :sub_agent, optional: true

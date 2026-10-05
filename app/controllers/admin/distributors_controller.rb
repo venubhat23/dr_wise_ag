@@ -532,6 +532,7 @@ class Admin::DistributorsController < Admin::ApplicationController
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :investor_id,
       :password, :password_confirmation, :profile_image,
+      :nominee_name, :nominee_relation, :nominee_date_of_birth, :nominee_mobile,
       assigned_affiliate_ids: [],
       distributor_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]

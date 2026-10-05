@@ -15,10 +15,6 @@
         <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-excel me-2"></i>Export as Excel</a></li>
       </ul>
     </div>
-    <button class="btn btn-success" onclick="sendBulkNotifications()">
-      <i class="bi bi-bell me-1"></i>
-      Notify All
-    </button>
   </div>
 </div>
 
@@ -223,7 +219,9 @@
                   <% end %>
                 </td>
                 <td>
-                  <%= request.status.humanize %>
+                  <span class="badge <%= request.status_badge_class %>">
+                    <% if request.status == 'resolved' %><i class="bi bi-check-circle me-1"></i><% end %><%= request.status.humanize %>
+                  </span>
                 </td>
                 <td>
                   <div>
@@ -302,12 +300,5 @@ function updateStatus(requestId, status) {
     console.error('Error:', error);
     alert('An error occurred while updating status');
   });
-}
-
-function sendBulkNotifications() {
-  if (confirm('Are you sure you want to send notifications to all pending client requests?')) {
-    // Implementation for bulk notification sending
-    alert('Feature coming soon! This will send status updates to all clients with pending requests.');
-  }
 }
 </script>

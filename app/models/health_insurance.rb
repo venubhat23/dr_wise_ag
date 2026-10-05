@@ -5,6 +5,7 @@ class HealthInsurance < ApplicationRecord
   include ClearsAnalyticsCache
   include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
+  include CompanyExpensesAmount
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count
@@ -35,7 +36,7 @@ class HealthInsurance < ApplicationRecord
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Virtual attributes
-  attr_accessor :main_policy_document, :sum_insured_text, :company_expenses_amount,
+  attr_accessor :main_policy_document, :sum_insured_text,
                 :main_policy_document_key, :main_policy_document_filename,
                 :main_policy_document_content_type, :main_policy_document_size
 

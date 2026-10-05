@@ -58,11 +58,13 @@ class Customer < ApplicationRecord
   validates :gst_no, presence: true, if: :corporate?
 
   # Nominee Details (mandatory for individual customers only)
+  NOMINEE_RELATIONS = %w[father mother spouse son daughter brother sister other].freeze
+
   validates :nominee_name, presence: true, if: :individual?
   validates :nominee_relation, presence: true, if: :individual?
   validates :nominee_date_of_birth, presence: true, if: :individual?
   validates :nominee_relation, inclusion: {
-    in: ['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'],
+    in: NOMINEE_RELATIONS,
     message: "must be a valid relationship"
   }, if: :individual?
 

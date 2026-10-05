@@ -31,6 +31,10 @@ class Distributor < ApplicationRecord
     }
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
+  # Nominee is optional for affiliates/ambassadors
+  validates :nominee_relation, inclusion: { in: Customer::NOMINEE_RELATIONS, message: "must be a valid relationship" }, allow_blank: true
+  validates :nominee_mobile, format: { with: /\A[6-9]\d{9}\z/, message: "must be a valid 10-digit mobile number" }, allow_blank: true
+
   # Validations
   # Self-registered ambassadors sign up with only email/mobile/password and stay
   # inactive+pending until an admin approves their KYC, so name is only enforced

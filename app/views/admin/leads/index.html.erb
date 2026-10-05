@@ -218,6 +218,10 @@
                 ['Campaign', 'campaign']
               ], params[:lead_source]), {}, { class: "form-select" } %>
             </div>
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Vendor</label>
+              <%= form.select :vendor_id, options_for_select([['All Vendors', ''], ['Any vendor (assigned)', 'any']] + @vendors_for_filter.map { |v| [v.display_name, v.id] }, params[:vendor_id]), {}, { class: "form-select" } %>
+            </div>
             <div class="col-lg-2 col-md-12">
               <div class="d-flex gap-2">
                 <%= form.submit "Apply", class: "btn btn-primary" do %>
@@ -234,6 +238,13 @@
       </div>
     </div>
 
+    <% if params[:vendor_id].present? && @vendor_other_tab_count.to_i > 0 %>
+      <div class="alert alert-info py-2 small">
+        <i class="bi bi-info-circle me-1"></i><%= pluralize(@vendor_other_tab_count, 'more lead') %> for this vendor filter <%= @vendor_other_tab_count == 1 ? 'is' : 'are' %> on the
+        <%= link_to 'Converted tab', admin_leads_path(tab: 'converted', vendor_id: params[:vendor_id]), class: 'alert-link' %>.
+      </div>
+    <% end %>
+
     <!-- Active Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-active">
       <div class="card-header bg-transparent border-0">
@@ -247,6 +258,7 @@
                 <th class="border-0">Lead Details</th>
                 <th class="border-0">Contact Information</th>
                 <th class="border-0">Product & Affiliate</th>
+                <th class="border-0">Vendor</th>
                 <th class="border-0">Current Stage</th>
                 <th class="border-0">Actions</th>
               </tr>
@@ -292,6 +304,15 @@
                           <% end %>
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      <% if lead.vendor %>
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                          <i class="bi bi-shop me-1"></i><%= truncate(lead.vendor.display_name, length: 22) %>
+                        </span>
+                      <% else %>
+                        <span class="text-muted small">—</span>
+                      <% end %>
                     </td>
                     <td>
                       <%= lead.current_stage&.humanize || 'Unknown' %>
@@ -394,7 +415,7 @@
               <% else %>
                 <% if params[:tab] != 'converted' %>
                   <tr>
-                    <td colspan="7" class="text-center py-5">
+                    <td colspan="8" class="text-center py-5">
                       <div class="text-muted">
                         <i class="bi bi-funnel fs-1 mb-3 d-block"></i>
                         <h5>No active leads found</h5>
@@ -450,11 +471,11 @@
               <label class="form-label small text-muted mb-1">Search Clients</label>
               <%= form.text_field :search, placeholder: "Search by name, phone, email...", value: params[:search], class: "form-control" %>
             </div>
-            <div class="col-lg-3 col-md-6">
+            <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Category</label>
               <%= form.select :product_category, options_for_select([['All Categories', '']] + lead_product_category_options, params[:product_category]), {}, { class: "form-select" } %>
             </div>
-            <div class="col-lg-3 col-md-6">
+            <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Source</label>
               <%= form.select :lead_source, options_for_select([
                 ['All Sources', ''],
@@ -465,6 +486,10 @@
                 ['Tele-calling', 'tele_calling'],
                 ['Campaign', 'campaign']
               ], params[:lead_source]), {}, { class: "form-select" } %>
+            </div>
+            <div class="col-lg-2 col-md-6">
+              <label class="form-label small text-muted mb-1">Vendor</label>
+              <%= form.select :vendor_id, options_for_select([['All Vendors', ''], ['Any vendor (assigned)', 'any']] + @vendors_for_filter.map { |v| [v.display_name, v.id] }, params[:vendor_id]), {}, { class: "form-select" } %>
             </div>
             <div class="col-lg-3 col-md-12">
               <div class="d-flex gap-2">
@@ -482,6 +507,13 @@
       </div>
     </div>
 
+    <% if params[:vendor_id].present? && @vendor_other_tab_count.to_i > 0 %>
+      <div class="alert alert-info py-2 small">
+        <i class="bi bi-info-circle me-1"></i><%= pluralize(@vendor_other_tab_count, 'more lead') %> for this vendor filter <%= @vendor_other_tab_count == 1 ? 'is' : 'are' %> on the
+        <%= link_to 'Active tab', admin_leads_path(tab: 'active', vendor_id: params[:vendor_id]), class: 'alert-link' %>.
+      </div>
+    <% end %>
+
     <!-- Converted Leads Table -->
     <div class="card border-0 shadow-sm" id="tableView-converted">
       <div class="card-header bg-transparent border-0">
@@ -495,6 +527,7 @@
                 <th class="border-0">Client Details</th>
                 <th class="border-0">Contact Information</th>
                 <th class="border-0">Product & Affiliate</th>
+                <th class="border-0">Vendor</th>
                 <th class="border-0">Last Updated</th>
                 <th class="border-0">Actions</th>
               </tr>
@@ -557,6 +590,15 @@
                           <% end %>
                         </div>
                       </div>
+                    </td>
+                    <td>
+                      <% if lead.vendor %>
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                          <i class="bi bi-shop me-1"></i><%= truncate(lead.vendor.display_name, length: 22) %>
+                        </span>
+                      <% else %>
+                        <span class="text-muted small">—</span>
+                      <% end %>
                     </td>
                     <td>
                       <% if lead.converted_customer.present? %>
@@ -628,7 +670,7 @@
               <% else %>
                 <% if params[:tab] == 'converted' %>
                   <tr>
-                    <td colspan="7" class="text-center py-5">
+                    <td colspan="8" class="text-center py-5">
                       <div class="text-muted">
                         <i class="bi bi-person-check fs-1 mb-3 d-block"></i>
                         <h5>No converted clients found</h5>
@@ -2362,6 +2404,7 @@ function switchToTab(tab) {
   currentUrl.searchParams.delete('current_stage');
   currentUrl.searchParams.delete('product_category');
   currentUrl.searchParams.delete('lead_source');
+  currentUrl.searchParams.delete('vendor_id');
 
   // No need to set show_converted parameter anymore - tabs handle this automatically
 

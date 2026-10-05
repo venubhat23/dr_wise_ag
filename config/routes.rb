@@ -409,6 +409,9 @@ Rails.application.routes.draw do
         get :summary
         post :pay_yearly
         delete :unpay_yearly
+        post :add_payout_year
+        delete :remove_payout_year
+        post :mark_year_paid
       end
       resources :investor_documents, only: [:destroy]
     end

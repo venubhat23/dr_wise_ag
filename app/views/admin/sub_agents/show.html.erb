@@ -318,6 +318,50 @@
   </div>
 </div>
 
+<!-- Nominee Details -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent border-0 d-flex align-items-center">
+    <i class="bi bi-people me-2 text-danger"></i>
+    <h5 class="mb-0">Nominee Details</h5>
+  </div>
+  <div class="card-body">
+    <% if @sub_agent.nominee_name.present? %>
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Nominee Name:</th>
+              <td><%= @sub_agent.nominee_name %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">Relationship:</th>
+              <td><%= @sub_agent.nominee_relation&.titleize.presence || 'Not provided' %></td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-borderless">
+            <tr>
+              <th class="text-muted" width="40%">Date of Birth:</th>
+              <td><%= @sub_agent.nominee_date_of_birth&.strftime('%d %b %Y') || 'Not provided' %></td>
+            </tr>
+            <tr>
+              <th class="text-muted">Mobile:</th>
+              <td><%= @sub_agent.nominee_mobile.presence || 'Not provided' %></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-4">
+        <i class="bi bi-people display-6 text-muted mb-3 d-block"></i>
+        <h6 class="text-muted">No nominee details provided</h6>
+        <p class="text-muted mb-0">Nominee information can be added when editing the affiliate.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
 <!-- Ambassador Assignment -->
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-transparent border-0 d-flex align-items-center">

@@ -781,6 +781,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
       :state_id, :city_id, :state, :city, :birth_date, :gender, :pan_no, :gst_no,
       :company_name, :address, :bank_name, :account_no, :ifsc_code,
       :account_holder_name, :account_type, :upi_id, :status, :upload_main_document, :profile_image,
+      :nominee_name, :nominee_relation, :nominee_date_of_birth, :nominee_mobile,
       sub_agent_documents_attributes: [:id, :document_type, :document_file, :_destroy],
       uploaded_documents_attributes: [:id, :title, :description, :document_type, :file, :uploaded_by, :_destroy]
     )

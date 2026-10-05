@@ -22,6 +22,9 @@
 <!-- Monthly / Yearly Revenue Breakup for this investor -->
 <%= render "revenue_breakup", breakup: @revenue_breakup, investor: @investor, yearly_payouts: @yearly_payouts %>
 
+<!-- Year-wise paid / unpaid table; admin can add old or new years -->
+<%= render "yearly_payments", investor: @investor, years: @payment_years, payouts: @yearly_payouts, due: @yearly_due %>
+
 <div class="row">
   <!-- Main Information -->
   <div class="col-lg-8">

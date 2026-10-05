@@ -4,6 +4,7 @@ class MotorInsurance < ApplicationRecord
   include ClearsAnalyticsCache
   include NotifiesOnPolicyCreate
   include UnlocksWalletOnPolicy
+  include CompanyExpensesAmount
 
   # Associations
   belongs_to :customer, counter_cache: :policies_count
@@ -30,7 +31,7 @@ class MotorInsurance < ApplicationRecord
   accepts_nested_attributes_for :motor_insurance_documents, allow_destroy: true, reject_if: :all_blank
 
   # Virtual attribute for file upload handling (not stored in database)
-  attr_accessor :main_policy_document, :company_expenses_amount
+  attr_accessor :main_policy_document
 
   # Validations
   validates :policy_holder, presence: true

@@ -58,13 +58,22 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = @leads.where("referred_by ILIKE ?", "%#{params[:referred_by]}%")
     end
 
+    # Filter by assigned vendor ('any' = assigned to any vendor). Also count
+    # matching leads on the other tab, since converted ones live there.
+    if params[:vendor_id].present?
+      vendor_scope = params[:vendor_id] == 'any' ? Lead.where.not(vendor_id: nil) : Lead.where(vendor_id: params[:vendor_id])
+      @leads = @leads.merge(vendor_scope)
+      @vendor_other_tab_count = params[:tab] == 'converted' ? vendor_scope.where.not(current_stage: 'converted').count : vendor_scope.where(current_stage: 'converted').count
+    end
+    @vendors_for_filter = Vendor.where(id: Lead.where.not(vendor_id: nil).select(:vendor_id)).order(:id).to_a.sort_by { |v| v.display_name.to_s.downcase }
+
     # Apply ordering only if not already ordered (e.g., for converted leads)
     # eager_load folds converted_customer/affiliate into a single joined query
     # instead of 2 extra round trips (each round trip costs ~300ms on the remote DB)
     if params[:tab] == 'converted'
-      @leads = paginate_records(@leads.eager_load(:converted_customer, :affiliate))
+      @leads = paginate_records(@leads.eager_load(:converted_customer, :affiliate, :vendor))
     else
-      @leads = paginate_records(@leads.order(created_at: :desc).eager_load(:converted_customer, :affiliate))
+      @leads = paginate_records(@leads.order(created_at: :desc).eager_load(:converted_customer, :affiliate, :vendor))
     end
 
     # Statistics — all stage counts in one query instead of 7 separate count queries

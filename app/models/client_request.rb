@@ -63,33 +63,32 @@ class ClientRequest < ApplicationRecord
   end
 
   # Instance methods
+  # Bootstrap 5 badge colours (resolved = green)
   def status_badge_class
     case status
     when 'pending'
-      'badge-warning'
+      'bg-warning text-dark'
     when 'in_progress'
-      'badge-info'
+      'bg-info text-dark'
     when 'resolved'
-      'badge-success'
+      'bg-success'
     when 'closed'
-      'badge-secondary'
+      'bg-secondary'
     else
-      'badge-light'
+      'bg-light text-dark'
     end
   end
 
   def priority_badge_class
     case priority
-    when 'low'
-      'badge-light'
     when 'medium'
-      'badge-primary'
+      'bg-primary'
     when 'high'
-      'badge-warning'
+      'bg-warning text-dark'
     when 'urgent'
-      'badge-danger'
+      'bg-danger'
     else
-      'badge-light'
+      'bg-light text-dark'
     end
   end
 

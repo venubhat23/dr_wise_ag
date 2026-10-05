@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_04_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_05_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -547,6 +547,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_04_100000) do
     t.string "razorpay_order_id"
     t.string "razorpay_payment_id"
     t.datetime "subscription_expires_at"
+    t.string "nominee_name"
+    t.string "nominee_relation"
+    t.date "nominee_date_of_birth"
+    t.string "nominee_mobile"
     t.index ["city_id"], name: "index_distributors_on_city_id"
     t.index ["created_at"], name: "index_distributors_on_created_at"
     t.index ["email"], name: "index_distributors_on_email", unique: true
@@ -867,6 +871,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_04_100000) do
     t.string "main_document_content_type"
     t.bigint "main_document_size"
     t.integer "number_of_shares"
+    t.integer "payout_years", default: [], null: false, array: true
     t.index ["email"], name: "index_investors_on_email", unique: true
     t.index ["first_name", "last_name"], name: "index_investors_on_first_name_and_last_name"
     t.index ["mobile"], name: "index_investors_on_mobile", unique: true
@@ -1959,6 +1964,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_04_100000) do
     t.string "razorpay_order_id"
     t.string "razorpay_payment_id"
     t.datetime "subscription_expires_at"
+    t.string "nominee_name"
+    t.string "nominee_relation"
+    t.date "nominee_date_of_birth"
+    t.string "nominee_mobile"
     t.index ["created_at"], name: "index_sub_agents_on_created_at"
     t.index ["distributor_id"], name: "index_sub_agents_on_distributor_id"
     t.index ["email"], name: "index_sub_agents_on_email", unique: true

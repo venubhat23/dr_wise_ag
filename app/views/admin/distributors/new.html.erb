@@ -29,6 +29,25 @@
     </div>
   <% end %>
 
+  <!-- Document Quick Import (Aadhaar / PAN / Cheque OCR) -->
+  <%= render 'admin/shared/document_quick_import', subject: 'ambassador', config: {
+        fields: {
+          first_name: ['[name="distributor[first_name]"]'],
+          middle_name: ['[name="distributor[middle_name]"]'],
+          last_name: ['[name="distributor[last_name]"]'],
+          phone: ['[name="distributor[mobile]"]'],
+          dob: ['[name="distributor[birth_date]"]'],
+          gender: ['[name="distributor[gender]"]'],
+          pan_no: ['[name="distributor[pan_no]"]'],
+          address: ['[name="distributor[address]"]'],
+          bank_name: ['[name="distributor[bank_name]"]'],
+          account_no: ['[name="distributor[account_no]"]'],
+          ifsc_code: ['[name="distributor[ifsc_code]"]']
+        },
+        locations: [{ state: '#distributor_state', city: '#distributor_city' }],
+        scroll_to: '#doc_import_card'
+      } %>
+
   <!-- 1. Personal Details -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
@@ -322,6 +341,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Nominee Details -->
+  <%= render 'admin/shared/nominee_fields', form: form, record: @distributor %>
 
   <!-- 2. Bank Details -->
   <div class="card border-0 shadow-sm mb-4">

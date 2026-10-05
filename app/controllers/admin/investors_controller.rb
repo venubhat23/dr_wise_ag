@@ -1,7 +1,7 @@
 class Admin::InvestorsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary, :pay_yearly, :unpay_yearly]
+  before_action :set_investor, only: [:show, :edit, :update, :destroy, :toggle_status, :summary, :pay_yearly, :unpay_yearly, :add_payout_year, :remove_payout_year, :mark_year_paid]
   before_action :load_form_data, only: [:new, :edit, :create, :update]
 
   # GET /admin/investors
@@ -444,6 +444,9 @@ class Admin::InvestorsController < Admin::ApplicationController
     @documents = @investor.investor_documents.order(:created_at)
     @revenue_breakup = InvestorRevenueBreakupService.new(investor: @investor).call
     @yearly_payouts = @investor.investor_yearly_payouts.index_by(&:financial_year)
+    # Yearly Payments table: breakup years + admin-added years + any paid year
+    @yearly_due = @revenue_breakup[:yearly].to_h { |p| [p[:key].delete('y').to_i, (@investor.number_of_shares.to_i * p[:per_share]).round(2)] }
+    @payment_years = (@yearly_due.keys | @investor.payout_years | @yearly_payouts.keys).sort
   end
 
   # POST /admin/investors/1/pay_yearly?financial_year=2025
@@ -478,11 +481,60 @@ class Admin::InvestorsController < Admin::ApplicationController
     fy = params[:financial_year].to_i
     back = admin_investor_path(@investor, breakup_period: "y#{fy}", anchor: 'revenue-breakup')
     payout = @investor.investor_yearly_payouts.find_by(financial_year: fy)
+    back = yearly_payments_path if params[:from] == 'yearly_payments'
 
     if payout&.destroy
       redirect_to back, notice: "#{payout.fy_label} marked as not paid."
     else
       redirect_to back, alert: 'That financial year is not marked paid.'
+    end
+  end
+
+  # POST /admin/investors/1/add_payout_year?financial_year=2023
+  # Adds an old or future year to the Yearly Payments table (unpaid).
+  def add_payout_year
+    fy = params[:financial_year].to_i
+    unless fy.between?(2000, Date.current.year + 10)
+      redirect_to yearly_payments_path, alert: 'Enter a valid year.'
+      return
+    end
+
+    @investor.update_column(:payout_years, (@investor.payout_years | [fy]).sort)
+    redirect_to yearly_payments_path, notice: "#{fy} added to yearly payments."
+  end
+
+  # DELETE /admin/investors/1/remove_payout_year?financial_year=2023
+  # Only an unpaid year can be removed; undo the payment first otherwise.
+  def remove_payout_year
+    fy = params[:financial_year].to_i
+    if @investor.investor_yearly_payouts.exists?(financial_year: fy)
+      redirect_to yearly_payments_path, alert: "#{fy} is marked paid. Mark it as not paid before removing it."
+      return
+    end
+
+    @investor.update_column(:payout_years, @investor.payout_years - [fy])
+    redirect_to yearly_payments_path, notice: "#{fy} removed from yearly payments."
+  end
+
+  # POST /admin/investors/1/mark_year_paid?financial_year=2023&amount=5000&paid_on=2024-04-10
+  # Manual mark-paid from the Yearly Payments table: admin enters the amount
+  # (prefilled with shares × per share when the year has revenue) and the date.
+  def mark_year_paid
+    fy = params[:financial_year].to_i
+    amount = params[:amount].to_d.round(2)
+    paid_on = Date.parse(params[:paid_on].to_s) rescue Date.current
+    shares = @investor.number_of_shares.to_i
+
+    payout = @investor.investor_yearly_payouts.new(
+      financial_year: fy, amount: amount, shares: shares,
+      per_share: shares.positive? ? (amount / shares).round(4) : 0,
+      paid_at: paid_on.in_time_zone.change(hour: 12), paid_by: current_user
+    )
+    if payout.save
+      @investor.update_column(:payout_years, (@investor.payout_years | [fy]).sort)
+      redirect_to yearly_payments_path, notice: "#{fy} marked paid: #{helpers.indian_currency(amount)}."
+    else
+      redirect_to yearly_payments_path, alert: payout.errors.full_messages.to_sentence
     end
   end
 
@@ -634,6 +686,10 @@ class Admin::InvestorsController < Admin::ApplicationController
 
   def set_investor
     @investor = Investor.find(params[:id])
+  end
+
+  def yearly_payments_path
+    admin_investor_path(@investor, anchor: 'yearly-payments')
   end
 
   def load_form_data
