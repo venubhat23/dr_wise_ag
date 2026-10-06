@@ -10,9 +10,15 @@
     </h2>
     <p class="text-muted mb-0">Create a new <%= service_label.downcase %> record for a client</p>
   </div>
-  <%= link_to admin_client_services_path(service_type: @client_service.service_type), class: "btn btn-outline-secondary" do %>
-    <i class="bi bi-arrow-left me-1"></i>Back
-  <% end %>
+  <div class="d-flex align-items-center gap-2">
+    <%= render 'admin/shared/ai_upload_button' %>
+    <%= link_to admin_client_services_path(service_type: @client_service.service_type), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i>Back
+    <% end %>
+  </div>
 </div>
 
 <%= render 'form' %>
+
+<%# AI Upload (beta) - optional document reader that pre-fills the form above %>
+<%= render 'admin/shared/ai_upload', product: 'client_service', context: service_label %>

@@ -10,9 +10,12 @@
     <% end %>
   </div>
 
-  <div class="trust-seal">
-    <i class="bi bi-shield-check seal-icon"></i>
-    <span>Save Policy</span>
+  <div class="d-flex align-items-center gap-3">
+    <%= render 'admin/shared/ai_upload_button' %>
+    <div class="trust-seal">
+      <i class="bi bi-shield-check seal-icon"></i>
+      <span>Save Policy</span>
+    </div>
   </div>
 </div>
 
@@ -27,3 +30,6 @@
     <%= form.submit "Create Motor Insurance", class: "btn btn-primary btn-lg px-5" %>
   </div>
 <% end %>
+
+<%# AI Upload (beta) - optional document reader that pre-fills the form above %>
+<%= render 'admin/shared/ai_upload', product: 'motor' %>

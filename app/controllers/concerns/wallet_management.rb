@@ -54,10 +54,13 @@ module WalletManagement
     @locked_holds = @wallet.wallet_holds.locked.includes(:trigger_sub_agent).recent_first.to_a
     @inactive_balance = @locked_holds.sum(&:amount)
 
-    # Entries a withdrawal / unlocked amount points at: note-only edits, no delete
+    # Entries another record points at: editing the amount updates that
+    # record too; they can't be deleted. Three queries for the whole page.
     txn_ids = @transactions.map(&:id)
-    @linked_txn_reasons = WithdrawalRequest.where(wallet_transaction_id: txn_ids).pluck(:wallet_transaction_id).index_with { 'approved withdrawal' }
+    payout_refs = CommissionPayout.where(transaction_id: txn_ids.map { |i| "WALLET-TXN-#{i}" }).pluck(:transaction_id)
+    @linked_txn_reasons = WithdrawalRequest.where(wallet_transaction_id: txn_ids).pluck(:wallet_transaction_id).index_with { 'withdrawal request' }
                                            .merge(WalletHold.where(wallet_transaction_id: txn_ids).pluck(:wallet_transaction_id).index_with { 'unlocked amount' })
+                                           .merge(payout_refs.to_h { |ref| [ref.delete_prefix('WALLET-TXN-').to_i, 'policy commission payout'] })
   end
 
   def add_funds

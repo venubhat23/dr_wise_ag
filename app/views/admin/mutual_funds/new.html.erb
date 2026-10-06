@@ -11,6 +11,10 @@
       </ol>
     </nav>
   </div>
+  <%= render 'admin/shared/ai_upload_button' %>
 </div>
 
 <%= render 'form' %>
+
+<%# AI Upload (beta) - optional document reader that pre-fills the form above %>
+<%= render 'admin/shared/ai_upload', product: 'mutual_fund' %>

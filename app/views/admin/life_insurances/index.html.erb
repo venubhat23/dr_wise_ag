@@ -21,10 +21,7 @@
         </li>
       </ul>
     </div>
-    <%= link_to new_admin_life_insurance_path(ai_upload: 1), class: "btn ai-launch", title: "Upload a policy document and let AI fill the form (beta)",
-          style: "background: linear-gradient(135deg, #6d28d9, #4f46e5); color: #fff; border: none;" do %>
-      <i class="bi bi-stars me-1"></i>AI Upload <span class="badge ms-1" style="background:#ede9fe;color:#6d28d9;font-size:.6rem;">Beta</span>
-    <% end %>
+    <%= render 'admin/shared/ai_upload_button', href: new_admin_life_insurance_path(ai_upload: 1) %>
     <%= link_to new_admin_life_insurance_path, class: "btn btn-primary" do %>
       <i class="bi bi-plus-lg me-1"></i>
       Add New Life Policy

@@ -1,0 +1,419 @@
+<%# AI Upload (beta) for a product creation form. Optional helper: the admin
+    uploads a document, Claude extracts the details (Admin::AiExtractsController),
+    the admin reviews them and only ticked fields are written into the form.
+    Nothing is saved until the form itself is submitted.
+
+    Locals: product  - key in AiDocumentProfiles (life, health, motor, general,
+                       mutual_fund, client_service)
+            context  - optional record label sent to the AI, e.g. "Home Loan"
+    Render the button with admin/shared/_ai_upload_button. Opens on its own
+    when the URL has ?ai_upload=1 (the list pages link here that way). %>
+<% ai_config = AiDocumentProfiles.client_config(product).merge(
+     url: admin_ai_extract_path(product: product), context: local_assigns[:context]) %>
+<div class="modal fade" id="aiUploadModal" tabindex="-1" aria-labelledby="aiUploadTitle" aria-hidden="true" data-bs-backdrop="static"
+     data-ai-config="<%= ai_config.to_json %>">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content ai-modal">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <h5 class="modal-title mb-0" id="aiUploadTitle">
+            <span class="ai-sparkle"><i class="bi bi-stars"></i></span> AI Upload
+            <span class="badge ai-beta ms-1">Beta</span>
+          </h5>
+          <small class="text-muted">Upload the <%= ai_config[:label].downcase %> document and we'll fill the form for you. You review everything before it's applied.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Step 1: choose file -->
+        <div data-ai-step="pick">
+          <label class="ai-drop" for="aiDocFile" data-ai-drop>
+            <input type="file" id="aiDocFile" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
+            <div class="ai-drop-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+            <div class="fw-semibold">Drop the document here or <span class="text-primary text-decoration-underline">browse</span></div>
+            <div class="small text-muted">PDF, JPG, PNG or WEBP · up to 20 MB</div>
+          </label>
+          <div class="ai-file d-none" data-ai-file>
+            <i class="bi bi-file-earmark-text fs-4 text-primary"></i>
+            <div class="flex-grow-1 text-truncate"><div class="fw-semibold text-truncate" data-ai-file-name></div><small class="text-muted" data-ai-file-size></small></div>
+            <button type="button" class="btn btn-sm btn-link text-danger" data-ai-file-clear title="Remove"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="alert alert-danger small mt-3 mb-0 d-none" data-ai-error></div>
+        </div>
+
+        <!-- Step 2: working -->
+        <div class="ai-working d-none" data-ai-step="working">
+          <div class="ai-orb"><i class="bi bi-stars"></i></div>
+          <h6 class="mt-3 mb-1">Reading your document…</h6>
+          <p class="small text-muted mb-3">This usually takes 15–40 seconds. Please keep this window open.</p>
+          <ul class="ai-steps list-unstyled mb-0">
+            <li data-ai-progress><i class="bi bi-circle"></i> Uploading document</li>
+            <li data-ai-progress><i class="bi bi-circle"></i> Reading pages</li>
+            <li data-ai-progress><i class="bi bi-circle"></i> Extracting details</li>
+            <li data-ai-progress><i class="bi bi-circle"></i> Matching client</li>
+          </ul>
+        </div>
+
+        <!-- Step 3: review -->
+        <div class="d-none" data-ai-step="review">
+          <div class="alert alert-success py-2 small d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-check-circle-fill"></i>
+            <span data-ai-summary></span>
+          </div>
+          <div class="table-responsive ai-review-wrap">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light"><tr><th style="width:34px"><input type="checkbox" class="form-check-input" data-ai-check-all checked title="Select all"></th><th>Field</th><th>Found in document</th></tr></thead>
+              <tbody data-ai-review></tbody>
+            </table>
+          </div>
+          <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Untick anything you don't want. AI can make mistakes — filled fields are highlighted so you can check them before saving.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn ai-btn d-none" data-ai-extract disabled><i class="bi bi-stars me-1"></i>Extract details</button>
+        <button type="button" class="btn btn-outline-primary d-none" data-ai-again><i class="bi bi-arrow-repeat me-1"></i>Try another file</button>
+        <button type="button" class="btn ai-btn d-none" data-ai-apply><i class="bi bi-magic me-1"></i>Apply to form</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ai-btn { background: linear-gradient(135deg, #6d28d9, #4f46e5); color: #fff; border: none; }
+  .ai-btn:hover, .ai-btn:focus { color: #fff; filter: brightness(1.08); }
+  .ai-btn:disabled { color: #fff; opacity: .55; }
+  .ai-launch { box-shadow: 0 4px 14px rgba(109, 40, 217, .25); }
+  .ai-beta { background: #ede9fe; color: #6d28d9; font-weight: 600; font-size: .65rem; vertical-align: middle; }
+  .ai-sparkle { color: #7c3aed; }
+  .ai-modal { border-radius: 18px; }
+  .ai-drop { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 2.2rem 1rem; border: 2px dashed #c4b5fd; border-radius: 14px; background: #faf8ff; cursor: pointer; text-align: center; transition: all .15s; width: 100%; }
+  .ai-drop:hover, .ai-drop.drag { border-color: #7c3aed; background: #f3efff; }
+  .ai-drop-icon { font-size: 2.2rem; color: #7c3aed; line-height: 1; }
+  .ai-file { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; border: 1px solid #e9e5ff; border-radius: 12px; background: #fff; margin-top: .75rem; }
+  .ai-working { text-align: center; padding: 1.5rem .5rem; }
+  .ai-orb { width: 72px; height: 72px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #fff; background: linear-gradient(135deg, #7c3aed, #4f46e5); animation: aiPulse 1.6s ease-in-out infinite; }
+  @keyframes aiPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, .45); transform: scale(1); } 50% { box-shadow: 0 0 0 16px rgba(124, 58, 237, 0); transform: scale(1.05); } }
+  .ai-steps { display: inline-block; text-align: left; }
+  .ai-steps li { padding: .2rem 0; color: #9ca3af; font-size: .9rem; }
+  .ai-steps li.active { color: #4f46e5; font-weight: 600; }
+  .ai-steps li.done { color: #059669; }
+  .ai-steps .spinner-border { width: .9rem; height: .9rem; border-width: .15em; }
+  .ai-review-wrap { max-height: 46vh; overflow-y: auto; border: 1px solid #eef0f4; border-radius: 10px; }
+  .ai-filled { background-color: #f5f3ff !important; border-color: #a78bfa !important; box-shadow: 0 0 0 .15rem rgba(167, 139, 250, .25) !important; }
+  .select2-container.ai-filled .select2-selection { background-color: #f5f3ff !important; border-color: #a78bfa !important; }
+</style>
+
+<script>
+(function() {
+  // Defined once per tab: Turbo re-runs this script on each visit but keeps
+  // `window`, so later visits just bind the new modal.
+  if (window.aiUploadBind) { window.aiUploadBind(); return; }
+
+  var state = { file: null, result: null, timers: [], cfg: null };
+
+  function modalEl() { return document.getElementById('aiUploadModal'); }
+  function q(sel, root) { try { return (root || document).querySelector(sel); } catch (e) { return null; } }
+  function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function money(n) { return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+  function blank(v) { return v === null || v === undefined || v === ''; }
+  function norm(s) { return String(s || '').toLowerCase().replace(/\b(co|company|ltd|limited|insurance|general|life|health|of|india|the|pvt|private)\b|[^a-z0-9]/g, ''); }
+  function realOptions(el) {
+    return el ? Array.prototype.filter.call(el.options, function(o) { return o.value && !/^(loading|select|search|error)/i.test(o.text.trim()); }) : [];
+  }
+
+  // ---- Modal steps -------------------------------------------------------
+  function showStep(step) {
+    var m = modalEl();
+    m.querySelectorAll('[data-ai-step]').forEach(function(el) { el.classList.toggle('d-none', el.dataset.aiStep !== step); });
+    q('[data-ai-extract]', m).classList.toggle('d-none', step !== 'pick');
+    q('[data-ai-again]', m).classList.toggle('d-none', step !== 'review');
+    q('[data-ai-apply]', m).classList.toggle('d-none', step !== 'review');
+  }
+  function showError(msg) { var box = q('[data-ai-error]', modalEl()); box.textContent = msg || ''; box.classList.toggle('d-none', !msg); }
+
+  function setFile(file) {
+    var m = modalEl();
+    showError('');
+    if (file && !/^(application\/pdf|image\/(jpeg|png|webp))$/.test(file.type)) { showError('Please choose a PDF, JPG, PNG or WEBP file.'); file = null; }
+    if (file && file.size > 20 * 1024 * 1024) { showError('The file is larger than 20 MB.'); file = null; }
+    state.file = file;
+    q('[data-ai-drop]', m).classList.toggle('d-none', !!file);
+    q('[data-ai-file]', m).classList.toggle('d-none', !file);
+    q('[data-ai-extract]', m).disabled = !file;
+    if (file) {
+      q('[data-ai-file-name]', m).textContent = file.name;
+      q('[data-ai-file-size]', m).textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    } else { q('#aiDocFile', m).value = ''; }
+  }
+  function reset() { state.result = null; setFile(null); showStep('pick'); }
+
+  // Loader steps advance on a timer while the request runs; all tick on success.
+  function setStepState(li, st) {
+    li.className = st;
+    li.querySelector('i').className = st === 'active' ? 'spinner-border text-primary' : (st === 'done' ? 'bi bi-check-circle-fill' : 'bi bi-circle');
+  }
+  function startProgress() {
+    var items = modalEl().querySelectorAll('[data-ai-progress]'), delays = [2500, 6000], i = 0;
+    items.forEach(function(li) { setStepState(li, ''); });
+    (function advance() {
+      if (i > 0) setStepState(items[i - 1], 'done');
+      if (i < items.length - 1) { setStepState(items[i], 'active'); state.timers.push(setTimeout(advance, delays[i++] || 1e9)); }
+    })();
+  }
+  function finishProgress(ok) {
+    state.timers.forEach(clearTimeout); state.timers = [];
+    modalEl().querySelectorAll('[data-ai-progress]').forEach(function(li) { setStepState(li, ok ? 'done' : ''); });
+  }
+
+  // ---- Extract -------------------------------------------------------------
+  function extract() {
+    if (!state.file) return;
+    var cfg = state.cfg, fieldOptions = {}, companyOptions = [];
+    // Send the form's own dropdown choices so the AI answers with values the form accepts.
+    cfg.fields.forEach(function(f) {
+      var el = f.target && q(f.target);
+      if (f.type === 'select') fieldOptions[f.key] = realOptions(el).map(function(o) { return o.value; });
+      if (f.kind === 'company') companyOptions = realOptions(el).map(function(o) { return o.value; });
+    });
+    var body = new FormData();
+    body.append('document', state.file);
+    body.append('field_options', JSON.stringify(fieldOptions));
+    body.append('company_options', JSON.stringify(companyOptions));
+    if (cfg.context) body.append('context', cfg.context);
+    var token = document.querySelector('meta[name="csrf-token"]');
+
+    showStep('working'); startProgress();
+    fetch(cfg.url, { method: 'POST', body: body, credentials: 'same-origin',
+                     headers: { 'X-CSRF-Token': token ? token.content : '', 'Accept': 'application/json' } })
+      .then(function(res) { return res.json().catch(function() { return { success: false, error: 'Unexpected server response (' + res.status + ').' }; }); })
+      .then(function(data) {
+        finishProgress(!!data.success);
+        if (!data.success) { showStep('pick'); setFile(state.file); showError(data.error || 'Could not read the document.'); return; }
+        state.result = data;
+        setTimeout(function() { renderReview(data); showStep('review'); }, 350);
+      })
+      .catch(function() { finishProgress(false); showStep('pick'); setFile(state.file); showError('Network error. Please check your connection and try again.'); });
+  }
+
+  // ---- Review --------------------------------------------------------------
+  function rowText(f, item) {
+    return f.rows.fields.map(function(rf) { return blank(item[rf.key]) ? null : (rf.key === 'share_percentage' ? item[rf.key] + '%' : item[rf.key]); })
+                        .filter(function(x) { return x !== null; }).join(', ');
+  }
+  function display(f, data) {
+    var v = data.fields[f.key];
+    if (f.kind === 'customer') {
+      if (data.customer) return { text: data.customer.name + ' (existing client #' + data.customer.id + ')' };
+      var who = data.fields.proposer_name || data.fields.insured_name;
+      return who ? { text: who + ' — not found in clients, select manually', off: true } : null;
+    }
+    if (f.type === 'rows') return (v || []).length ? { text: v.map(function(it) { return rowText(f, it); }).join(' · ') } : null;
+    if (blank(v)) return null;
+    if (f.info) return { text: (f.money ? money(v) : String(v)) + ' (' + f.info + ')', off: true };
+    if (f.kind === 'company') return { text: v };
+    return { text: f.money ? money(v) : String(v) };
+  }
+  function renderReview(data) {
+    var rows = '', found = 0, fields = state.cfg.fields;
+    fields.forEach(function(f) {
+      var d = display(f, data);
+      if (d && !d.off) found++;
+      rows += '<tr><td><input type="checkbox" class="form-check-input" data-ai-field="' + f.key + '"' + (d && !d.off ? ' checked' : ' disabled') + '></td>' +
+              '<td class="fw-semibold small">' + esc(f.label) + '</td>' +
+              (d ? '<td class="small">' + esc(d.text) + '</td>' : '<td class="small text-muted fst-italic">Not found</td>') + '</tr>';
+    });
+    q('[data-ai-review]', modalEl()).innerHTML = rows;
+    q('[data-ai-summary]', modalEl()).textContent = 'Found ' + found + ' of ' + fields.length + ' fields. Review and apply.';
+    q('[data-ai-check-all]', modalEl()).checked = true;
+  }
+
+  // ---- Fill the form -----------------------------------------------------
+  function mark(el) {
+    el.classList.add('ai-filled');
+    var s2 = el.nextElementSibling;
+    if (s2 && s2.classList.contains('select2')) s2.classList.add('ai-filled');
+  }
+  function fire(el, type) { el.dispatchEvent(new Event(type, { bubbles: true })); }
+  function setInput(el, value) {
+    if (!el || blank(value) || el.disabled) return false;
+    el.value = value; fire(el, 'input'); fire(el, 'change'); mark(el); return true;
+  }
+  // Selects (incl. Select2): choose an existing option, then fire the same
+  // events a user pick would so the form's own loaders run.
+  function chooseOption(el, opt) {
+    el.value = opt.value;
+    try { // jQuery passes errors from the form's own handlers up - keep the value and carry on
+      if (window.jQuery) {
+        var $el = window.jQuery(el);
+        $el.trigger('change');
+        if ($el.hasClass('select2-hidden-accessible')) $el.trigger({ type: 'select2:select', params: { data: { id: opt.value, text: opt.text } } });
+      } else { fire(el, 'change'); }
+    } catch (e) { if (window.console) console.warn('[AI Upload] change handler failed for', el, e); }
+    mark(el); return true;
+  }
+  function setSelect(el, value) {
+    if (!el || blank(value) || el.disabled) return false;
+    var want = String(value).trim().toLowerCase();
+    var opt = Array.prototype.find.call(el.options, function(o) { return o.value.toLowerCase() === want || o.text.trim().toLowerCase() === want; });
+    return opt ? chooseOption(el, opt) : false;
+  }
+  // Insurer: matched against what the dropdown lists right now (some forms
+  // only load insurers after Broker Code Type is chosen).
+  function setCompany(el, name) {
+    if (!el || blank(name)) return false;
+    var opts = realOptions(el), n = norm(name);
+    var opt = opts.find(function(o) { return o.value.toLowerCase() === String(name).toLowerCase(); }) ||
+              opts.find(function(o) { return norm(o.value) === n; }) ||
+              opts.find(function(o) { var v = norm(o.value); return v && n && (v.indexOf(n) !== -1 || n.indexOf(v) !== -1); });
+    return opt && !el.disabled ? chooseOption(el, opt) : false;
+  }
+  // The insurer list on some forms only loads after Broker Code Type is
+  // chosen: watch the dropdown and pick the document's insurer once it can.
+  function selectCompanyWhenLoaded(el, name) {
+    if (window.aiCompanyWatch) window.aiCompanyWatch.disconnect();
+    var tries = 0;
+    var watch = new MutationObserver(function() {
+      if (el.disabled || !realOptions(el).length) return;
+      if (setCompany(el, name)) {
+        watch.disconnect();
+        toast('Insurance company set to "' + el.value + '" from the document.');
+      } else if (++tries > 20) { watch.disconnect(); }
+    });
+    watch.observe(el, { childList: true, attributes: true, attributeFilter: ['disabled'] });
+    window.aiCompanyWatch = watch;
+    setTimeout(function() { watch.disconnect(); }, 15 * 60 * 1000);
+  }
+
+  function sumInsuredText(n) {
+    n = Number(n);
+    var fmt = function(x) { return String(Math.round(x * 100) / 100); };
+    if (n >= 1e7) return fmt(n / 1e7) + (n / 1e7 === 1 ? ' crore' : ' crores');
+    if (n >= 1e5) return fmt(n / 1e5) + (n / 1e5 === 1 ? ' lakh' : ' lakhs');
+    return String(n);
+  }
+  function fillRows(f, items) {
+    var nameKey = f.rows.fields[0].key, added = 0;
+    var existing = Array.prototype.map.call(document.querySelectorAll(f.rows.row + ' ' + f.rows.fields[0].target), function(i) { return i.value.trim().toLowerCase(); });
+    // An empty row (the form's starter row) is filled before adding new ones.
+    function emptyRow() {
+      return Array.prototype.find.call(document.querySelectorAll(f.rows.row), function(r) {
+        var nameInput = q(f.rows.fields[0].target, r);
+        return nameInput && !nameInput.value.trim();
+      });
+    }
+    items.forEach(function(item) {
+      if (blank(item[nameKey]) || existing.indexOf(String(item[nameKey]).trim().toLowerCase()) !== -1) return;
+      var row = emptyRow();
+      if (!row) {
+        var addBtn = q(f.rows.add);
+        if (!addBtn) return;
+        try { addBtn.click(); } catch (e) { return; }
+        var rows = document.querySelectorAll(f.rows.row);
+        row = rows[rows.length - 1];
+      }
+      if (!row) return;
+      f.rows.fields.forEach(function(rf) {
+        var el = q(rf.target, row);
+        try { if (el && el.tagName === 'SELECT') setSelect(el, item[rf.key]); else setInput(el, item[rf.key]); } catch (e) {}
+      });
+      added++;
+    });
+    return added;
+  }
+
+  function apply() {
+    var data = state.result, vals = data.fields, filled = 0, notes = [], picked = {}, rowFields = [];
+    modalEl().querySelectorAll('[data-ai-field]:checked').forEach(function(cb) { picked[cb.dataset.aiField] = true; });
+
+    state.cfg.fields.forEach(function(f) {
+      if (!picked[f.key] || f.info) return;
+      if (f.type === 'rows') { rowFields.push(f); return; }
+      var el = f.target && q(f.target), v = vals[f.key], ok = false;
+      // Each field on its own: an error inside one of the form's existing
+      // handlers must not stop the remaining fields.
+      try {
+        switch (f.kind) {
+          case 'customer': ok = data.customer && setSelect(el, data.customer.id); break;
+          case 'company':
+            ok = setCompany(el, v);
+            if (!ok && el) {
+              var waiting = el.disabled || !realOptions(el).length;
+              notes.push(waiting ? 'Insurance Company: choose Broker Code Type — "' + v + '" will then be selected automatically.'
+                                 : 'Insurance Company: "' + v + '" is not in the list — please choose it manually.');
+              if (waiting) selectCompanyWhenLoaded(el, v);
+            }
+            break;
+          case 'sum_text':
+            ok = setInput(el, sumInsuredText(v));
+            var hidden = f.hidden && q(f.hidden); if (ok && hidden) hidden.value = v;
+            break;
+          case 'upper': ok = setInput(el, String(v).toUpperCase()); break;
+          case 'append': ok = el && setInput(el, el.value ? el.value + '\n' + v : v); break;
+          default: ok = (el && el.tagName === 'SELECT') ? setSelect(el, v) : setInput(el, v);
+        }
+      } catch (e) { if (window.console) console.warn('[AI Upload] could not fill ' + f.key, e); }
+      if (ok) filled++;
+    });
+
+    // Picking a client can load their saved nominees (AJAX), so add rows from
+    // the document after that settles, skipping names already listed.
+    if (rowFields.length) {
+      setTimeout(function() {
+        rowFields.forEach(function(f) { try { fillRows(f, vals[f.key] || []); } catch (e) {} });
+      }, picked.customer && data.customer ? 1800 : 0);
+      filled += rowFields.length;
+    }
+
+    var bs = window.bootstrap && window.bootstrap.Modal.getInstance(modalEl());
+    if (bs) bs.hide();
+    toast(filled + ' field' + (filled === 1 ? '' : 's') + ' filled from the document. Highlighted fields came from AI — please review before saving.', notes);
+    var first = document.querySelector('.ai-filled');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function toast(msg, notes) {
+    var t = document.createElement('div');
+    t.className = 'alert alert-success alert-dismissible fade show position-fixed bottom-0 end-0 m-3 shadow';
+    t.style.zIndex = 2000; t.style.maxWidth = '440px';
+    t.innerHTML = '<i class="bi bi-stars me-2"></i>' + esc(msg) +
+      (notes && notes.length ? '<ul class="small mb-0 mt-2 ps-3">' + notes.map(function(n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' : '') +
+      '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    document.body.appendChild(t);
+    setTimeout(function() { if (t.parentNode) t.remove(); }, notes && notes.length ? 15000 : 7000);
+  }
+
+  // ---- Wiring ------------------------------------------------------------
+  function bind() {
+    var m = modalEl();
+    if (!m || m.dataset.aiBound) return;
+    m.dataset.aiBound = '1';
+    state.cfg = JSON.parse(m.dataset.aiConfig);
+    state.result = null;
+    var input = q('#aiDocFile', m), drop = q('[data-ai-drop]', m);
+    input.addEventListener('change', function() { setFile(this.files[0] || null); });
+    ['dragenter', 'dragover'].forEach(function(t) { drop.addEventListener(t, function(e) { e.preventDefault(); drop.classList.add('drag'); }); });
+    ['dragleave', 'drop'].forEach(function(t) { drop.addEventListener(t, function(e) { e.preventDefault(); drop.classList.remove('drag'); }); });
+    drop.addEventListener('drop', function(e) { if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+    q('[data-ai-file-clear]', m).addEventListener('click', function() { setFile(null); });
+    q('[data-ai-extract]', m).addEventListener('click', extract);
+    q('[data-ai-again]', m).addEventListener('click', reset);
+    q('[data-ai-apply]', m).addEventListener('click', apply);
+    q('[data-ai-check-all]', m).addEventListener('change', function() {
+      var on = this.checked;
+      m.querySelectorAll('[data-ai-field]:not(:disabled)').forEach(function(cb) { cb.checked = on; });
+    });
+    m.addEventListener('show.bs.modal', function() { if (!state.result) reset(); });
+    reset();
+    if (/[?&]ai_upload=1/.test(location.search)) {
+      var open = function() { if (window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(m).show(); };
+      if (window.bootstrap) open(); else window.addEventListener('load', open);
+    }
+  }
+
+  window.aiUploadBind = bind;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+</script>

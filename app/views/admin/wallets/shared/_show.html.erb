@@ -167,7 +167,7 @@
                     <i class="bi bi-pencil"></i>
                   </button>
                   <% if linked %>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Linked to an <%= linked %> - cannot be deleted">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Linked to a <%= linked %> - edit the amount instead of deleting">
                       <i class="bi bi-trash"></i>
                     </button>
                   <% else %>
@@ -286,7 +286,7 @@
             <label class="form-label">New active balance <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text">Rs.</span>
-              <%= form.number_field :balance, step: '0.01', min: '0', required: true, class: "form-control", value: @wallet.balance.to_f %>
+              <%= form.number_field :balance, step: '0.01', required: true, class: "form-control", value: @wallet.balance.to_f %>
             </div>
           </div>
           <div class="mb-1">
@@ -313,14 +313,14 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="alert alert-warning small py-2 d-none" data-field="linked-note"></div>
+          <div class="alert alert-info small py-2 d-none" data-field="linked-note"></div>
           <div class="mb-3">
             <label class="form-label">Amount <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text">Rs.</span>
               <%= form.number_field :amount, step: '0.01', min: '0.01', required: true, class: "form-control" %>
             </div>
-            <div class="form-text">Every later "Balance After" and the wallet balance are recalculated.</div>
+            <div class="form-text">Every later "Balance After" and the wallet balance are recalculated (the balance may go negative).</div>
           </div>
           <div class="mb-1">
             <label class="form-label">Note</label>
@@ -392,9 +392,8 @@
       var note = modal.querySelector('[data-field="linked-note"]');
       if (note) {
         var linked = btn.dataset.linked;
-        amount.readOnly = !!linked;
         note.classList.toggle('d-none', !linked);
-        note.textContent = linked ? 'Linked to an ' + linked + ' - only the note can be changed.' : '';
+        note.textContent = linked ? 'Linked to a ' + linked + ' - changing the amount updates it there too.' : '';
       }
     });
   });

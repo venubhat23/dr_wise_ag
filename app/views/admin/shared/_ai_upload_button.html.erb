@@ -1,0 +1,12 @@
+<%# "AI Upload (Beta)" launcher. With `href` (list pages) it links to the new
+    form, which opens the upload window via ?ai_upload=1; without it, it opens
+    the modal from admin/shared/_ai_upload on the current page. %>
+<% style = "background: linear-gradient(135deg, #6d28d9, #4f46e5); color: #fff; border: none; box-shadow: 0 4px 14px rgba(109, 40, 217, .25);" %>
+<% inner = capture do %>
+  <i class="bi bi-stars me-1"></i>AI Upload <span class="badge ms-1" style="background:#ede9fe;color:#6d28d9;font-size:.6rem;vertical-align:middle;">Beta</span>
+<% end %>
+<% if local_assigns[:href] %>
+  <%= link_to inner, href, class: "btn #{local_assigns[:extra_class]}", style: style, title: "Upload a document and let AI fill the form (beta)" %>
+<% else %>
+  <button type="button" class="btn <%= local_assigns[:extra_class] %>" style="<%= style %>" data-bs-toggle="modal" data-bs-target="#aiUploadModal" title="Upload a document and let AI fill the form (beta)"><%= inner %></button>
+<% end %>
