@@ -21,8 +21,8 @@ class Admin::WithdrawalRequestsController < Admin::ApplicationController
     @withdrawal_request.approve!(reviewed_by: current_user.email)
     redirect_to admin_withdrawal_requests_path(status: 'approved'),
                 notice: "Withdrawal of #{helpers.indian_currency(@withdrawal_request.amount)} approved for #{@withdrawal_request.owner_label}."
-  rescue ArgumentError => e
-    redirect_to admin_withdrawal_requests_path(status: 'pending'), alert: e.message
+  rescue ArgumentError, ActiveRecord::RecordInvalid => e
+    review_failed('approve', e)
   end
 
   # PATCH /admin/withdrawal_requests/:id/reject
@@ -30,11 +30,19 @@ class Admin::WithdrawalRequestsController < Admin::ApplicationController
     @withdrawal_request.reject!(reviewed_by: current_user.email, reason: params[:rejection_reason])
     redirect_to admin_withdrawal_requests_path(status: 'rejected'),
                 notice: "Withdrawal request from #{@withdrawal_request.owner_label} rejected."
-  rescue ArgumentError => e
-    redirect_to admin_withdrawal_requests_path(status: 'pending'), alert: e.message
+  rescue ArgumentError, ActiveRecord::RecordInvalid => e
+    review_failed('reject', e)
   end
 
   private
+
+  # Back to the list with the reason shown in a pop-up (index.html.erb)
+  # instead of a raw error page.
+  def review_failed(action, error)
+    message = error.is_a?(ActiveRecord::RecordInvalid) ? error.record.errors.full_messages.to_sentence : error.message
+    flash[:review_error] = { 'action' => action, 'id' => @withdrawal_request.id, 'message' => message }
+    redirect_to admin_withdrawal_requests_path(status: @withdrawal_request.status)
+  end
 
   def set_withdrawal_request
     @withdrawal_request = WithdrawalRequest.find(params[:id])

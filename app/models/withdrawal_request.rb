@@ -6,8 +6,10 @@ class WithdrawalRequest < ApplicationRecord
 
   MIN_AMOUNT = 1000
 
-  validates :amount, numericality: { greater_than_or_equal_to: MIN_AMOUNT },
-                      allow_nil: true
+  # The minimum applies when a request is made; an existing request (older
+  # rule, or amount corrected from the wallet page) can still be approved.
+  validates :amount, numericality: { greater_than_or_equal_to: MIN_AMOUNT }, allow_nil: true, on: :create
+  validates :amount, numericality: { greater_than: 0 }, allow_nil: true
   validates :reason, presence: true, length: { maximum: 500 }
   validate :owner_kyc_approved, on: :create
   validate :amount_within_available_balance, on: :create
@@ -26,6 +28,12 @@ class WithdrawalRequest < ApplicationRecord
   # Debits the owner's wallet and marks the request approved, atomically.
   def approve!(reviewed_by:)
     raise ArgumentError, 'Only pending requests can be approved' unless pending?
+
+    available = owner.wallet!.balance
+    if amount > available
+      raise ArgumentError, "The active (withdrawable) wallet has only #{ActiveSupport::NumberHelper.number_to_currency(available, unit: '₹', precision: 2)}, " \
+                           "but this withdrawal is #{ActiveSupport::NumberHelper.number_to_currency(amount, unit: '₹', precision: 2)}."
+    end
 
     transaction do
       txn = owner.wallet!.debit!(

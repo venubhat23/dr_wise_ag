@@ -134,3 +134,79 @@
     <% end %>
   </div>
 </div>
+
+<%# Approve / reject failure, shown as a pop-up (set by
+    Admin::WithdrawalRequestsController#review_failed). %>
+<% if (review_error = flash[:review_error]) && (failed = WithdrawalRequest.find_by(id: review_error['id'])) %>
+  <% approving = review_error['action'] == 'approve' %>
+  <% wallet = failed.owner.wallet %>
+  <% wallet_path = failed.owner_type == 'Distributor' ? admin_wallets_ambassador_wallet_path(failed.owner) : admin_wallets_affiliate_wallet_path(failed.owner) %>
+  <% short_balance = approving && wallet && failed.amount > wallet.balance %>
+  <div class="modal fade" id="reviewErrorModal" tabindex="-1" aria-labelledby="reviewErrorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg wr-error-modal">
+        <div class="modal-body text-center p-4">
+          <div class="wr-error-icon mb-3"><i class="bi <%= short_balance ? 'bi-wallet2' : 'bi-exclamation-triangle' %>"></i></div>
+          <h5 class="fw-bold mb-1" id="reviewErrorTitle"><%= approving ? "Couldn't approve this withdrawal" : "Couldn't reject this request" %></h5>
+          <p class="text-muted small mb-3"><%= failed.owner_kind %>: <strong><%= failed.owner_label %></strong></p>
+
+          <div class="wr-error-figures mb-3">
+            <div>
+              <span class="label">Requested</span>
+              <span class="value"><%= indian_currency(failed.amount) %></span>
+            </div>
+            <% if wallet %>
+              <div>
+                <span class="label">Active wallet</span>
+                <span class="value <%= 'text-danger' if short_balance %>"><%= indian_currency(wallet.balance) %></span>
+              </div>
+            <% end %>
+          </div>
+
+          <div class="alert <%= short_balance ? 'alert-warning' : 'alert-danger' %> small text-start mb-0">
+            <i class="bi bi-info-circle me-1"></i><%= review_error['message'] %>
+            <% if short_balance %>
+              <div class="mt-1">Top up or correct their wallet first, or reject this request.</div>
+            <% end %>
+          </div>
+        </div>
+        <div class="modal-footer border-0 justify-content-center pt-0 pb-4 gap-2">
+          <%= link_to wallet_path, class: "btn btn-outline-primary" do %>
+            <i class="bi bi-wallet2 me-1"></i>Open wallet
+          <% end %>
+          <% if failed.pending? %>
+            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" data-open-reject="#rejectModal<%= failed.id %>">
+              <i class="bi bi-x-lg me-1"></i>Reject request
+            </button>
+          <% end %>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .wr-error-modal { border-radius: 18px; }
+    .wr-error-icon { width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; color: #b45309; background: #fef3c7; }
+    .wr-error-figures { display: flex; justify-content: center; gap: .75rem; }
+    .wr-error-figures > div { flex: 1; max-width: 170px; background: #f8f9fc; border: 1px solid #eef0f6; border-radius: 12px; padding: .6rem .5rem; }
+    .wr-error-figures .label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+    .wr-error-figures .value { display: block; font-weight: 700; font-size: 1.1rem; }
+  </style>
+
+  <script>
+    (function() {
+      function show() {
+        var el = document.getElementById('reviewErrorModal');
+        if (!el || !window.bootstrap) return;
+        bootstrap.Modal.getOrCreateInstance(el).show();
+        var rejectBtn = el.querySelector('[data-open-reject]');
+        if (rejectBtn) rejectBtn.addEventListener('click', function() {
+          var target = document.querySelector(rejectBtn.dataset.openReject);
+          if (target) el.addEventListener('hidden.bs.modal', function() { bootstrap.Modal.getOrCreateInstance(target).show(); }, { once: true });
+        });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
+    })();
+  </script>
+<% end %>
