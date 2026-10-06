@@ -959,7 +959,7 @@ class Admin::ImportsController < Admin::ApplicationController
 
       respond_to do |format|
         if import_result[:success]
-          success_message = "Successfully imported #{import_result[:imported_count]} distributors. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          success_message = "Successfully imported #{import_result[:imported_count]} ambassadors. #{import_result[:skipped_count]} records were skipped due to validation errors."
           Rails.logger.info "Import successful: #{success_message}"
 
           format.html { redirect_to admin_distributors_path, notice: success_message }

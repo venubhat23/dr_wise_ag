@@ -3,9 +3,9 @@
   <div>
     <h2 class="mb-1 fw-bold text-dark">
       <i class="bi bi-cloud-upload me-2 text-primary"></i>
-      Distributor Import
+      Ambassador Import
     </h2>
-    <p class="text-muted mb-0">Import distributor data from Excel spreadsheet with advanced validation</p>
+    <p class="text-muted mb-0">Import ambassador data from Excel spreadsheet with advanced validation</p>
   </div>
   <div>
     <%= link_to admin_imports_path, class: "btn btn-outline-secondary" do %>
@@ -63,8 +63,8 @@
       <i class="bi bi-gear text-primary fs-5"></i>
     </div>
     <div>
-      <h5 class="mb-0 fw-bold">Setup Distributor Import</h5>
-      <p class="text-muted mb-0 small">Download the distributor import template and review field requirements</p>
+      <h5 class="mb-0 fw-bold">Setup Ambassador Import</h5>
+      <p class="text-muted mb-0 small">Download the ambassador import template and review field requirements</p>
     </div>
   </div>
   <div class="card-body">
@@ -77,7 +77,7 @@
               <div class="mb-3">
                 <i class="bi bi-diagram-3 text-primary" style="font-size: 2.5rem;"></i>
               </div>
-              <h6 class="fw-bold mb-2">Distributor Partners</h6>
+              <h6 class="fw-bold mb-2">Ambassador Partners</h6>
               <p class="text-muted small mb-0">Business distribution partners with commission structure</p>
             </div>
           </div>
@@ -94,7 +94,7 @@
           </div>
           <div>
             <h6 class="mb-1">Download Template</h6>
-            <p class="text-muted small mb-0">Get the Excel template with correct column structure for distributors</p>
+            <p class="text-muted small mb-0">Get the Excel template with correct column structure for ambassadors</p>
           </div>
         </div>
       </div>
@@ -114,7 +114,7 @@
           </div>
           <div>
             <h6 class="text-info fw-bold mb-2">Template Information</h6>
-            <p class="mb-0" id="templateDescription">The Excel template includes the correct column structure for distributor data including personal details, contact information, and banking details for commission payouts.</p>
+            <p class="mb-0" id="templateDescription">The Excel template includes the correct column structure for ambassador data including personal details, contact information, and banking details for commission payouts.</p>
           </div>
         </div>
       </div>
@@ -182,7 +182,7 @@
     </div>
     <div>
       <h5 class="mb-0 fw-bold">Upload Excel File</h5>
-      <p class="text-muted mb-0 small">Upload your completed Excel file with distributor data</p>
+      <p class="text-muted mb-0 small">Upload your completed Excel file with ambassador data</p>
     </div>
   </div>
   <div class="card-body">
@@ -248,7 +248,7 @@
     </div>
     <div>
       <h5 class="mb-0 fw-bold">Data Validation & Preview</h5>
-      <p class="text-muted mb-0 small">Review your distributor data before importing</p>
+      <p class="text-muted mb-0 small">Review your ambassador data before importing</p>
     </div>
   </div>
   <div class="card-body">
@@ -310,7 +310,7 @@
               <i class="bi bi-table text-secondary fs-4"></i>
             </div>
             <h6 class="text-muted mb-1">Data Preview</h6>
-            <p class="text-muted small mb-0">Upload a file and click "Preview & Validate" to see your distributor data</p>
+            <p class="text-muted small mb-0">Upload a file and click "Preview & Validate" to see your ambassador data</p>
           </div>
         </div>
       </div>
@@ -336,7 +336,7 @@
     </div>
     <div>
       <h5 class="mb-0 fw-bold text-success">Import Completed Successfully!</h5>
-      <p class="text-muted mb-0 small">Your distributor data has been processed and imported</p>
+      <p class="text-muted mb-0 small">Your ambassador data has been processed and imported</p>
     </div>
   </div>
   <div class="card-body">
@@ -348,7 +348,7 @@
         </div>
         <div>
           <h6 class="text-success fw-bold mb-2">Import Successful!</h6>
-          <p class="mb-0" id="successDetails">Your distributor data has been successfully imported and is now available in the system.</p>
+          <p class="mb-0" id="successDetails">Your ambassador data has been successfully imported and is now available in the system.</p>
         </div>
       </div>
     </div>
@@ -406,12 +406,12 @@
     <div class="row g-3">
       <div class="col-md-6">
         <a href="<%= admin_distributors_path %>" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
-          <i class="bi bi-diagram-3 me-2"></i>View All Distributors
+          <i class="bi bi-diagram-3 me-2"></i>View All Ambassadors
         </a>
       </div>
       <div class="col-md-6">
         <button type="button" class="btn btn-outline-primary btn-lg w-100 d-flex align-items-center justify-content-center" id="importMoreBtn">
-          <i class="bi bi-plus-circle me-2"></i>Import More Distributors
+          <i class="bi bi-plus-circle me-2"></i>Import More Ambassadors
         </button>
       </div>
     </div>
@@ -1015,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('Import response data:', data);
 
       importDistributorsBtn.disabled = false;
-      importDistributorsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Distributors';
+      importDistributorsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Ambassadors';
 
       if (data.success) {
         console.log('Import successful, showing step 4');
@@ -1030,8 +1030,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
       console.error('Import error:', error);
       importDistributorsBtn.disabled = false;
-      importDistributorsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Distributors';
-      alert('Error importing distributors: ' + error.message);
+      importDistributorsBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Import Ambassadors';
+      alert('Error importing ambassadors: ' + error.message);
     });
     });
   }
@@ -1054,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (totalProcessed) totalProcessed.textContent = data.total_count || 0;
   }
 
-  // Handle "Import More Distributors" button
+  // Handle "Import More Ambassadors" button
   const importMoreBtn = document.getElementById('importMoreBtn');
   if (importMoreBtn) {
     importMoreBtn.addEventListener('click', function() {
