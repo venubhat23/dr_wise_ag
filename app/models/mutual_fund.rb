@@ -77,7 +77,7 @@ class MutualFund < ApplicationRecord
     label = [investment_type, fund_name.presence].compact.join(' - ')
     Notification.notify(customer, 'investment_added', 'New Investment Added',
                         "Your #{label} investment#{" of Rs. #{amount.to_f.round(2)}" if amount} has been added to your account.", self)
-    Notification.notify(sub_agent, 'investment_added', 'Investment Added for Your Customer',
+    Notification.notify(sub_agent, 'investment_added', 'Investment Added for Your Client',
                         "A #{label} investment has been added for #{customer&.display_name || 'your customer'}.", self)
   end
 end

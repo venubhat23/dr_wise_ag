@@ -201,14 +201,14 @@ module ApplicationHelper
       policies = HealthInsurance.includes(:customer)
                                 .select(:id, :policy_number, :customer_id, :total_premium)
                                 .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(policy.total_premium)}", policy.id]
       end
     when 'life_insurance', 'life'
       policies = LifeInsurance.includes(:customer)
                               .select(:id, :policy_number, :customer_id, :total_premium)
                               .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         premium = policy.total_premium || 0
         ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
       end
@@ -217,7 +217,7 @@ module ApplicationHelper
         policies = MotorInsurance.includes(:customer)
                                  .select(:id, :policy_number, :customer_id, :total_premium)
                                  .map do |policy|
-          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          customer_name = policy.customer&.display_name || 'Unknown Client'
           premium = policy.total_premium || 0
           ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
         end
@@ -227,7 +227,7 @@ module ApplicationHelper
         policies = GeneralInsurance.includes(:customer)
                                    .select(:id, :policy_number, :customer_id, :total_premium)
                                    .map do |policy|
-          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          customer_name = policy.customer&.display_name || 'Unknown Client'
           premium = policy.total_premium || 0
           ["#{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
         end
@@ -237,14 +237,14 @@ module ApplicationHelper
       health_policies = HealthInsurance.includes(:customer)
                                        .select(:id, :policy_number, :customer_id, :total_premium)
                                        .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         ["Health: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(policy.total_premium)}", policy.id]
       end
 
       life_policies = LifeInsurance.includes(:customer)
                                    .select(:id, :policy_number, :customer_id, :total_premium)
                                    .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         premium = policy.total_premium || 0
         ["Life: #{policy.policy_number || "Policy ##{policy.id}"} - #{customer_name} - #{indian_currency(premium)}", policy.id]
       end

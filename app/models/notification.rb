@@ -134,7 +134,7 @@ class Notification < ApplicationRecord
       create!(
         recipient: policy.sub_agent,
         notification_type: notification_type,
-        title: renewal ? 'Policy Renewed for Your Customer' : 'Policy Created for Your Customer',
+        title: renewal ? 'Policy Renewed for Your Client' : 'Policy Created for Your Client',
         message: "A #{label} has been #{renewal ? 'renewed' : 'created'} for #{policy.customer&.display_name || 'your customer'}.",
         reference: policy,
         is_read: false

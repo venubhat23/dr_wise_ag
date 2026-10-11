@@ -404,14 +404,14 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          message: 'Customer not found',
+          message: 'Client not found',
           options: [{ value: 'Self', text: 'Self' }]
         }
       end
     else
       render json: {
         success: false,
-        message: 'Customer ID is required',
+        message: 'Client ID is required',
         options: [{ value: 'Self', text: 'Self' }]
       }
     end
@@ -673,7 +673,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          message: 'Customer not found',
+          message: 'Client not found',
           nominees: []
         }
       rescue => e
@@ -686,7 +686,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
     else
       render json: {
         success: false,
-        message: 'Customer ID is required',
+        message: 'Client ID is required',
         nominees: []
       }
     end
@@ -757,7 +757,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
                 PolicyEndDate PolicyHolder PlanName PolicyTerm Status Source
                 Affiliate Broker BookingDate CreatedAt]
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         csv << [p.id, p.policy_number, p.policy_type, p.customer&.display_name, p.customer&.email,
                 p.insurance_company_name, p.sum_insured, p.total_premium, p.net_premium,
                 p.payment_mode, p.policy_start_date, p.policy_end_date, p.policy_holder,
@@ -779,7 +779,7 @@ class Admin::LifeInsurancesController < Admin::ApplicationController
                        PolicyEndDate PolicyHolder PlanName PolicyTerm Status Source
                        Affiliate Broker BookingDate CreatedAt], style: hdr
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         sheet.add_row [p.id, p.policy_number, p.policy_type, p.customer&.display_name, p.customer&.email,
                        p.insurance_company_name, p.sum_insured.to_f, p.total_premium.to_f, p.net_premium.to_f,
                        p.payment_mode, p.policy_start_date&.to_s, p.policy_end_date&.to_s, p.policy_holder,

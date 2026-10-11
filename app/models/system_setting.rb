@@ -206,7 +206,7 @@ class SystemSetting < ApplicationRecord
     setting.update!(attrs) if attrs.any?
 
     set_value('company_website', params[:company_website], description: 'Company website URL', setting_type: 'string') if params[:company_website].present?
-    set_value('support_hours', params[:support_hours], description: 'Customer support hours', setting_type: 'string') if params[:support_hours].present?
+    set_value('support_hours', params[:support_hours], description: 'Client support hours', setting_type: 'string') if params[:support_hours].present?
   end
 
   # ─── Investment Amount ────────────────────────────────────────────────────────

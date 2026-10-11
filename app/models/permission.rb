@@ -28,7 +28,7 @@ class Permission < ApplicationRecord
   def self.modules_list
     [
       { name: 'dashboard', display: 'Dashboard', description: 'Main dashboard and analytics overview' },
-      { name: 'customers', display: 'Customers', description: 'Customer management and profiles' },
+      { name: 'customers', display: 'Clients', description: 'Client management and profiles' },
       { name: 'policies', display: 'Policies', description: 'Policy management and tracking' },
       { name: 'health_insurance', display: 'Health Insurance', description: 'Health insurance policies and claims' },
       { name: 'life_insurance', display: 'Life Insurance', description: 'Life insurance policies and claims' },
@@ -41,7 +41,7 @@ class Permission < ApplicationRecord
       { name: 'roles', display: 'Roles & Permissions', description: 'Role and permission management' },
       { name: 'settings', display: 'Settings', description: 'System configuration and preferences' },
       { name: 'import_export', display: 'Import/Export', description: 'Data import and export features' },
-      { name: 'helpdesk', display: 'Helpdesk', description: 'Customer support and helpdesk' }
+      { name: 'helpdesk', display: 'Helpdesk', description: 'Client support and helpdesk' }
     ]
   end
 

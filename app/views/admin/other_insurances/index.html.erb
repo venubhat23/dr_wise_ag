@@ -201,7 +201,7 @@
       <!-- Basic filter row -->
       <div class="row g-2 align-items-end mb-2">
         <div class="col-md-4">
-          <%= form.text_field :search, placeholder: "Search by policy no., customer, company…", value: params[:search], class: "form-control" %>
+          <%= form.text_field :search, placeholder: "Search by policy no., client, company…", value: params[:search], class: "form-control" %>
         </div>
         <div class="col-md-2">
           <%= form.select :status, options_for_select([
@@ -315,7 +315,7 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0" data-col="oi-policy">Policy</th>
-              <th class="border-0" data-col="oi-customer">Customer</th>
+              <th class="border-0" data-col="oi-customer">Client</th>
               <th class="border-0" data-col="oi-company">Company</th>
               <th class="border-0" data-col="oi-source">Source &amp; Type</th>
               <th class="border-0" data-col="oi-coverage">Coverage</th>
@@ -363,7 +363,7 @@
                   <div class="d-flex flex-column gap-1">
                     <div>
                       <% if policy.is_customer_added? %>
-                        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-check me-1"></i>Customer</span>
+                        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-check me-1"></i>Client</span>
                       <% elsif policy.is_agent_added? %>
                         <span class="badge bg-success-subtle text-success"><i class="bi bi-person-badge me-1"></i>Agent</span>
                       <% elsif policy.is_admin_added? %>
@@ -557,7 +557,7 @@
 // ── Other Insurance Column Config ─────────────────────────────────────────
 const OI_COL_CONFIG = [
   { key: 'oi-policy',      label: 'Policy',         defaultOn: true  },
-  { key: 'oi-customer',    label: 'Customer',        defaultOn: true  },
+  { key: 'oi-customer',    label: 'Client',        defaultOn: true  },
   { key: 'oi-company',     label: 'Company',         defaultOn: true  },
   { key: 'oi-source',      label: 'Source & Type',   defaultOn: true  },
   { key: 'oi-coverage',    label: 'Coverage',        defaultOn: true  },

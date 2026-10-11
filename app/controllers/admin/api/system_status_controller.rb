@@ -453,13 +453,16 @@ module Admin
         [
           [HealthInsurance, 'Health'],
           [LifeInsurance,   'Life'],
-          [MotorInsurance,  'Motor']
+          [MotorInsurance,  'Motor'],
+          [OtherInsurance,  'Other']
         ].each do |klass, label|
           begin
+            # Same scope + date column as the dashboard's Total Policies card
+            # (DashboardController#dr_scope, policy_start_date) so the counts match.
             klass.where(is_admin_added: true, is_customer_added: false, is_agent_added: false)
-                 .where(policy_booking_date: date_range)
+                 .where(policy_start_date: date_range)
                  .includes(:customer)
-                 .order(policy_booking_date: :desc)
+                 .order(policy_start_date: :desc)
                  .limit(200)
                  .each do |p|
               net       = p.net_premium.to_f

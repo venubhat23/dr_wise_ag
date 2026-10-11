@@ -59,7 +59,7 @@ const Dashboard = () => {
       sparklineData: [60, 55, 58, 52, 50, 48, 45, 47, 43, 45, 42, 40]
     },
     {
-      title: 'Customer Growth',
+      title: 'Client Growth',
       value: data?.customerGrowth || 23.8,
       change: 5.2,
       trend: 'up',

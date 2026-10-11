@@ -70,7 +70,7 @@
             <div class="invalid-feedback"><%= @life_insurance.errors[:policy_holder].first %></div>
           <% end %>
           <div class="form-text">
-            <small class="text-muted">Select the policy holder. Choose "Self" if the customer is the policyholder.</small>
+            <small class="text-muted">Select the policy holder. Choose "Self" if the client is the policyholder.</small>
           </div>
         </div>
 
@@ -1838,9 +1838,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Attach event handler for customer selection AFTER Select2 is initialized
   $('#customer_select').on('select2:select', function(e) {
-    console.log('🔄 Customer Select2 Event Triggered');
+    console.log('🔄 Client Select2 Event Triggered');
     var selectedCustomerId = e.params.data.id || this.value;
-    console.log('👤 Selected Customer ID:', selectedCustomerId);
+    console.log('👤 Selected Client ID:', selectedCustomerId);
 
     // Load policy holder options for the selected customer
     if (selectedCustomerId) {
@@ -1851,13 +1851,13 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#affiliate_select').val(null).trigger('change');
 
     if (selectedCustomerId) {
-      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+      console.log('Client selected, filtering affiliates for client ID:', selectedCustomerId);
     }
   });
 
   // Handle customer clearing
   $('#customer_select').on('select2:clear', function(e) {
-    console.log('🔄 Customer cleared');
+    console.log('🔄 Client cleared');
 
     // Reset policy holder options to default
     const policyHolderSelect = $('#policy_holder_select');
@@ -1868,7 +1868,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Clear affiliate dropdown when customer is cleared
     $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, showing all affiliates');
+    console.log('Client cleared, showing all affiliates');
   });
 
   // Initialize Select2 for Policy Holder dropdown
@@ -4051,7 +4051,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Restore customer selection and trigger policy holder loading
     if (selectedValues.customer_id) {
       restoreSelect2Value('customer_select', selectedValues.customer_id, true); // Trigger change event
-      console.log('✅ Restored customer selection and triggered policy holder loading');
+      console.log('✅ Restored client selection and triggered policy holder loading');
       // Also auto-load nominees for pre-selected customer
       setTimeout(function() {
         if (typeof loadCustomerNominees === 'function') {
@@ -4396,7 +4396,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       error: function(xhr, status, error) {
-        console.error('Error loading customer nominees:', error);
+        console.error('Error loading client nominees:', error);
       }
     });
   }
@@ -4524,7 +4524,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = false;
       },
       error: function(xhr, status, error) {
-        console.error('Error loading customer nominees:', error);
+        console.error('Error loading client nominees:', error);
         alert('Error loading nominees. Please try again.');
 
         // Restore button state

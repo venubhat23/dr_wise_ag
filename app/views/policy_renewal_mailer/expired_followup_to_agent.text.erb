@@ -13,7 +13,7 @@
 %>
 Hi <%= @agent.full_name %>,
 
-This is a follow-up to let you know that the <%= @policy_category %> policy held by your customer <%= @customer.display_name %>, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, expired on <%= @policy.policy_end_date.strftime("%d %b %Y") %> - <%= @days_since_expiry %> <%= day_word %> ago - and has still not been renewed as per our records. Please prioritize reaching out to the customer to complete the renewal, as an extended lapse can make the policy harder to reinstate and leaves the customer without cover in the meantime.
+This is a follow-up to let you know that the <%= @policy_category %> policy held by your client <%= @customer.display_name %>, bearing policy number <%= @policy.policy_number %> under the <%= @policy.plan_name %> plan<% if @policy.insurance_company_name.present? %> with <%= @policy.insurance_company_name %><% end %>, expired on <%= @policy.policy_end_date.strftime("%d %b %Y") %> - <%= @days_since_expiry %> <%= day_word %> ago - and has still not been renewed as per our records. Please prioritize reaching out to the client to complete the renewal, as an extended lapse can make the policy harder to reinstate and leaves the client without cover in the meantime.
 
 Policy Details
 --------------
@@ -21,9 +21,9 @@ Policy Details
 <%= "#{label}:".ljust(20) %><%= value %>
 <% end -%>
 
-Customer Contact: <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> - <%= @customer.mobile %><% end %><% if @customer.email.present? %> - <%= @customer.email %><% end %>
+Client Contact: <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> - <%= @customer.mobile %><% end %><% if @customer.email.present? %> - <%= @customer.email %><% end %>
 
-If the customer has already renewed, please disregard this email - our records may take a little time to catch up.
+If the client has already renewed, please disregard this email - our records may take a little time to catch up.
 
 Thank you,
 Drwise Team

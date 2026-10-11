@@ -359,7 +359,7 @@ class Admin::Reports::UpcomingRenewalReportsController < Admin::Reports::BaseCon
       # Add policy details header
       csv << ["Policy Details:"]
       csv << [
-        'Policy Number', 'Policy Type', 'Customer Name', 'Customer Email', 'Customer Mobile',
+        'Policy Number', 'Policy Type', 'Client Name', 'Client Email', 'Client Mobile',
         'Insurance Company', 'Policy Start Date', 'Policy End Date', 'Days Until Renewal',
         'Premium Amount', 'Sum Insured', 'Status', 'Affiliate'
       ]

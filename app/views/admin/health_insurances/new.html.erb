@@ -1592,7 +1592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadNomineeDetails() {
       const customerElement = document.getElementById('customer_select');
       if (!customerElement) {
-        console.log('Customer select element not found');
+        console.log('Client select element not found');
         return;
       }
 
@@ -1604,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // For health insurance, nominees are managed via the "Load from Client" button
       // This function is kept for compatibility but doesn't auto-load nominees
-      console.log('Customer selected, but nominee auto-loading is handled by the Load from Client button');
+      console.log('Client selected, but nominee auto-loading is handled by the Load from Client button');
     }
 
     // Helper function to show notifications
@@ -1953,7 +1953,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle customer clearing
     $('#customer_select').on('select2:clear', function(e) {
       $('#affiliate_select').val(null).trigger('change');
-      console.log('Customer cleared, showing all affiliates');
+      console.log('Client cleared, showing all affiliates');
     });
 
     // Sub-agent commission event listeners

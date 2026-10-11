@@ -1,4 +1,4 @@
-<!-- Fix Customer Detail Page Styling -->
+<!-- Fix Client Detail Page Styling -->
 <style>
 /* Page Background */
 body {
@@ -241,10 +241,10 @@ body {
 }
 </style>
 
-<!-- Customer Details Header -->
+<!-- Client Details Header -->
 <div class="customer-header-card">
   <div class="d-flex justify-content-between align-items-start">
-    <!-- Left Section with Customer Info -->
+    <!-- Left Section with Client Info -->
     <div class="d-flex align-items-center gap-3">
       <!-- Avatar/Icon -->
       <div class="customer-avatar">
@@ -271,7 +271,7 @@ body {
         <% end %>
       </div>
 
-      <!-- Customer Info -->
+      <!-- Client Info -->
       <div>
         <h2 class="customer-name mb-1"><%= @customer.display_name %></h2>
         <div class="d-flex align-items-center gap-2 mb-1">
@@ -292,7 +292,7 @@ body {
     <div class="text-end">
       <div class="d-flex gap-2 justify-content-end">
         <%= link_to admin_customers_path, class: "btn btn-outline-secondary btn-sm" do %>
-          <i class="bi bi-arrow-left me-1"></i>Back to Customers
+          <i class="bi bi-arrow-left me-1"></i>Back to Clients
         <% end %>
 
         <%= link_to edit_admin_customer_path(@customer), class: "btn btn-primary btn-sm" do %>
@@ -317,7 +317,7 @@ body {
             <i class="bi bi-gear me-1"></i>Actions
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><%= link_to "Edit Customer", edit_admin_customer_path(@customer), class: "dropdown-item" %></li>
+            <li><%= link_to "Edit Client", edit_admin_customer_path(@customer), class: "dropdown-item" %></li>
             <li><%= link_to "Add Family Member", new_admin_customer_family_member_path(@customer), class: "dropdown-item" %></li>
             <li><hr class="dropdown-divider"></li>
             <li>
@@ -334,7 +334,7 @@ body {
                     "customer-name": @customer.display_name,
                     "delete-url": admin_customer_path(@customer)
                   } do %>
-                <i class="bi bi-trash me-2"></i>Delete Customer
+                <i class="bi bi-trash me-2"></i>Delete Client
               <% end %>
             </li>
           </ul>
@@ -398,7 +398,7 @@ body {
           <div class="col-md-3 text-md-end">
             <%= button_to reset_mobile_login_password_admin_customer_path(@customer), method: :patch,
                   class: "btn btn-sm btn-outline-warning",
-                  form: { data: { turbo_confirm: "Reset this customer's mobile password to #{Customer::DEFAULT_LOGIN_PASSWORD}?" } } do %>
+                  form: { data: { turbo_confirm: "Reset this client's mobile password to #{Customer::DEFAULT_LOGIN_PASSWORD}?" } } do %>
               <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to <%= Customer::DEFAULT_LOGIN_PASSWORD %>
             <% end %>
           </div>
@@ -407,10 +407,10 @@ body {
           <small class="text-muted d-block mt-2">This email/mobile belongs to a <%= login_user.user_type.humanize.downcase %> account.</small>
         <% end %>
       <% elsif @customer.email.blank? %>
-        <div class="text-muted">No mobile login. Add an email to this customer to create one.</div>
+        <div class="text-muted">No mobile login. Add an email to this client to create one.</div>
       <% else %>
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <span class="text-muted">No mobile login exists for this customer.</span>
+          <span class="text-muted">No mobile login exists for this client.</span>
           <%= button_to create_mobile_login_admin_customer_path(@customer), method: :post, class: "btn btn-sm btn-primary" do %>
             <i class="bi bi-person-plus me-1"></i>Create Mobile Login (<%= Customer::DEFAULT_LOGIN_PASSWORD %>)
           <% end %>
@@ -743,7 +743,7 @@ body {
               <% if @customer.affiliate.present? %>
                 <%= @customer.affiliate.full_name %>
               <% else %>
-                Direct Customer
+                Direct Client
               <% end %>
             </div>
           </div>
@@ -830,7 +830,7 @@ body {
   </div>
 </div>
 
-<!-- Corporate Members Section (for corporate customers) -->
+<!-- Corporate Members Section (for corporate clients) -->
 <% if @customer.customer_type == 'corporate' %>
 <div class="info-section-card">
   <div class="section-header collapsed" data-bs-toggle="collapse" data-bs-target="#corporateCollapse" aria-expanded="false">
@@ -870,12 +870,12 @@ body {
     <div class="section-body">
 
 
-      <!-- Customer Documents Section -->
+      <!-- Client Documents Section -->
       <% if @customer.documents.any? %>
         <div class="customer-documents-section mb-4">
           <div class="d-flex align-items-center mb-3">
             <i class="bi bi-file-earmark-text me-2 text-primary fs-5"></i>
-            <h6 class="mb-0">Customer Documents</h6>
+            <h6 class="mb-0">Client Documents</h6>
             <span class="badge bg-primary ms-2"><%= @customer.documents.count %></span>
           </div>
           <div class="simple-documents-list">
@@ -1221,7 +1221,7 @@ body {
             <i class="bi bi-folder2-open"></i>
           </div>
           <h6 class="empty-state-title">No Documents Available</h6>
-          <p class="empty-state-subtitle">Use the upload section above to add documents to this customer's file.</p>
+          <p class="empty-state-subtitle">Use the upload section above to add documents to this client's file.</p>
         </div>
       <% end %>
 
@@ -1460,7 +1460,7 @@ body {
         <div class="text-center text-muted py-5">
           <i class="bi bi-shield-x fs-2 d-block mb-3 text-primary"></i>
           <h6 class="mb-2">No active policies found</h6>
-          <p class="text-muted mb-3">This customer doesn't have any active policies yet.</p>
+          <p class="text-muted mb-3">This client doesn't have any active policies yet.</p>
           <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPolicyModal">
             <i class="bi bi-plus-lg me-1"></i>Add First Policy
           </button>
@@ -2920,13 +2920,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 </style>
-<!-- Delete Customer Confirmation Modal -->
+<!-- Delete Client Confirmation Modal -->
 <div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-labelledby="deleteCustomerModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title" id="deleteCustomerModalLabel">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Customer
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Client
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -2937,7 +2937,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <ul id="associationList" class="list-group list-group-flush mb-3"></ul>
         </div>
         <div id="noAssociationsMsg" class="d-none">
-          <p class="text-muted">This customer has no associated records.</p>
+          <p class="text-muted">This client has no associated records.</p>
         </div>
         <div id="loadingAssociations" class="text-center py-2">
           <div class="spinner-border spinner-border-sm text-danger me-2"></div>
@@ -2948,7 +2948,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
-          <i class="bi bi-trash me-2"></i>Delete All &amp; Remove Customer
+          <i class="bi bi-trash me-2"></i>Delete All &amp; Remove Client
         </button>
       </div>
     </div>
@@ -3036,4 +3036,4 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-<!-- End of customer show page -->
+<!-- End of client show page -->

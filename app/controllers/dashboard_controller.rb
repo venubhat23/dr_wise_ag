@@ -22,7 +22,7 @@ class DashboardController < ApplicationController
   def net_profit
     authorize! :read, :dashboard
     @start_date = params[:start_date].presence || Date.new(Date.current.year, 1, 1).strftime('%Y-%m-%d')
-    @end_date   = params[:end_date].presence   || Date.current.strftime('%Y-%m-%d')
+    @end_date   = params[:end_date].presence   || Date.new(Date.current.year, 12, 31).strftime('%Y-%m-%d')
   end
 
   def avg_policy_value
@@ -153,7 +153,7 @@ class DashboardController < ApplicationController
 
     # Create cache key based on filter parameters; gen is bumped on any record change
     cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
-    cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v7"
+    cache_key = "dashboard_data_#{cache_gen}_#{@filter_start_date}_#{@filter_end_date}_v8"
 
     # Try to get cached data first (5 minutes cache)
     # Check hit/miss BEFORE fetch — fetch always leaves the key present
@@ -1027,10 +1027,11 @@ class DashboardController < ApplicationController
     date_range = start_date..end_date
     total = 0.0
 
-    [[HealthInsurance, 'Health', true], [LifeInsurance, 'Life', false], [MotorInsurance, 'Motor', true]].each do |klass, label, has_main_amount|
+    [[HealthInsurance, 'Health', true], [LifeInsurance, 'Life', false], [MotorInsurance, 'Motor', true], [OtherInsurance, 'Other', true]].each do |klass, label, has_main_amount|
       begin
-        sum = klass.where(product_through_dr: true)
-                   .where(policy_booking_date: date_range)
+        # Same policy set as Total Policies and the Net Profit page.
+        sum = dr_scope(klass)
+                   .where(policy_start_date: date_range)
                    .sum(Arel.sql(profit_sql_expression(has_main_amount: has_main_amount)))
         total += sum.to_f
       rescue => e
@@ -1379,7 +1380,7 @@ class DashboardController < ApplicationController
     when 'customers'
       Customer.where("created_at >= ? AND created_at < ?", start_date, next_day)
               .order(created_at: :desc).map do |c|
-        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
+        { type: 'Client', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
           city: c.city.to_s, mobile: c.mobile.to_s,
           customer_link: "/admin/customers/#{c.id}" }
       end

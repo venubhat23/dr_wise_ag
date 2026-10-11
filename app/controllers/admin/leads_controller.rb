@@ -377,11 +377,11 @@ class Admin::LeadsController < Admin::ApplicationController
 
         # Redirect to product selection page for branch out leads with existing customers
         redirect_to product_selection_admin_customer_path(existing_customer),
-                    notice: "Branch out lead linked to existing customer. Please select a product to continue."
+                    notice: "Branch out lead linked to existing client. Please select a product to continue."
       else
         # No existing customer found, redirect to regular convert_to_customer action
         redirect_to convert_to_customer_admin_lead_path(@lead),
-                    notice: "No existing customer found. Please proceed with creating a new customer."
+                    notice: "No existing client found. Please proceed with creating a new client."
       end
     rescue => e
       Rails.logger.error "Branch out lead conversion failed: #{e.message}"
@@ -415,14 +415,14 @@ class Admin::LeadsController < Admin::ApplicationController
 
     if existing_customer
       # Show existing customer found - redirect back to conversion page with alert
-      flash[:alert] = "Customer already exists for this #{@lead.is_branch_out? ? 'branch' : 'parent'} lead."
+      flash[:alert] = "Client already exists for this #{@lead.is_branch_out? ? 'branch' : 'parent'} lead."
       redirect_to convert_to_customer_admin_lead_path(@lead)
       return
     end
 
     # No existing customer, proceed with creating new customer
     redirect_to new_admin_customer_path(lead_id: @lead.id),
-                notice: "Please create a new customer from this lead."
+                notice: "Please create a new client from this lead."
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error "Lead conversion failed for lead #{@lead.id}: #{e.message}"
     redirect_to admin_lead_path(@lead), alert: "Failed to convert lead: #{e.message}"
@@ -611,7 +611,7 @@ class Admin::LeadsController < Admin::ApplicationController
     when 'converted'
       # Instead of just updating the stage, redirect to customer conversion flow
       # This ensures that a customer is actually created when lead is marked as converted
-      Rails.logger.info "Lead #{@lead.id} marked for conversion - redirecting to customer creation flow"
+      Rails.logger.info "Lead #{@lead.id} marked for conversion - redirecting to client creation flow"
 
       # Don't update the stage here - let the customer creation process handle it
       # Set a flag to handle this special case in the response
@@ -633,8 +633,8 @@ class Admin::LeadsController < Admin::ApplicationController
       # Check if we need to redirect to customer conversion flow
       if @redirect_to_conversion
         respond_to do |format|
-          format.html { redirect_to convert_to_customer_admin_lead_path(@lead), notice: "🔄 Lead ready for customer conversion. Please proceed to create the customer account." }
-          format.json { render json: { success: true, redirect_to_conversion: true, redirect_url: convert_to_customer_admin_lead_path(@lead), message: "Lead ready for conversion - redirecting to customer creation" } }
+          format.html { redirect_to convert_to_customer_admin_lead_path(@lead), notice: "🔄 Lead ready for client conversion. Please proceed to create the client account." }
+          format.json { render json: { success: true, redirect_to_conversion: true, redirect_url: convert_to_customer_admin_lead_path(@lead), message: "Lead ready for conversion - redirecting to client creation" } }
         end
       else
         stage_display = @lead.stage_display_name
@@ -922,7 +922,7 @@ class Admin::LeadsController < Admin::ApplicationController
     source_customer = Customer.find_by(id: source_customer_id)
 
     unless source_customer
-      redirect_to admin_leads_path, alert: 'Source customer not found.'
+      redirect_to admin_leads_path, alert: 'Source client not found.'
       return
     end
 
@@ -980,7 +980,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
     render :new
   rescue => e
-    Rails.logger.error "Branch out from customer failed: #{e.message}"
+    Rails.logger.error "Branch out from client failed: #{e.message}"
     redirect_to admin_leads_path, alert: "Failed to create lead from customer: #{e.message}"
   end
 
@@ -1190,13 +1190,13 @@ class Admin::LeadsController < Admin::ApplicationController
     # Add tracking notes
     case determine_conversion_context(lead, customer)
     when :parent_customer
-      lead.update(notes: "#{lead.notes}\n\n[System] Branch lead linked to existing customer from parent lead.")
+      lead.update(notes: "#{lead.notes}\n\n[System] Branch lead linked to existing client from parent lead.")
     when :sibling_customer
-      lead.update(notes: "#{lead.notes}\n\n[System] Branch lead linked to existing customer from sibling lead.")
+      lead.update(notes: "#{lead.notes}\n\n[System] Branch lead linked to existing client from sibling lead.")
     when :branch_customer
-      lead.update(notes: "#{lead.notes}\n\n[System] Parent lead linked to existing customer from branch lead.")
+      lead.update(notes: "#{lead.notes}\n\n[System] Parent lead linked to existing client from branch lead.")
     when :contact_match
-      lead.update(notes: "#{lead.notes}\n\n[System] Lead linked to existing customer by contact match.")
+      lead.update(notes: "#{lead.notes}\n\n[System] Lead linked to existing client by contact match.")
     end
   end
 
@@ -1224,16 +1224,16 @@ class Admin::LeadsController < Admin::ApplicationController
       case lead.product_subcategory
       when 'health'
         redirect_to new_admin_health_insurance_path(customer_id: customer.id, lead_id: lead.id),
-                    notice: "Redirected to Health Insurance creation. Lead and customer details will be pre-filled."
+                    notice: "Redirected to Health Insurance creation. Lead and client details will be pre-filled."
       when 'life'
         redirect_to new_admin_life_insurance_path(customer_id: customer.id, lead_id: lead.id),
-                    notice: "Redirected to Life Insurance creation. Lead and customer details will be pre-filled."
+                    notice: "Redirected to Life Insurance creation. Lead and client details will be pre-filled."
       when 'motor'
         redirect_to new_admin_motor_insurance_path(customer_id: customer.id, lead_id: lead.id),
-                    notice: "Redirected to Motor Insurance creation. Lead and customer details will be pre-filled."
+                    notice: "Redirected to Motor Insurance creation. Lead and client details will be pre-filled."
       when 'general', 'travel', 'other'
         redirect_to new_admin_other_insurance_path(customer_id: customer.id, lead_id: lead.id),
-                    notice: "Redirected to Other Insurance creation. Lead and customer details will be pre-filled."
+                    notice: "Redirected to Other Insurance creation. Lead and client details will be pre-filled."
       else
         redirect_to admin_customer_path(customer),
                     notice: "Lead converted successfully. Please select insurance type manually."
@@ -1245,7 +1245,7 @@ class Admin::LeadsController < Admin::ApplicationController
                     notice: "Lead converted successfully. Please fill in the #{ClientService::SERVICE_TYPES[service_type]} details."
       else
         redirect_to admin_customer_path(customer),
-                    notice: "Lead converted successfully. Customer details available."
+                    notice: "Lead converted successfully. Client details available."
       end
     end
   end
@@ -1256,7 +1256,7 @@ class Admin::LeadsController < Admin::ApplicationController
     if lead.is_branch_out? && lead.converted_customer_id.present?
       return {
         can_delete: false,
-        message: "Customer already created for this lead."
+        message: "Client already created for this lead."
       }
     end
 
@@ -1264,7 +1264,7 @@ class Admin::LeadsController < Admin::ApplicationController
     if !lead.is_branch_out? && lead.converted_customer_id.present?
       return {
         can_delete: false,
-        message: "Customer already created for this lead."
+        message: "Client already created for this lead."
       }
     end
 

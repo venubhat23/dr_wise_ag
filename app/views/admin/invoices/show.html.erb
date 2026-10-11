@@ -499,15 +499,14 @@
         <div class="company-info">
           <div class="company-name">Drwise Insurance Services</div>
           <div class="address">
-            Business Address Line 1,
-            Business Address Line 2,
-            City, State, PIN Code
+            402-B-1, Sundara Arcade, Basement Floor, ITI HBCS Layout, Nayandahalli,
+            Mysore Road, Bengaluru, Karnataka 560039
           </div>
           <div class="contact">
-            <span class="highlight">Mobile:</span> +91-9999999999 &nbsp;&nbsp;
-            <span class="highlight">GSTIN:</span> 29AOIPT8113K1ZC &nbsp;&nbsp;
-            <span class="highlight">PAN Number:</span> AOIPT8113K<br />
-            <span class="highlight">Email:</span> admin@drwise.com
+            <span class="highlight">Mobile:</span> +91-7411417470 &nbsp;&nbsp;
+            <span class="highlight">GSTIN:</span> 29AAZFD1142R1ZK &nbsp;&nbsp;
+            <span class="highlight">PAN Number:</span> AAZFD1142R<br />
+            <span class="highlight">Email:</span> info@dr-wise.in
           </div>
         </div>
       </div>
@@ -667,7 +666,7 @@
               # Get policy details based on policy type
               policy = invoice_policies[[commission_payout.policy_type, commission_payout.policy_id.to_i]]
 
-              customer_name = policy&.customer&.display_name || 'Unknown Customer'
+              customer_name = policy&.customer&.display_name || 'Unknown Client'
               policy_number = policy&.policy_number || 'N/A'
 
               # Handle both CommissionPayout and DistributorPayout amounts

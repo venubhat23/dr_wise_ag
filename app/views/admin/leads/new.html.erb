@@ -5,7 +5,7 @@
       <% if session[:branch_out_mode] && session[:source_lead_id] %>
         <i class="bi bi-diagram-2 text-success me-2"></i>Branch Out - Add New Lead
       <% elsif session[:branch_out_mode] && session[:source_customer_id] %>
-        <i class="bi bi-person-plus text-primary me-2"></i>New Lead from Customer
+        <i class="bi bi-person-plus text-primary me-2"></i>New Lead from Client
       <% else %>
         Add New Lead
       <% end %>
@@ -25,7 +25,7 @@
         <small class="text-muted">
           <i class="bi bi-info-circle me-1"></i>
           Creating lead for existing customer: <strong><%= source_customer.display_name %></strong>
-          (Customer ID: <%= source_customer.id %>)
+          (Client ID: <%= source_customer.id %>)
         </small>
       <% end %>
     <% end %>
@@ -44,16 +44,16 @@
     <i class="bi bi-diagram-2 me-3 fs-4"></i>
     <div>
       <h6 class="mb-1"><strong>Branch Out Mode</strong></h6>
-      <p class="mb-0">You are creating a new lead for a different policy using information from an existing lead. Customer details have been pre-filled for you. Please select the appropriate product category and subcategory for the new policy.</p>
+      <p class="mb-0">You are creating a new lead for a different policy using information from an existing lead. Client details have been pre-filled for you. Please select the appropriate product category and subcategory for the new policy.</p>
     </div>
   </div>
 <% elsif session[:branch_out_mode] && session[:source_customer_id] %>
-  <!-- Customer Branch Out Info Alert -->
+  <!-- Client Branch Out Info Alert -->
   <div class="alert alert-primary d-flex align-items-center mb-4">
     <i class="bi bi-person-plus me-3 fs-4"></i>
     <div>
-      <h6 class="mb-1"><strong>Creating Lead from Customer</strong></h6>
-      <p class="mb-0">You are creating a new lead for an existing customer. All customer details have been pre-filled from their profile. Please select the appropriate product category and subcategory for this new lead.</p>
+      <h6 class="mb-1"><strong>Creating Lead from Client</strong></h6>
+      <p class="mb-0">You are creating a new lead for an existing client. All client details have been pre-filled from their profile. Please select the appropriate product category and subcategory for this new lead.</p>
     </div>
   </div>
 <% end %>
@@ -69,7 +69,7 @@
     <% end %>
   <% end %>
 
-  <!-- 1. Customer Type Selection - Compact Design -->
+  <!-- 1. Client Type Selection - Compact Design -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body py-3">
       <div class="customer-type-compact">
@@ -89,7 +89,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
           <div class="d-flex align-items-center">
             <i class="bi bi-person-badge fs-5 text-primary me-2"></i>
-            <span class="fw-semibold">Customer Type:</span>
+            <span class="fw-semibold">Client Type:</span>
           </div>
 
           <div class="pill-toggle">
@@ -140,12 +140,12 @@
     </div>
   </div>
 
-  <!-- 3. Individual Customer Details -->
+  <!-- 3. Individual Client Details -->
   <div id="individual_sections" style="display: <%= @lead&.customer_type == 'individual' ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-person-circle me-2 text-primary"></i>
-        <h5 class="mb-0">Individual Customer Information</h5>
+        <h5 class="mb-0">Individual Client Information</h5>
       </div>
       <div class="card-body">
         <div class="row">
@@ -214,7 +214,7 @@
       </div>
     </div>
 
-    <!-- Individual Customer Advanced Details -->
+    <!-- Individual Client Advanced Details -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-gear me-2 text-info"></i>
@@ -269,12 +269,12 @@
     </div>
   </div>
 
-  <!-- 4. Corporate Customer Details -->
+  <!-- 4. Corporate Client Details -->
   <div id="corporate_sections" style="display: <%= @lead&.customer_type == 'corporate' ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-building me-2 text-success"></i>
-        <h5 class="mb-0">Corporate Customer Information</h5>
+        <h5 class="mb-0">Corporate Client Information</h5>
       </div>
       <div class="card-body">
         <div class="row">
@@ -295,7 +295,7 @@
     </div>
   </div>
 
-  <!-- 5. Product Information (shown after customer type selected) -->
+  <!-- 5. Product Information (shown after client type selected) -->
   <div id="product_section" style="display: <%= @lead&.customer_type.present? ? 'block' : 'none' %>;">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
@@ -402,7 +402,7 @@
             ['❌ Follow-Up Unsuccessful', 'follow_up_unsuccessful'],
             ['🚫 Not Interested', 'not_interested'],
             ['🔄 Re-Follow Up', 're_follow_up'],
-            ['👤 Convert to Customer', 'converted'],
+            ['👤 Convert to Client', 'converted'],
             ['📁 Lead Close - Follow-Up Unsuccessful', 'lead_closed']
           ], @lead&.current_stage || 'lead_generated'), {}, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
         </div>
@@ -473,7 +473,7 @@
 
 <% end %>
 
-<!-- Customer Form Style -->
+<!-- Client Form Style -->
 <style>
 /* Compact Pill Toggle Design */
 .customer-type-compact {
@@ -809,7 +809,7 @@ function branchOutFromLead(sourceLeadId) {
   }
 
   // Show confirmation dialog
-  if (!confirm('This will copy all customer information from the existing lead and create a new lead for a different policy. Continue?')) {
+  if (!confirm('This will copy all client information from the existing lead and create a new lead for a different policy. Continue?')) {
     return;
   }
 
@@ -848,7 +848,7 @@ function branchOutFromCustomer(customerId, customerName) {
   console.log('branchOutFromCustomer called with customerId:', customerId, 'customerName:', customerName);
 
   if (!customerId) {
-    alert('Invalid customer ID');
+    alert('Invalid client ID');
     return;
   }
 
@@ -857,7 +857,7 @@ function branchOutFromCustomer(customerId, customerName) {
     return;
   }
 
-  console.log('Creating form to submit customer branch out request');
+  console.log('Creating form to submit client branch out request');
 
   // Create a form and submit it to trigger branch out from customer
   const form = document.createElement('form');
@@ -900,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const referredByField = document.getElementById('referred_by_field');
 
   // Debug: Check if radio buttons are found
-  console.log('Customer type radio buttons found:', customerTypeRadios.length);
+  console.log('Client type radio buttons found:', customerTypeRadios.length);
 
   // Initialize Select2 for searchable affiliate dropdown
   function initializeAffiliateSelect2() {
@@ -1040,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show loading indicator
     showLoadingIndicator();
 
-    console.log('Checking existing customer for:', { contactNumber, email });
+    console.log('Checking existing client for:', { contactNumber, email });
 
     // Make API call to check existing customer
     fetch('/admin/leads/check_existing_customer?' + new URLSearchParams({
@@ -1053,10 +1053,10 @@ document.addEventListener('DOMContentLoaded', function() {
       hideLoadingIndicator();
 
       if ((data.exists && data.customers.length > 0) || (data.has_existing_leads && data.leads.length > 0)) {
-        console.log('Showing existing customer warning for:', { customers: data.customers, leads: data.leads });
+        console.log('Showing existing client warning for:', { customers: data.customers, leads: data.leads });
         showExistingCustomerWarning(data.customers || [], data.leads || []);
       } else {
-        console.log('No existing customers or leads found');
+        console.log('No existing clients or leads found');
         hideExistingCustomerWarning();
       }
     })
@@ -1079,7 +1079,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const loadingDiv = document.createElement('div');
       loadingDiv.id = 'customer-check-loading';
       loadingDiv.className = 'alert alert-info mt-2';
-      loadingDiv.innerHTML = '<i class="bi bi-clock-history me-2"></i>Checking for existing customers...';
+      loadingDiv.innerHTML = '<i class="bi bi-clock-history me-2"></i>Checking for existing clients...';
 
       // Insert after contact information card
       const contactCard = document.querySelector('.card:has([name="lead[contact_number]"])');
@@ -1132,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show existing customers if any
     if (customers && customers.length > 0) {
-      warningHtml += '<h6 class="mb-2"><strong>Existing Customer Found!</strong></h6>';
+      warningHtml += '<h6 class="mb-2"><strong>Existing Client Found!</strong></h6>';
       warningHtml += '<p class="mb-2">We found existing customer(s) with matching information:</p>';
 
       customers.forEach(customer => {
@@ -1145,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         warningHtml += `<br>Match Type: ${customer.match_type.charAt(0).toUpperCase() + customer.match_type.slice(1)}`;
         warningHtml += `</small>`;
         warningHtml += '</div>';
-        warningHtml += `<button type="button" class="btn btn-primary btn-sm ms-2" onclick="branchOutFromCustomer(${customer.id}, '${customer.name}')" title="Create new lead for this customer">`;
+        warningHtml += `<button type="button" class="btn btn-primary btn-sm ms-2" onclick="branchOutFromCustomer(${customer.id}, '${customer.name}')" title="Create new lead for this client">`;
         warningHtml += '<i class="bi bi-plus-circle"></i> New Lead';
         warningHtml += '</button>';
         warningHtml += '</div>';
@@ -1193,8 +1193,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       warningHtml += '<div class="mt-3 p-2 bg-light rounded">';
-      warningHtml += '<p class="mb-2 small"><strong><i class="bi bi-info-circle me-1"></i>Same customer, different policy?</strong></p>';
-      warningHtml += '<p class="mb-2 small text-muted">Click the "Branch Out" button next to any existing lead to create a new lead for the same customer with a different policy type.</p>';
+      warningHtml += '<p class="mb-2 small"><strong><i class="bi bi-info-circle me-1"></i>Same client, different policy?</strong></p>';
+      warningHtml += '<p class="mb-2 small text-muted">Click the "Branch Out" button next to any existing lead to create a new lead for the same client with a different policy type.</p>';
       warningHtml += '</div>';
     }
 
@@ -1411,7 +1411,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (selectedRadio) {
     // Update visual elements for prefilled data
     const selectedType = selectedRadio.value;
-    console.log('Initializing with prefilled customer type:', selectedType);
+    console.log('Initializing with prefilled client type:', selectedType);
 
     // Update pill toggle visuals
     pillOptions.forEach(opt => opt.classList.remove('active'));
@@ -1500,7 +1500,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle customer type change with radio buttons (for form submission)
   customerTypeRadios.forEach(radio => {
     radio.addEventListener('change', function() {
-      console.log('Customer type changed to:', this.value);
+      console.log('Client type changed to:', this.value);
       if (this.checked) {
         const selectedType = this.value;
         console.log('Showing section for:', selectedType);
@@ -1551,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
 
           // Update the hidden name field with a default value
-          nameField.value = 'Individual Customer';
+          nameField.value = 'Individual Client';
         } else if (selectedType === 'corporate') {
           corporateSections.style.display = 'block';
 
@@ -1571,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if (lastNameField) lastNameField.removeAttribute('required');
 
           // Update the hidden name field with a default value
-          nameField.value = 'Corporate Customer';
+          nameField.value = 'Corporate Client';
         }
 
         // Restore preserved important field values after clearing
@@ -1597,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const lastName = lastNameField?.value || '';
       nameField.value = `${firstName} ${middleName} ${lastName}`.trim().replace(/\s+/g, ' ');
     } else if (selectedCustomerType === 'corporate') {
-      nameField.value = companyNameField?.value || 'Corporate Customer';
+      nameField.value = companyNameField?.value || 'Corporate Client';
     }
   }
 
@@ -2072,7 +2072,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validate customer type selection
     const selectedCustomerType = document.querySelector('input[name="lead[customer_type]"]:checked');
     if (!selectedCustomerType) {
-      errors.push('Please select a customer type');
+      errors.push('Please select a client type');
       isValid = false;
     }
 

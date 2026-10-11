@@ -153,7 +153,7 @@
                     <% elsif lead.converted_customer.present? %>
                       <%= link_to admin_customer_path(lead.converted_customer),
                           class: "btn btn-sm btn-info",
-                          title: "View Customer" do %>
+                          title: "View Client" do %>
                         <i class="bi bi-person-check"></i>
                       <% end %>
                     <% end %>
@@ -604,8 +604,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Check if we need to redirect to customer conversion
       if (result.redirect_to_conversion && result.redirect_url) {
-        console.log("🔄 Redirecting to customer conversion:", result.redirect_url);
-        showNotification('🔄 Redirecting to customer creation...', 'success');
+        console.log("🔄 Redirecting to client conversion:", result.redirect_url);
+        showNotification('🔄 Redirecting to client creation...', 'success');
         setTimeout(() => {
           window.location.href = result.redirect_url;
         }, 1000);

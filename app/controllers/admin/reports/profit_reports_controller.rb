@@ -297,7 +297,7 @@ class Admin::Reports::ProfitReportsController < Admin::Reports::BaseController
     column_headers = {
       'policy_number' => 'Policy Number',
       'policy_type' => 'Policy Type',
-      'customer_name' => 'Customer Name',
+      'customer_name' => 'Client Name',
       'insurance_company' => 'Insurance Company',
       'policy_holder' => 'Policy Holder',
       'start_date' => 'Start Date',

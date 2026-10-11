@@ -29,10 +29,10 @@
         </div>
 
         <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
-          This is a follow-up to let you know that the <strong><%= @policy_category %></strong> policy held by your customer <strong><%= @customer.display_name %></strong>,
+          This is a follow-up to let you know that the <strong><%= @policy_category %></strong> policy held by your client <strong><%= @customer.display_name %></strong>,
           bearing policy number <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
           expired on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong> — <strong><%= @days_since_expiry %></strong> <%= day_word.downcase %> ago — and has still not been renewed as per our records.
-          Please prioritize reaching out to the customer to complete the renewal, as an extended lapse can make the policy harder to reinstate and leaves the customer without cover in the meantime.
+          Please prioritize reaching out to the client to complete the renewal, as an extended lapse can make the policy harder to reinstate and leaves the client without cover in the meantime.
         </p>
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 8px;border:1px solid #ececf5;border-radius:10px;overflow:hidden;">
@@ -52,12 +52,12 @@
         </table>
 
         <div style="margin-top:8px;padding:14px 16px;background:#f8f9fd;border-radius:10px;font-size:13px;color:#444;line-height:1.6;">
-          <strong style="color:#333;">Customer Contact</strong><br>
+          <strong style="color:#333;">Client Contact</strong><br>
           <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> — <%= @customer.mobile %><% end %><% if @customer.email.present? %> · <%= @customer.email %><% end %>
         </div>
 
         <div style="margin-top:14px;padding:12px 16px;background:#eef7ee;border:1px solid #d9ecd9;border-radius:10px;font-size:12.5px;color:#3a6b3a;line-height:1.6;">
-          If the customer has already renewed, please disregard this email — our records may take a little time to catch up.
+          If the client has already renewed, please disregard this email — our records may take a little time to catch up.
         </div>
       </td>
     </tr>

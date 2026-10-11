@@ -1,11 +1,11 @@
-<!-- Customer Import Modal -->
+<!-- Client Import Modal -->
 <div class="modal fade" id="customerImportModal" tabindex="-1" aria-labelledby="customerImportModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="customerImportModalLabel">
           <i class="fas fa-users me-2"></i>
-          Import Customers
+          Import Clients
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -14,9 +14,9 @@
         <div class="modal-body">
           <div class="alert alert-info" role="alert">
             <i class="fas fa-info-circle me-2"></i>
-            <strong>Customer Import Requirements:</strong>
+            <strong>Client Import Requirements:</strong>
             <ul class="mb-0 mt-2">
-              <li>Customer Type: 'individual' or 'corporate'</li>
+              <li>Client Type: 'individual' or 'corporate'</li>
               <li>Individual: first_name, email, mobile required</li>
               <li>Corporate: company_name, email, mobile required</li>
               <li>Duplicate detection on email and mobile</li>
@@ -26,7 +26,7 @@
           <div class="mb-3">
             <label for="customerFile" class="form-label fw-bold">
               <i class="fas fa-file-upload me-1"></i>
-              Select Customer Data File
+              Select Client Data File
             </label>
             <%= form.file_field :file,
                                 id: "customerFile",
@@ -81,9 +81,9 @@
                       target: "_blank" do %>
             <i class="fas fa-download me-1"></i> Download Template
           <% end %>
-          <%= form.submit "Import Customers", class: "btn btn-primary" do %>
+          <%= form.submit "Import Clients", class: "btn btn-primary" do %>
             <i class="fas fa-upload me-1"></i>
-            Import Customers
+            Import Clients
           <% end %>
         </div>
       <% end %>

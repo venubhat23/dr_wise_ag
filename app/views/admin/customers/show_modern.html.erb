@@ -1,10 +1,10 @@
-<!-- Modern Customer Details Page -->
+<!-- Modern Client Details Page -->
 <div class="modern-customer-page">
   <!-- Header Section -->
   <div class="page-header">
     <%= link_to admin_customers_path, class: "back-link" do %>
       <i class="bi bi-chevron-left"></i>
-      <span>Back to Customers</span>
+      <span>Back to Clients</span>
     <% end %>
 
     <div class="customer-header">
@@ -18,14 +18,14 @@
         <span class="customer-type">
           <span class="badge-type"><%= @customer.customer_type.humanize %></span>
         </span>
-        <span class="customer-id">Customer ID: #<%= @customer.id %></span>
+        <span class="customer-id">Client ID: #<%= @customer.id %></span>
       </div>
     </div>
 
     <div class="header-actions">
       <%= link_to edit_admin_customer_path(@customer), class: "edit-btn" do %>
         <i class="bi bi-pencil"></i>
-        <span>Edit Customer</span>
+        <span>Edit Client</span>
       <% end %>
     </div>
   </div>
@@ -141,9 +141,9 @@
             <% else %>
               <div class="empty-state">
                 <i class="bi bi-clipboard-x"></i>
-                <p>No associated lead found for this customer.</p>
+                <p>No associated lead found for this client.</p>
                 <% if @customer.lead_id.present? %>
-                  <small>Customer Lead ID: <%= @customer.lead_id %></small>
+                  <small>Client Lead ID: <%= @customer.lead_id %></small>
                 <% end %>
               </div>
             <% end %>
@@ -373,13 +373,13 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-      <!-- Customer Avatar -->
+      <!-- Client Avatar -->
       <div class="customer-avatar">
         <div class="avatar-circle">
           <span><%= @customer.display_name.present? ? @customer.display_name.first.upcase : 'U' %></span>
         </div>
         <h3><%= @customer.display_name %></h3>
-        <p>Customer ID: #<%= @customer.id %></p>
+        <p>Client ID: #<%= @customer.id %></p>
       </div>
 
       <!-- Stats Cards -->
@@ -404,7 +404,7 @@
         <div class="action-buttons">
           <%= link_to edit_admin_customer_path(@customer), class: "action-btn edit" do %>
             <i class="bi bi-pencil"></i>
-            <span>Edit Customer</span>
+            <span>Edit Client</span>
           <% end %>
           <%= link_to trace_commission_admin_customer_path(@customer), class: "action-btn summary" do %>
             <i class="bi bi-graph-up"></i>

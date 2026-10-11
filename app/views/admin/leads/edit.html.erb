@@ -20,10 +20,10 @@
 <div class="row">
   <div class="col-md-8">
         <%= form_with model: [:admin, @lead], local: true, class: "needs-validation", novalidate: true do |form| %>
-      <!-- Customer Type Selection -->
+      <!-- Client Type Selection -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Customer Type</h5>
+          <h5 class="mb-0">Client Type</h5>
         </div>
         <div class="card-body">
           <% if @lead.errors.any? %>
@@ -43,13 +43,13 @@
 
             <div class="col-md-6">
               <%= form.label :customer_type, class: "form-label" do %>
-                Customer Type <span class="text-danger">*</span>
+                Client Type <span class="text-danger">*</span>
               <% end %>
               <%= form.select :customer_type, options_for_select([
-                ['Individual Customer', 'individual'],
-                ['Corporate Customer', 'corporate']
-              ], @lead.customer_type), { prompt: 'Select Customer Type' }, { class: "form-select", required: true, id: "customer_type" } %>
-              <div class="invalid-feedback">Please select a customer type.</div>
+                ['Individual Client', 'individual'],
+                ['Corporate Client', 'corporate']
+              ], @lead.customer_type), { prompt: 'Select Client Type' }, { class: "form-select", required: true, id: "customer_type" } %>
+              <div class="invalid-feedback">Please select a client type.</div>
             </div>
 
             <div class="col-md-6">
@@ -74,12 +74,12 @@
         </div>
       </div>
 
-      <!-- Individual Customer Fields -->
+      <!-- Individual Client Fields -->
       <div id="individual_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @lead.individual? ? 'block' : 'none' %>;">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">
             <i class="bi bi-person me-2 text-primary"></i>
-            Individual Customer Information
+            Individual Client Information
           </h5>
         </div>
         <div class="card-body">
@@ -221,12 +221,12 @@
         </div>
       </div>
 
-      <!-- Corporate Customer Fields -->
+      <!-- Corporate Client Fields -->
       <div id="corporate_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @lead.corporate? ? 'block' : 'none' %>;">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">
             <i class="bi bi-building me-2 text-primary"></i>
-            Corporate Customer Information
+            Corporate Client Information
           </h5>
         </div>
         <div class="card-body">
@@ -390,7 +390,7 @@
                 ['❌ Follow-Up Unsuccessful', 'follow_up_unsuccessful'],
                 ['🚫 Not Interested', 'not_interested'],
                 ['🔄 Re-Follow Up', 're_follow_up'],
-                ['👤 Convert to Customer', 'converted'],
+                ['👤 Convert to Client', 'converted'],
                 ['📁 Lead Close - Follow-Up Unsuccessful', 'lead_closed']
               ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
               <div class="invalid-feedback">Please select a current stage.</div>
@@ -561,7 +561,7 @@
             <span class="badge <%= @lead.current_stage == 'not_interested' ? 'bg-secondary' : 'bg-light text-dark' %> me-2">🚫</span>
             <strong>Not Interested</strong>
           </div>
-          <p class="small text-muted mb-0">Lead not interested - Customer declined the offer</p>
+          <p class="small text-muted mb-0">Lead not interested - Client declined the offer</p>
         </div>
 
         <div class="stage-item mb-2">
@@ -575,9 +575,9 @@
         <div class="stage-item mb-2">
           <div class="d-flex align-items-center">
             <span class="badge <%= @lead.current_stage == 'converted' ? 'bg-success' : 'bg-light text-dark' %> me-2">📁</span>
-            <strong>Customer Converted</strong>
+            <strong>Client Converted</strong>
           </div>
-          <p class="small text-muted mb-0">Customer converted - Ready for policy creation</p>
+          <p class="small text-muted mb-0">Client converted - Ready for policy creation</p>
         </div>
 
         <div class="stage-item mb-0">

@@ -93,7 +93,7 @@
         </div>
         <div class="col-md-4">
           <label class="form-label">Search</label>
-          <input type="text" class="form-control" id="searchInput" placeholder="Search by policy ID, customer name...">
+          <input type="text" class="form-control" id="searchInput" placeholder="Search by policy ID, client name...">
         </div>
         <div class="col-md-2">
           <button class="btn btn-outline-primary w-100" onclick="applyFilters()">
@@ -131,7 +131,7 @@
                 <th class="border-0">Payout ID</th>
                 <th class="border-0">Policy Type</th>
                 <th class="border-0">Policy ID</th>
-                <th class="border-0">Customer</th>
+                <th class="border-0">Client</th>
                 <th class="border-0">Amount</th>
                 <th class="border-0">Status</th>
                 <th class="border-0">Date</th>
@@ -171,7 +171,7 @@
                          end
                        end %>
                     <div class="fw-medium"><%= customer_name %></div>
-                    <small class="text-muted">Customer ID: #<%= payout.customer_id %></small>
+                    <small class="text-muted">Client ID: #<%= payout.customer_id %></small>
                   </td>
                   <td>
                     <div class="fw-bold text-success fs-6">
@@ -335,7 +335,7 @@ function viewPayoutDetails(payoutId) {
             <div><span class="badge bg-primary">Health Insurance</span></div>
           </div>
           <div class="mb-3">
-            <label class="form-label text-muted small">Customer</label>
+            <label class="form-label text-muted small">Client</label>
             <div class="fw-bold">John Doe</div>
           </div>
           <div class="mb-3">

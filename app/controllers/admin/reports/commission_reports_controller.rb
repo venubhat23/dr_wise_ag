@@ -409,7 +409,7 @@ class Admin::Reports::CommissionReportsController < Admin::Reports::BaseControll
       # Add policy details header
       csv << ["Policy Details:"]
       csv << [
-        'Policy Number', 'Policy Type', 'Customer Name', 'Insurance Company',
+        'Policy Number', 'Policy Type', 'Client Name', 'Insurance Company',
         'Lead ID', 'Premium Amount', 'Total Commission', 'Main Agent Commission',
         'Main Agent %', 'Affiliate Commission', 'Affiliate %', 'Ambassador Commission',
         'Ambassador %', 'Investor Commission', 'Investor %', 'Company Commission',

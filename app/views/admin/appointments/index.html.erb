@@ -629,22 +629,22 @@
       <div class="modal-body" style="padding:1.25rem 1.5rem;">
         <%= form_with url: admin_appointments_path, scope: :appointment, method: :post, id: 'appointmentForm', local: true, data: { turbo: false } do |f| %>
 
-          <!-- Section 1: Customer Details -->
+          <!-- Section 1: Client Details -->
           <div class="form-section-title" style="padding-top:0;border-top:none;">
-            <i class="bi bi-person-fill"></i> Customer Details
+            <i class="bi bi-person-fill"></i> Client Details
           </div>
           <div class="customer-source-toggle">
             <div class="src-btn active" id="srcExisting" onclick="switchSource('existing')">
-              <i class="bi bi-people-fill me-1"></i>Existing Customer
+              <i class="bi bi-people-fill me-1"></i>Existing Client
             </div>
             <div class="src-btn" id="srcNew" onclick="switchSource('new')">
-              <i class="bi bi-person-plus me-1"></i>New Customer
+              <i class="bi bi-person-plus me-1"></i>New Client
             </div>
           </div>
 
           <div id="existingCustomerSection" class="mb-2">
             <div style="position:relative;" id="customerSearch">
-              <label class="appt-label">Search Customer</label>
+              <label class="appt-label">Search Client</label>
               <input type="text" class="appt-input" id="customerSearchInput"
                      placeholder="Search by name, email, or phone..." autocomplete="off">
               <div class="customer-suggestions" id="customerSuggestions"></div>

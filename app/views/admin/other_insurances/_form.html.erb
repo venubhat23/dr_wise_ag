@@ -1080,13 +1080,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Clear and refresh affiliate dropdown when customer changes
       $('#affiliate_select').val(null).trigger('change');
-      console.log('Customer selected, filtering affiliates for customer ID:', customerId);
+      console.log('Client selected, filtering affiliates for client ID:', customerId);
     }
   });
 
   // Handle customer clearing
   $('#customer_select').on('select2:clear', function(e) {
-    console.log('Customer cleared');
+    console.log('Client cleared');
     // Reset policy holder options to default
     const policyHolderSelect = $('#policy_holder_select');
 
@@ -1112,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Clear affiliate dropdown when customer is cleared
     $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, showing all affiliates');
+    console.log('Client cleared, showing all affiliates');
   });
 
   // Check if customer is already selected on page load (for edit forms)

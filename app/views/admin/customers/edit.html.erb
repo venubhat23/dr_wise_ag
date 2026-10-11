@@ -29,7 +29,7 @@
           </ul>
         </div>
       <% end %>
-      <!-- Customer Type Selection -->
+      <!-- Client Type Selection -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">Client Type</h5>
@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <!-- Individual Customer Details -->
+      <!-- Individual Client Details -->
       <div id="individual_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.individual? ? 'block' : 'none' %>;">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">Personal Details</h5>
@@ -228,7 +228,7 @@
         </div>
       </div>
 
-      <!-- Corporate Customer Details -->
+      <!-- Corporate Client Details -->
       <div id="corporate_fields" class="card border-0 shadow-sm mb-4" style="display: <%= @customer.corporate? ? 'block' : 'none' %>;">
         <div class="card-header bg-transparent border-0">
           <h5 class="mb-0">Corporate Details</h5>
@@ -318,7 +318,7 @@
             <i class="bi bi-person-circle me-2 text-primary"></i>
             Profile Image
           </h5>
-          <p class="text-muted mb-0 mt-1">Upload or update customer profile picture</p>
+          <p class="text-muted mb-0 mt-1">Upload or update client profile picture</p>
         </div>
         <div class="card-body">
           <div class="row align-items-center">
@@ -442,7 +442,7 @@
             <i class="bi bi-people me-2 text-primary"></i>
             Nominee Details *
           </h5>
-          <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual customers</p>
+          <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual clients</p>
         </div>
         <div class="card-body">
           <div class="row g-3">
@@ -485,7 +485,7 @@
           <div class="alert alert-info d-flex align-items-center mt-3">
             <i class="bi bi-info-circle me-2"></i>
             <div>
-              <small><strong>Important:</strong> Nominee details are mandatory for individual customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
+              <small><strong>Important:</strong> Nominee details are mandatory for individual clients. Please ensure the information is accurate as it will be used for legal purposes.</small>
             </div>
           </div>
         </div>
@@ -625,7 +625,7 @@
           <div class="card-body">
 
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="mb-0">Customer Documents</h6>
+              <h6 class="mb-0">Client Documents</h6>
               <button type="button" class="btn btn-sm btn-success" id="add_legacy_document">
                 <i class="bi bi-plus-lg me-1"></i>
                 Add Document
@@ -658,7 +658,7 @@
                         <%= link_to admin_customer_document_path(@customer, document),
                             method: :delete,
                             data: {
-                              confirm: "Are you sure you want to unlink this document from the customer? The file will remain in cloud storage.",
+                              confirm: "Are you sure you want to unlink this document from the client? The file will remain in cloud storage.",
                               turbo_method: :delete
                             },
                             class: "btn btn-sm btn-outline-danger",
@@ -677,9 +677,9 @@
               <!-- Form will be moved here by JavaScript -->
             </div>
 
-            <!-- Customer Documents System -->
+            <!-- Client Documents System -->
             <% if @customer.uploaded_documents.any? %>
-              <h6>Customer Documents</h6>
+              <h6>Client Documents</h6>
               <div class="list-group mb-3">
                 <% @customer.uploaded_documents.each do |document| %>
                   <div class="list-group-item">
@@ -706,7 +706,7 @@
                         <%= link_to admin_customer_uploaded_document_path(@customer, document),
                             method: :delete,
                             data: {
-                              confirm: "Are you sure you want to unlink this document from the customer? The file will remain in cloud storage.",
+                              confirm: "Are you sure you want to unlink this document from the client? The file will remain in cloud storage.",
                               turbo_method: :delete
                             },
                             class: "btn btn-sm btn-outline-danger",
@@ -784,7 +784,7 @@
     <% end %>
   </div>
 
-  <!-- Customer Summary -->
+  <!-- Client Summary -->
   <div class="col-lg-4">
     <div class="card border-0 shadow-sm mb-3">
       <div class="card-header bg-transparent border-0">
@@ -1250,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </a>
             <a href="/admin/customers/${window.location.pathname.split('/')[3]}/documents/${uploadedDoc.id}"
                data-method="delete"
-               data-confirm="Are you sure you want to unlink this document from the customer? The file will remain in cloud storage."
+               data-confirm="Are you sure you want to unlink this document from the client? The file will remain in cloud storage."
                data-turbo-method="delete"
                class="btn btn-sm btn-outline-danger"
                title="Unlink Document">

@@ -38,17 +38,17 @@
 
         <% if expired %>
           <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
-            This is to inform you that the <strong><%= @policy_category %></strong> policy held by your customer <strong><%= @customer.display_name %></strong>,
+            This is to inform you that the <strong><%= @policy_category %></strong> policy held by your client <strong><%= @customer.display_name %></strong>,
             bearing policy number <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
-            officially expired today on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>. Since the customer is now without active coverage, we'd appreciate it if you
+            officially expired today on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>. Since the client is now without active coverage, we'd appreciate it if you
             could reach out to them as soon as possible to walk them through the renewal process and help restore their protection without further delay.
           </p>
         <% else %>
           <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 4px;">
-            This is a heads-up that the <strong><%= @policy_category %></strong> policy held by your customer <strong><%= @customer.display_name %></strong>,
+            This is a heads-up that the <strong><%= @policy_category %></strong> policy held by your client <strong><%= @customer.display_name %></strong>,
             bearing policy number <strong><%= @policy.policy_number %></strong> under the <strong><%= @policy.plan_name %></strong> plan<% if @policy.insurance_company_name.present? %> with <strong><%= @policy.insurance_company_name %></strong><% end %>,
             is coming up for renewal on <strong><%= @policy.policy_end_date.strftime("%d %b %Y") %></strong>, which is only <strong><%= @days_remaining %></strong> <%= @days_remaining == 1 ? "day" : "days" %> away.
-            Please take a moment to reach out to the customer ahead of this date so the renewal can be completed in good time and their coverage continues without any gap.
+            Please take a moment to reach out to the client ahead of this date so the renewal can be completed in good time and their coverage continues without any gap.
           </p>
         <% end %>
 
@@ -69,11 +69,11 @@
         </table>
 
         <div style="margin-top:8px;padding:14px 16px;background:#f8f9fd;border-radius:10px;font-size:13px;color:#444;line-height:1.6;">
-          <strong style="color:#333;">Customer Contact</strong><br>
+          <strong style="color:#333;">Client Contact</strong><br>
           <%= @customer.display_name %><% if @customer.respond_to?(:mobile) && @customer.mobile.present? %> — <%= @customer.mobile %><% end %><% if @customer.email.present? %> · <%= @customer.email %><% end %>
         </div>
 
-        <p style="font-size:14px;color:#444;line-height:1.6;margin:16px 0 0;">Please follow up with the customer about renewal.</p>
+        <p style="font-size:14px;color:#444;line-height:1.6;margin:16px 0 0;">Please follow up with the client about renewal.</p>
       </td>
     </tr>
 

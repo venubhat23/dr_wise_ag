@@ -90,7 +90,7 @@ class Admin::CustomerDocumentsController < Admin::ApplicationController
       if request.format.json?
         render json: {
           success: true,
-          message: 'Document unlinked from customer successfully! File remains in cloud storage.'
+          message: 'Document unlinked from client successfully! File remains in cloud storage.'
         }
       else
         redirect_to edit_admin_customer_path(@customer),

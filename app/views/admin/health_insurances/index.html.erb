@@ -161,7 +161,7 @@
       <!-- Basic filter row -->
       <div class="row g-2 align-items-end mb-2">
         <div class="col-md-4">
-          <%= form.text_field :search, placeholder: "Search by policy no., customer, company…", value: params[:search], class: "form-control" %>
+          <%= form.text_field :search, placeholder: "Search by policy no., client, company…", value: params[:search], class: "form-control" %>
         </div>
         <div class="col-md-2">
           <%= form.select :status, options_for_select([
@@ -284,7 +284,7 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0" data-col="policy">Policy</th>
-              <th class="border-0" data-col="customer">Customer</th>
+              <th class="border-0" data-col="customer">Client</th>
               <th class="border-0" data-col="company">Company</th>
               <th class="border-0" data-col="source">Source & Type</th>
               <th class="border-0" data-col="coverage">Coverage</th>
@@ -323,7 +323,7 @@
                     <i class="bi bi-file-earmark-<%= doc_count > 0 ? 'check' : 'x' %> me-1"></i><%= doc_count %> doc<%= doc_count == 1 ? '' : 's' %>
                   </small>
                 </td>
-                <!-- Customer -->
+                <!-- Client -->
                 <td data-col="customer">
                   <h6 class="mb-1"><%= policy.customer&.display_name %></h6>
                   <small class="text-muted"><%= policy.customer&.mobile %></small>
@@ -337,7 +337,7 @@
                   <div class="d-flex flex-column gap-1">
                     <div>
                       <% if policy.is_customer_added? %>
-                        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-check me-1"></i>Customer</span>
+                        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-check me-1"></i>Client</span>
                       <% elsif policy.is_agent_added? %>
                         <span class="badge bg-success-subtle text-success"><i class="bi bi-person-badge me-1"></i>Agent</span>
                       <% elsif policy.is_admin_added? %>
@@ -608,7 +608,7 @@ const HI_COL_KEY = 'health_insurance_columns_v1';
 
 const HI_COL_CONFIG = [
   { key: 'policy',              label: 'Policy',                 defaultOn: true  },
-  { key: 'customer',            label: 'Customer',               defaultOn: true  },
+  { key: 'customer',            label: 'Client',               defaultOn: true  },
   { key: 'company',             label: 'Insurance Company',      defaultOn: true  },
   { key: 'source',              label: 'Source & Type',          defaultOn: true  },
   { key: 'coverage',            label: 'Coverage (Sum Insured)', defaultOn: true  },

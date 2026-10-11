@@ -154,7 +154,7 @@ class Admin::AiReportsController < Admin::ApplicationController
       },
       confidence_score: 78,
       next_suggested_actions: [
-        { priority: 'high', action: 'Contact high-probability customers', count: (total_expired * 0.4).round },
+        { priority: 'high', action: 'Contact high-probability clients', count: (total_expired * 0.4).round },
         { priority: 'medium', action: 'Send renewal reminders', count: total_expired }
       ]
     }
@@ -377,7 +377,7 @@ class Admin::AiReportsController < Admin::ApplicationController
         priority: 'high',
         category: 'immediate',
         title: 'High-Priority Follow-ups',
-        description: "Contact #{(count * 0.3).round} customers with highest renewal probability"
+        description: "Contact #{(count * 0.3).round} clients with highest renewal probability"
       },
       {
         priority: 'medium',

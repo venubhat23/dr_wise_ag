@@ -1481,7 +1481,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
               if (matchingOption) {
                 policyHolderSelect.value = matchingOption.value;
-                console.log('✅ Restored policy holder after customer change:', matchingOption.value);
+                console.log('✅ Restored policy holder after client change:', matchingOption.value);
               } else {
                 // Add the original value if it doesn't exist
                 const newOption = new Option(valueToSet, valueToSet);
@@ -1530,14 +1530,14 @@ document.addEventListener('DOMContentLoaded', function() {
       $('#affiliate_select').val(null).trigger('change');
       var selectedCustomerId = this.value;
       if (selectedCustomerId) {
-        console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+        console.log('Client selected, filtering affiliates for client ID:', selectedCustomerId);
       }
     });
 
     // Handle customer clearing
     $('#customer_select').on('select2:clear', function(e) {
       $('#affiliate_select').val(null).trigger('change');
-      console.log('Customer cleared, showing all affiliates');
+      console.log('Client cleared, showing all affiliates');
     });
 
     // Function to safely set policy holder value with better error handling

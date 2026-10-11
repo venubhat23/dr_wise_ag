@@ -742,13 +742,13 @@
 
   <!-- Core KPI Cards -->
   <div class="row mb-4">
-    <!-- Total Customers -->
+    <!-- Total Clients -->
     <div class="col-xl-3 col-md-6 mb-3">
-      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="customers" data-card-label="Total Customers" onclick="openDashboardCardModal(this)">
+      <div class="card h-100 border-0 shadow-sm card-hover" style="cursor:pointer;" data-card-metric="customers" data-card-label="Total Clients" onclick="openDashboardCardModal(this)">
         <div class="card-body">
           <div class="d-flex justify-content-between">
             <div>
-              <h6 class="text-muted mb-2">Total Customers</h6>
+              <h6 class="text-muted mb-2">Total Clients</h6>
               <h3 class="mb-0 text-primary"><%= number_with_delimiter(@total_customers) %></h3>
             </div>
             <div class="bg-primary bg-opacity-10 rounded p-3">
@@ -917,7 +917,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div>
                     <div class="fw-medium text-dark"><%= policy[:type] %></div>
-                    <small class="text-muted"><%= policy[:customer] || "Customer" %></small>
+                    <small class="text-muted"><%= policy[:customer] || "Client" %></small>
                   </div>
                   <div class="text-end">
                     <div class="fw-medium text-success"><%= indian_currency(policy[:premium] || 0) %></div>
@@ -945,7 +945,7 @@
           </h5>
           <div class="d-grid gap-2">
             <%= link_to new_admin_customer_path, class: "btn btn-outline-primary btn-sm d-flex align-items-center" do %>
-              <i class="bi bi-person-plus me-2"></i>Add New Customer
+              <i class="bi bi-person-plus me-2"></i>Add New Client
             <% end %>
             <%= link_to new_admin_lead_path, class: "btn btn-outline-success btn-sm d-flex align-items-center" do %>
               <i class="bi bi-funnel me-2"></i>Create Lead
@@ -1090,7 +1090,7 @@
             <div class="text-center text-muted py-4">
               <i class="bi bi-heart fs-3 d-block mb-2"></i>
               <p class="mb-0">No anniversaries in the next 30 days</p>
-              <small class="text-muted">Add anniversary dates in customer profiles</small>
+              <small class="text-muted">Add anniversary dates in client profiles</small>
             </div>
           <% end %>
         </div>
@@ -1166,7 +1166,7 @@
           <% end %>
         </div>
         <div class="modal-footer">
-          <%= link_to "Open Customers", admin_customers_path, class: "btn btn-outline-danger btn-sm", target: "_blank" %>
+          <%= link_to "Open Clients", admin_customers_path, class: "btn btn-outline-danger btn-sm", target: "_blank" %>
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -1241,7 +1241,7 @@
           <% end %>
         </div>
         <div class="modal-footer">
-          <%= link_to "Open Customers", admin_customers_path, class: "btn btn-outline-secondary btn-sm", target: "_blank" %>
+          <%= link_to "Open Clients", admin_customers_path, class: "btn btn-outline-secondary btn-sm", target: "_blank" %>
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -1300,7 +1300,7 @@
           </div>
         </div>
         <!-- Net Profit -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;border-top:3px solid #27ae60;" onclick="window.location='/dashboard/net_profit'">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;border-top:3px solid #27ae60;" onclick="window.location='/dashboard/net_profit?start_date=<%= @filter_start_date %>&end_date=<%= @filter_end_date %>'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-graph-up-arrow fs-4 text-success flex-shrink-0"></i>
             <div class="overflow-hidden">
@@ -1399,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <thead class="table-dark sticky-top">
               <tr>
                 <th>Policy Number</th>
-                <th>Customer</th>
+                <th>Client</th>
                 <th>Type</th>
                 <th>Premium</th>
                 <th>End Date</th>
@@ -1446,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <thead class="table-dark sticky-top">
               <tr>
                 <th>Policy Number</th>
-                <th>Customer</th>
+                <th>Client</th>
                 <th>Type</th>
                 <th>Sum Insured</th>
                 <th>Premium</th>
@@ -1880,7 +1880,7 @@ function downloadModalCSV() {
   else if (_csvModalType === 'commissions_due') {
     filename = 'commissions_due.csv';
     csv = _buildCSV(
-      ['Policy Number','Customer','Policy Type','Payout To','Commission Amount (Rs.)','Percentage (%)','Base Premium (Rs.)','Created Date','Due Date'],
+      ['Policy Number','Client','Policy Type','Payout To','Commission Amount (Rs.)','Percentage (%)','Base Premium (Rs.)','Created Date','Due Date'],
       (d.data || []).map(r => [r.policy_number, r.customer_name, r.policy_type, r.payout_to, r.amount, r.percentage, r.base_premium, r.created_at, r.due_date])
     );
   }
@@ -1902,7 +1902,7 @@ function downloadModalCSV() {
       (pol.rows || []).forEach(r => rows.push([pol.policy_number, pol.policy_type, pol.customer, pol.company, pol.booking_date, r.label, r.pct + '%', r.amount, r.tds_pct != null ? r.tds_pct + '%' : '', r.actual]));
     });
     csv = _buildCSV(
-      ['Policy Number','Type','Customer','Company','Booking Date','Commission Item','%','Gross Amount (Rs.)','TDS %','Net Amount (Rs.)'],
+      ['Policy Number','Type','Client','Company','Booking Date','Commission Item','%','Gross Amount (Rs.)','TDS %','Net Amount (Rs.)'],
       rows
     );
   }
@@ -2129,7 +2129,7 @@ function loadCommissionsDueData(content, loading) {
                   <tr>
                     <th style="${thStyle}">Lead ID</th>
                     <th style="${thStyle}">Policy</th>
-                    <th style="${thStyle}">Customer</th>
+                    <th style="${thStyle}">Client</th>
                     <th style="${thStyle}">Affiliate</th>
                     <th style="${thStyle}">Type</th>
                     <th style="${thStyle}">Premium</th>
@@ -3167,7 +3167,7 @@ function renderDashboardKpiData(metric, label, data) {
 
   if (metric === 'policies' || metric === 'premium') {
     head.innerHTML = `<tr>
-      <th>#</th><th>Type</th><th>Policy No.</th><th>Customer</th>
+      <th>#</th><th>Type</th><th>Policy No.</th><th>Client</th>
       <th>Start Date</th><th>End Date</th><th>Created</th>
       <th class="text-end">Net Premium</th><th class="text-end">Total Premium</th>
       <th class="text-center">Source</th>
@@ -3226,7 +3226,7 @@ function renderDashboardKpiData(metric, label, data) {
         <td>${r.mobile || '—'}</td><td>${r.created_at}</td>
       </tr>`;
     });
-    summary.innerHTML = `<span class="badge bg-primary fs-6 mb-2">${records.length} Customers</span>`;
+    summary.innerHTML = `<span class="badge bg-primary fs-6 mb-2">${records.length} Clients</span>`;
 
   } else if (metric === 'leads') {
     head.innerHTML = `<tr><th>#</th><th>Name</th><th>Stage</th><th>Created</th></tr>`;

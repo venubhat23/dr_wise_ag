@@ -31,7 +31,7 @@ class DashboardCacheWarmerJob < ApplicationJob
     filters_to_warm.each do |start_date, end_date|
       # Must match the cache key format in DashboardController#load_dashboard_data
       # exactly (including the _v7 suffix) or this warms a key nobody reads.
-      cache_key = "dashboard_data_#{cache_gen}_#{start_date}_#{end_date}_v7"
+      cache_key = "dashboard_data_#{cache_gen}_#{start_date}_#{end_date}_v8"
 
       unless Rails.cache.exist?(cache_key)
         Rails.logger.info "[DashboardCache] Warming cache for #{start_date} to #{end_date}"

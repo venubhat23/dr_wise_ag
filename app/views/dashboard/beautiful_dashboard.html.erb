@@ -584,14 +584,14 @@ body {
     <div class="dashboard-content">
       <!-- Key Performance Cards -->
       <div class="stats-grid">
-        <!-- Total Customers -->
+        <!-- Total Clients -->
         <div class="premium-card stat-card" style="--gradient-accent: var(--gradient-blue); --shadow-color: rgba(102, 126, 234, 0.3);">
           <div class="stat-icon">
             <i class="bi bi-people-fill"></i>
           </div>
           <div class="stat-content">
             <div class="stat-value"><%= number_with_delimiter(@total_customers) %></div>
-            <div class="stat-label">Total Customers</div>
+            <div class="stat-label">Total Clients</div>
             <% if @total_customers > 500 %>
               <div class="success-indicator">Excellent Growth</div>
             <% end %>
@@ -729,7 +729,7 @@ body {
                 </div>
                 <div class="activity-content">
                   <h4>New <%= policy.class.name.underscore.humanize %> Policy</h4>
-                  <p><%= policy.customer&.display_name || "Customer" %> - <%= indian_currency(policy.total_premium.to_i) %></p>
+                  <p><%= policy.customer&.display_name || "Client" %> - <%= indian_currency(policy.total_premium.to_i) %></p>
                   <div class="activity-time"><%= time_ago_in_words(policy.created_at) %> ago</div>
                 </div>
               </div>
@@ -743,7 +743,7 @@ body {
                   <i class="bi bi-person-plus"></i>
                 </div>
                 <div class="activity-content">
-                  <h4>New Customer Registration</h4>
+                  <h4>New Client Registration</h4>
                   <p><%= customer.display_name %> - <%= customer.city || "Location N/A" %></p>
                   <div class="activity-time"><%= time_ago_in_words(customer.created_at) %> ago</div>
                 </div>
@@ -756,7 +756,7 @@ body {
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-      <button class="action-button" onclick="window.location.href='/admin/customers/new'" title="Add Customer">
+      <button class="action-button" onclick="window.location.href='/admin/customers/new'" title="Add Client">
         <i class="bi bi-person-plus"></i>
       </button>
       <button class="action-button" onclick="window.location.href='/admin/health_insurances/new'" title="New Policy">

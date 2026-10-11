@@ -119,7 +119,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -184,7 +184,7 @@
                   <%= link_to new_admin_health_insurance_path(renewal_from: insurance.id), class: "btn btn-sm btn-outline-success", title: "Renew Now" do %>
                     <i class="bi bi-arrow-repeat"></i>
                   <% end %>
-                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Customer" do %>
+                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Client" do %>
                     <i class="bi bi-telephone"></i>
                   <% end %>
                 </div>
@@ -212,7 +212,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -277,7 +277,7 @@
                   <%= link_to new_admin_life_insurance_path(renewal_from: insurance.id), class: "btn btn-sm btn-outline-success", title: "Renew Now" do %>
                     <i class="bi bi-arrow-repeat"></i>
                   <% end %>
-                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Customer" do %>
+                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Client" do %>
                     <i class="bi bi-telephone"></i>
                   <% end %>
                 </div>
@@ -305,7 +305,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Vehicle & Company</th>
             <th class="border-0">Coverage</th>
@@ -369,7 +369,7 @@
                   <%= link_to new_admin_motor_insurance_path(renewal_from: insurance.id), class: "btn btn-sm btn-outline-success", title: "Renew Now" do %>
                     <i class="bi bi-arrow-repeat"></i>
                   <% end %>
-                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Customer" do %>
+                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Client" do %>
                     <i class="bi bi-telephone"></i>
                   <% end %>
                 </div>
@@ -397,7 +397,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -461,7 +461,7 @@
                   <%= link_to new_admin_other_insurance_path(renewal_from: insurance.id), class: "btn btn-sm btn-outline-success", title: "Renew Now" do %>
                     <i class="bi bi-arrow-repeat"></i>
                   <% end %>
-                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Customer" do %>
+                  <%= link_to "tel:#{insurance.customer.mobile}", class: "btn btn-sm btn-outline-info", title: "Call Client" do %>
                     <i class="bi bi-telephone"></i>
                   <% end %>
                 </div>
@@ -491,14 +491,14 @@
 
 <script>
 function sendExpiryNotifications() {
-  if (confirm('Are you sure you want to send expiry notifications to all customers with expired policies?')) {
+  if (confirm('Are you sure you want to send expiry notifications to all clients with expired policies?')) {
     // Implementation for bulk notification sending
-    alert('Feature coming soon! This will send expiry notifications to all customers with expired policies.');
+    alert('Feature coming soon! This will send expiry notifications to all clients with expired policies.');
   }
 }
 
 function sendExpiryNotification(insuranceId, insuranceType) {
-  if (confirm('Are you sure you want to send an expiry notification to this customer?')) {
+  if (confirm('Are you sure you want to send an expiry notification to this client?')) {
     // Implementation for individual notification sending
     alert(`Feature coming soon! This will send an expiry notification for ${insuranceType} insurance policy ID: ${insuranceId}`);
   }

@@ -1,4 +1,4 @@
-<% content_for :title, "Drwise - Customer Helpdesk Tickets" %>
+<% content_for :title, "Drwise - Client Helpdesk Tickets" %>
 
 <div class="customer-helpdesk-tickets">
   <!-- Page Header -->
@@ -6,9 +6,9 @@
     <div>
       <h2 class="page-title mb-0">
         <i class="bi bi-people me-3 text-primary"></i>
-        Customer Helpdesk Tickets
+        Client Helpdesk Tickets
       </h2>
-      <p class="text-muted mb-0">All support tickets and requests submitted by customers</p>
+      <p class="text-muted mb-0">All support tickets and requests submitted by clients</p>
     </div>
     <div class="d-flex gap-2">
       <%= link_to admin_helpdesk_index_path, class: "btn btn-outline-secondary" do %>
@@ -22,7 +22,7 @@
     </div>
   </div>
 
-  <!-- Customer Statistics Cards -->
+  <!-- Client Statistics Cards -->
   <div class="row g-4 mb-4">
     <div class="col-xl-2 col-md-4">
       <div class="stats-card gradient-blue">
@@ -32,7 +32,7 @@
           </div>
           <div class="stats-content">
             <h3 class="stats-number"><%= @customer_stats[:total] %></h3>
-            <p class="stats-label">Total Customer Tickets</p>
+            <p class="stats-label">Total Client Tickets</p>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@
     </div>
   </div>
 
-  <!-- Customer Tickets Table -->
+  <!-- Client Tickets Table -->
   <div class="row">
     <div class="col-12">
       <div class="card modern-card">
@@ -104,9 +104,9 @@
             <div>
               <h5 class="card-title mb-0">
                 <i class="bi bi-list-task me-2 text-primary"></i>
-                Customer Support Tickets
+                Client Support Tickets
               </h5>
-              <p class="text-muted small mb-0">All tickets submitted by customers through the mobile app</p>
+              <p class="text-muted small mb-0">All tickets submitted by clients through the mobile app</p>
             </div>
             <div class="d-flex gap-2">
               <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
@@ -124,7 +124,7 @@
           <div class="row g-3 align-items-end">
             <%= form_with url: customer_tickets_admin_helpdesk_index_path, method: :get, local: true, class: "d-contents" do |form| %>
               <div class="col-md-4">
-                <%= form.text_field :search, placeholder: "Search tickets, customers, or descriptions...",
+                <%= form.text_field :search, placeholder: "Search tickets, clients, or descriptions...",
                     value: params[:search], class: "form-control form-control-sm" %>
               </div>
               <div class="col-md-2">
@@ -180,7 +180,7 @@
               <thead class="table-light">
                 <tr>
                   <th>Ticket ID</th>
-                  <th>Customer Details</th>
+                  <th>Client Details</th>
                   <th>Subject & Description</th>
                   <th>Category</th>
                   <th>Status</th>
@@ -334,8 +334,8 @@
                     <td colspan="10" class="text-center py-5">
                       <div class="empty-state">
                         <i class="bi bi-inbox display-1 text-muted"></i>
-                        <h5 class="mt-3 text-muted">No Customer Tickets Found</h5>
-                        <p class="text-muted">There are no customer helpdesk tickets matching your search criteria.</p>
+                        <h5 class="mt-3 text-muted">No Client Tickets Found</h5>
+                        <p class="text-muted">There are no client helpdesk tickets matching your search criteria.</p>
                         <%= link_to customer_tickets_admin_helpdesk_index_path, class: "btn btn-outline-primary mt-2" do %>
                           <i class="bi bi-arrow-clockwise me-2"></i>Clear Filters
                         <% end %>
@@ -352,7 +352,7 @@
             <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
               <small class="text-muted">
                 Showing <%= @tickets.offset_value + 1 %> to <%= [@tickets.offset_value + @tickets.limit_value, @tickets.total_count].min %>
-                of <%= @tickets.total_count %> customer tickets
+                of <%= @tickets.total_count %> client tickets
               </small>
               <%= paginate @tickets, theme: 'bootstrap_5', pagination_class: "pagination-sm" %>
             </div>

@@ -155,7 +155,7 @@
       <!-- Basic filter row -->
       <div class="row g-2 align-items-end mb-2">
         <div class="col-md-4">
-          <%= form.text_field :search, placeholder: "Search by policy no., customer, company…",
+          <%= form.text_field :search, placeholder: "Search by policy no., client, company…",
               value: params[:search], class: "form-control" %>
         </div>
         <div class="col-md-2">
@@ -290,7 +290,7 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0" data-col="policy">Policy</th>
-              <th class="border-0" data-col="customer">Customer</th>
+              <th class="border-0" data-col="customer">Client</th>
               <th class="border-0" data-col="company">Company</th>
               <th class="border-0" data-col="source-type">Source &amp; Type</th>
               <th class="border-0" data-col="coverage">Coverage</th>
@@ -345,7 +345,7 @@
                     <div>
                       <% if policy.is_customer_added? %>
                         <span class="badge bg-info-subtle text-info">
-                          <i class="bi bi-person-check me-1"></i>Customer
+                          <i class="bi bi-person-check me-1"></i>Client
                         </span>
                       <% elsif policy.is_agent_added? %>
                         <span class="badge bg-success-subtle text-success">
@@ -525,7 +525,7 @@
             <% if @current_tab == 'drwise' %>
               DrWise policies are created from the admin panel.
             <% else %>
-              Non-DrWise policies are added by customers or agents.
+              Non-DrWise policies are added by clients or agents.
             <% end %>
           <% end %>
         </p>
@@ -536,7 +536,7 @@
           <% end %>
         <% else %>
           <div class="text-muted small">
-            Non-DrWise policies are typically added through customer or agent portals.
+            Non-DrWise policies are typically added through client or agent portals.
           </div>
         <% end %>
       </div>
@@ -644,7 +644,7 @@
 <script>
 const LIFE_COL_CONFIG = [
   { key: 'policy',        label: 'Policy',         defaultOn: true  },
-  { key: 'customer',      label: 'Customer',        defaultOn: true  },
+  { key: 'customer',      label: 'Client',        defaultOn: true  },
   { key: 'company',       label: 'Company',         defaultOn: true  },
   { key: 'source-type',   label: 'Source & Type',   defaultOn: true  },
   { key: 'coverage',      label: 'Coverage',        defaultOn: true  },

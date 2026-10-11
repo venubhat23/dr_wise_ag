@@ -674,7 +674,7 @@
                       <div class="text-muted">
                         <i class="bi bi-person-check fs-1 mb-3 d-block"></i>
                         <h5>No converted clients found</h5>
-                        <p>Converted leads will appear here once you start converting leads to customers.</p>
+                        <p>Converted leads will appear here once you start converting leads to clients.</p>
                       </div>
                     </td>
                   </tr>
@@ -785,7 +785,7 @@
                   <% if lead.is_branch_out && lead.parent_lead_id.present? %>
                     <button type="button"
                             class="btn btn-sm btn-success convert-btn branch-out-convert flex-fill"
-                            title="Convert Branch Out Lead to Customer"
+                            title="Convert Branch Out Lead to Client"
                             data-lead-id="<%= lead.id %>"
                             data-parent-lead-id="<%= lead.parent_lead_id %>">
                       <i class="bi bi-person-plus-fill me-1"></i>Convert
@@ -793,7 +793,7 @@
                   <% else %>
                     <%= link_to convert_to_customer_admin_lead_path(lead), method: :patch,
                         class: "btn btn-sm btn-success convert-btn flex-fill",
-                        title: "Convert to Customer" do %>
+                        title: "Convert to Client" do %>
                       <i class="bi bi-person-plus-fill me-1"></i>Convert
                     <% end %>
                   <% end %>
@@ -801,7 +801,7 @@
                   <%= link_to admin_customer_path(lead.converted_customer),
                       class: "btn btn-sm btn-info customer-link flex-fill",
                       title: "View Customer: #{lead.converted_customer.display_name}" do %>
-                    <i class="bi bi-person-check-fill me-1"></i>Customer
+                    <i class="bi bi-person-check-fill me-1"></i>Client
                   <% end %>
                 <% else %>
                   <button class="btn btn-sm btn-outline-secondary flex-fill disabled" disabled>
@@ -1870,7 +1870,7 @@ function showLeadModal(leadId) {
             <div class="d-grid gap-2">
               <button class="btn btn-success">
                 <i class="bi bi-person-plus me-2"></i>
-                Convert to Customer
+                Convert to Client
               </button>
               <button class="btn btn-primary">
                 <i class="bi bi-file-earmark-plus me-2"></i>

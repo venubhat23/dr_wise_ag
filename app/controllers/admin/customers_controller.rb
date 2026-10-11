@@ -791,7 +791,7 @@ class Admin::CustomersController < Admin::ApplicationController
         if existing_customer
           # Lead is already converted, redirect to the customer's edit page
           redirect_to edit_admin_customer_path(existing_customer),
-                      notice: "This lead has already been converted to a customer. Redirected to the customer's edit page."
+                      notice: "This lead has already been converted to a client. Redirected to the client's edit page."
           return
         end
       end
@@ -810,7 +810,7 @@ class Admin::CustomersController < Admin::ApplicationController
               converted_customer_id: existing_customer.id
             )
             redirect_to edit_admin_customer_path(existing_customer),
-                        notice: "Branch-out lead linked to existing customer from parent lead. Redirected to customer's edit page."
+                        notice: "Branch-out lead linked to existing client from parent lead. Redirected to client's edit page."
             return
           end
         end
@@ -831,7 +831,7 @@ class Admin::CustomersController < Admin::ApplicationController
                 converted_customer_id: existing_customer.id
               )
               redirect_to edit_admin_customer_path(existing_customer),
-                          notice: "Branch-out lead linked to existing customer from sibling branch lead. Redirected to customer's edit page."
+                          notice: "Branch-out lead linked to existing client from sibling branch lead. Redirected to client's edit page."
               return
             end
           end
@@ -1014,7 +1014,7 @@ class Admin::CustomersController < Admin::ApplicationController
         end
       end
     rescue => e
-      Rails.logger.error "Customer creation error: #{e.message}"
+      Rails.logger.error "Client creation error: #{e.message}"
       error_message = "Failed to create customer: #{e.message}"
       success = false
     end
@@ -1022,9 +1022,9 @@ class Admin::CustomersController < Admin::ApplicationController
     # Handle response based on success/failure - single render/redirect point
     if success
       base_notice = if user_created
-        "Customer created successfully. Mobile login: #{@customer.email} / #{generated_password}"
+        "Client created successfully. Mobile login: #{@customer.email} / #{generated_password}"
       else
-        'Customer was successfully created.'
+        'Client was successfully created.'
       end
 
       lead_for_redirect = @customer.lead_id.present? ? Lead.find_by(lead_id: @customer.lead_id) : nil
@@ -1046,7 +1046,7 @@ class Admin::CustomersController < Admin::ApplicationController
     if @customer.login_user
       redirect_to admin_customer_path(@customer), notice: 'Mobile login already exists.'
     elsif @customer.email.blank?
-      redirect_to admin_customer_path(@customer), alert: 'Add an email to this customer before creating a mobile login.'
+      redirect_to admin_customer_path(@customer), alert: 'Add an email to this client before creating a mobile login.'
     else
       @customer.create_login_user!
       redirect_to admin_customer_path(@customer),
@@ -1059,7 +1059,7 @@ class Admin::CustomersController < Admin::ApplicationController
   # PATCH /admin/customers/1/reset_mobile_login_password
   def reset_mobile_login_password
     user = @customer.login_user
-    return redirect_to(admin_customer_path(@customer), alert: 'This customer has no mobile login.') unless user
+    return redirect_to(admin_customer_path(@customer), alert: 'This client has no mobile login.') unless user
 
     password = Customer::DEFAULT_LOGIN_PASSWORD
     if user.update(password: password, password_confirmation: password, original_password: password)
@@ -1087,7 +1087,7 @@ class Admin::CustomersController < Admin::ApplicationController
         # Handle R2 document uploads after customer is saved
         upload_success = handle_document_uploads(uploaded_documents_attrs) if uploaded_documents_attrs.present?
 
-        success_message = 'Customer was successfully updated.'
+        success_message = 'Client was successfully updated.'
         if uploaded_documents_attrs.present? && !upload_success
           success_message += ' Some documents failed to upload to cloud storage.'
         end
@@ -1098,13 +1098,13 @@ class Admin::CustomersController < Admin::ApplicationController
         render :edit, status: :unprocessable_entity
       end
     rescue ActiveRecord::AssociationTypeMismatch => e
-      Rails.logger.error "Customer update failed - Association error: #{e.message}"
-      Rails.logger.error "Customer params: #{customer_params.inspect}"
+      Rails.logger.error "Client update failed - Association error: #{e.message}"
+      Rails.logger.error "Client params: #{customer_params.inspect}"
 
       # Clear problematic association data and retry without it
       safe_params = customer_params.except(:documents, :uploaded_documents_attributes)
       if @customer.update(safe_params)
-        redirect_to admin_customer_path(@customer), notice: 'Customer was successfully updated (documents skipped due to error).'
+        redirect_to admin_customer_path(@customer), notice: 'Client was successfully updated (documents skipped due to error).'
       else
         @sub_agents = SubAgent.active.order(:first_name, :last_name)
         flash.now[:alert] = "Update failed: #{e.message}"
@@ -1136,9 +1136,9 @@ class Admin::CustomersController < Admin::ApplicationController
   def destroy
     if params[:force] == 'true'
       @customer.destroy
-      redirect_to admin_customers_path, notice: "Customer \"#{@customer.display_name}\" and all associated records were permanently deleted."
+      redirect_to admin_customers_path, notice: "Client \"#{@customer.display_name}\" and all associated records were permanently deleted."
     else
-      redirect_to admin_customer_path(@customer), alert: 'Use the delete confirmation to remove this customer.'
+      redirect_to admin_customer_path(@customer), alert: 'Use the delete confirmation to remove this client.'
     end
   end
 
@@ -1146,24 +1146,24 @@ class Admin::CustomersController < Admin::ApplicationController
   def toggle_status
     @customer.update(status: !@customer.status)
     status_text = @customer.status? ? 'activated' : 'deactivated'
-    redirect_to admin_customers_path, notice: "Customer was successfully #{status_text}."
+    redirect_to admin_customers_path, notice: "Client was successfully #{status_text}."
   end
 
   # PATCH /admin/customers/1/deactivate
   def deactivate
     if @customer.deactivate!
-      redirect_to admin_customers_path, notice: 'Customer was successfully deactivated.'
+      redirect_to admin_customers_path, notice: 'Client was successfully deactivated.'
     else
-      redirect_to admin_customers_path, alert: 'Failed to deactivate customer.'
+      redirect_to admin_customers_path, alert: 'Failed to deactivate client.'
     end
   end
 
   # PATCH /admin/customers/1/activate
   def activate
     if @customer.activate!
-      redirect_to admin_customers_path, notice: 'Customer was successfully activated.'
+      redirect_to admin_customers_path, notice: 'Client was successfully activated.'
     else
-      redirect_to admin_customers_path, alert: 'Failed to activate customer.'
+      redirect_to admin_customers_path, alert: 'Failed to activate client.'
     end
   end
 
@@ -1574,9 +1574,9 @@ class Admin::CustomersController < Admin::ApplicationController
         upload_result = document.upload_to_r2(document.document_file)
 
         if upload_result[:success]
-          Rails.logger.info "Successfully uploaded customer document to R2: #{upload_result[:key]}"
+          Rails.logger.info "Successfully uploaded client document to R2: #{upload_result[:key]}"
         else
-          Rails.logger.error "Failed to upload customer document to R2: #{upload_result[:error]}"
+          Rails.logger.error "Failed to upload client document to R2: #{upload_result[:error]}"
           # Don't fail the whole transaction, just log the error
         end
       end
@@ -1667,7 +1667,7 @@ class Admin::CustomersController < Admin::ApplicationController
     )
     row_style = wb.styles.add_style(alignment: { horizontal: :left })
 
-    sheet_name = type == 'individual' ? 'Individual Customers' : 'Corporate Customers'
+    sheet_name = type == 'individual' ? 'Individual Clients' : 'Corporate Clients'
     wb.add_worksheet(name: sheet_name) do |sheet|
       headers = %w[
         ID LeadID CustomerType FirstName MiddleName LastName CompanyName
@@ -1753,7 +1753,7 @@ class Admin::CustomersController < Admin::ApplicationController
 
     workbook = RubyXL::Workbook.new
     worksheet = workbook[0]
-    worksheet.sheet_name = 'Customers'
+    worksheet.sheet_name = 'Clients'
 
     # Headers
     headers = %w[

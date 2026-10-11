@@ -550,13 +550,13 @@
 
   <!-- KPI Cards -->
   <div class="kpi-grid">
-    <!-- Total Customers -->
-    <div class="kpi-card" style="--card-color: #3b82f6; cursor: pointer;" data-metric="customers" data-label="Total Customers" onclick="openKpiDetailModal(this)">
+    <!-- Total Clients -->
+    <div class="kpi-card" style="--card-color: #3b82f6; cursor: pointer;" data-metric="customers" data-label="Total Clients" onclick="openKpiDetailModal(this)">
       <div class="kpi-icon blue-gradient">
         <i class="bi bi-people-fill"></i>
       </div>
       <div class="kpi-value"><%= number_with_delimiter(@total_customers) %></div>
-      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-label">Total Clients</div>
     </div>
 
     <!-- Total Policies -->
@@ -691,7 +691,7 @@
 
     if (metric === 'policies' || metric === 'premium') {
       head.innerHTML = `<tr>
-        <th>#</th><th>Type</th><th>Policy No.</th><th>Customer</th>
+        <th>#</th><th>Type</th><th>Policy No.</th><th>Client</th>
         <th>Start Date</th><th>End Date</th><th>Created</th>
         <th class="text-end">Net Premium</th><th class="text-end">Total Premium</th>
         <th class="text-center">Source</th>
@@ -743,7 +743,7 @@
           <td>${r.phone || '—'}</td><td>${r.created_at}</td>
         </tr>`;
       });
-      summary.innerHTML = `<span class="badge bg-primary fs-6">${records.length} Customers</span>`;
+      summary.innerHTML = `<span class="badge bg-primary fs-6">${records.length} Clients</span>`;
 
     } else if (metric === 'leads') {
       head.innerHTML = `<tr><th>#</th><th>Name</th><th>Stage</th><th>Created</th></tr>`;
@@ -936,20 +936,20 @@
   </div>
 
   <!-- ================================================ -->
-  <!-- SECTION 2: CUSTOMER ANALYTICS                  -->
+  <!-- SECTION 2: CLIENT ANALYTICS                  -->
   <!-- ================================================ -->
   <div class="d-flex align-items-center gap-3 py-2 px-4 rounded-3 mb-3 mt-4" style="background: linear-gradient(135deg, #d1fae5, #ecfdf5); border-left: 4px solid #10b981;">
     <i class="bi bi-people-fill fs-4 text-success"></i>
     <div>
-      <h5 class="mb-0 fw-bold text-success">Customer Analytics</h5>
-      <small class="text-muted">Customer acquisition trends, retention, and geographic distribution</small>
+      <h5 class="mb-0 fw-bold text-success">Client Analytics</h5>
+      <small class="text-muted">Client acquisition trends, retention, and geographic distribution</small>
     </div>
   </div>
 
-  <!-- Customer Acquisition + Monthly Trends -->
+  <!-- Client Acquisition + Monthly Trends -->
   <div class="charts-grid">
     <div class="chart-card">
-      <h3 class="chart-title">Customer Acquisition Trend</h3>
+      <h3 class="chart-title">Client Acquisition Trend</h3>
       <div class="chart-container">
         <canvas id="customerAcquisitionChart"></canvas>
       </div>
@@ -976,10 +976,10 @@
     </div>
   </div>
 
-  <!-- Customer Geographic Distribution + Quick Insights -->
+  <!-- Client Geographic Distribution + Quick Insights -->
   <div class="charts-grid">
     <div class="chart-card">
-      <h3 class="chart-title">Customer Geographic Distribution</h3>
+      <h3 class="chart-title">Client Geographic Distribution</h3>
       <div class="chart-container">
         <canvas id="locationChart"></canvas>
       </div>
@@ -1096,7 +1096,7 @@
         <thead>
           <tr>
             <th>Type</th>
-            <th>Customer</th>
+            <th>Client</th>
             <th>Premium</th>
             <th>Date</th>
           </tr>
@@ -1226,7 +1226,7 @@
             <thead>
               <tr>
                 <th>Affiliate Name</th>
-                <th>Customers Acquired</th>
+                <th>Clients Acquired</th>
                 <th>Premium Generated</th>
                 <th>Commission</th>
               </tr>
@@ -1329,7 +1329,7 @@
         <i class="bi bi-people-fill"></i>
       </div>
       <div class="kpi-value"><%= @customer_retention %>%</div>
-      <div class="kpi-label">Customer Retention</div>
+      <div class="kpi-label">Client Retention</div>
     </div>
   </div>
 
@@ -1630,7 +1630,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     console.log('Monthly Labels:', monthlyLabels);
-    console.log('Customer Data:', customerData);
+    console.log('Client Data:', customerData);
     console.log('Policy Data:', policyData);
 
     const monthlyChart = new Chart(trendsCtx.getContext('2d'), {
@@ -1640,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', function() {
       labels: monthlyLabels,
       datasets: [
         {
-          label: 'Customers',
+          label: 'Clients',
           data: customerData,
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -2021,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   try {
     // Customer Acquisition Trend Chart
-    console.log('📈 Initializing Customer Acquisition Chart...');
+    console.log('📈 Initializing Client Acquisition Chart...');
     const acquisitionCtx = document.getElementById('customerAcquisitionChart');
     if (!acquisitionCtx) {
       console.error('❌ customerAcquisitionChart canvas not found!');
@@ -2033,7 +2033,7 @@ document.addEventListener('DOMContentLoaded', function() {
     data: {
       labels: Object.keys(customerAcquisitionData),
       datasets: [{
-        label: 'New Customers',
+        label: 'New Clients',
         data: Object.values(customerAcquisitionData),
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -2064,10 +2064,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     });
-    console.log('✅ Customer Acquisition Chart initialized successfully');
+    console.log('✅ Client Acquisition Chart initialized successfully');
 
   } catch (error) {
-    console.error('❌ Error initializing Customer Acquisition Chart:', error);
+    console.error('❌ Error initializing Client Acquisition Chart:', error);
   }
 
   try {
@@ -2290,7 +2290,7 @@ document.addEventListener('DOMContentLoaded', function() {
     type: 'radar',
     plugins: [ChartDataLabels],
     data: {
-      labels: ['Active Customers', 'Converted Leads', 'New Leads', 'Support Tickets'],
+      labels: ['Active Clients', 'Converted Leads', 'New Leads', 'Support Tickets'],
       datasets: [{
         label: 'Business Metrics',
         data: [

@@ -109,7 +109,7 @@
       <div class="card-body">
         <div class="row mb-3">
           <div class="col-md-6">
-            <label class="form-label fw-bold text-muted">Customer Name</label>
+            <label class="form-label fw-bold text-muted">Client Name</label>
             <div class="d-flex align-items-center">
               <i class="bi bi-person text-primary me-2"></i>
               <h6 class="mb-0"><%= @client_request.name %></h6>
@@ -199,7 +199,7 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Response Message</label>
             <%= form.text_area :admin_response, class: "form-control", rows: 4,
-                placeholder: "Add your response to the customer...",
+                placeholder: "Add your response to the client...",
                 value: @client_request.admin_response %>
           </div>
           <div class="row">

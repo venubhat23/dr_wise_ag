@@ -243,14 +243,14 @@ class Customer < ApplicationRecord
       nil
     end
   rescue => e
-    Rails.logger.error "Error generating profile image URL for customer #{id}: #{e.message}"
+    Rails.logger.error "Error generating profile image URL for client #{id}: #{e.message}"
     nil
   end
 
   def has_profile_image?
     profile_image.attached? && profile_image.blob.present?
   rescue => e
-    Rails.logger.error "Error checking profile image for customer #{id}: #{e.message}"
+    Rails.logger.error "Error checking profile image for client #{id}: #{e.message}"
     false
   end
 
@@ -268,7 +268,7 @@ class Customer < ApplicationRecord
       content_type: profile_image.content_type
     }
   rescue => e
-    Rails.logger.error "Error generating safe profile image display for customer #{id}: #{e.message}"
+    Rails.logger.error "Error generating safe profile image display for client #{id}: #{e.message}"
     nil
   end
 
@@ -292,7 +292,7 @@ class Customer < ApplicationRecord
       nil
     end
   rescue => e
-    Rails.logger.error "Error generating public profile image URL for customer #{id}: #{e.message}"
+    Rails.logger.error "Error generating public profile image URL for client #{id}: #{e.message}"
     nil
   end
 
@@ -453,7 +453,7 @@ class Customer < ApplicationRecord
       profile_image.attach(profile_images.first.blob)
     end
   rescue => e
-    Rails.logger.error "Error handling profile images for customer #{id}: #{e.message}"
+    Rails.logger.error "Error handling profile images for client #{id}: #{e.message}"
   end
 
   # Profile image validation
@@ -483,7 +483,7 @@ class Customer < ApplicationRecord
       end
     end
   rescue => e
-    Rails.logger.error "Error validating profile image for customer #{id || 'new'}: #{e.message}"
+    Rails.logger.error "Error validating profile image for client #{id || 'new'}: #{e.message}"
     errors.add(:profile_image, 'validation failed due to an error')
   end
 

@@ -113,7 +113,7 @@ class Admin::ImportsController < Admin::ApplicationController
       }
 
     rescue => e
-      Rails.logger.error "Customer preview error: #{e.class} - #{e.message}"
+      Rails.logger.error "Client preview error: #{e.class} - #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
       render json: {
         success: false,
@@ -397,10 +397,10 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        validation_errors << "Client email is required" if normalized_row['customer_email'].to_s.strip.empty?
         customer_email_val = normalized_row['customer_email'].to_s.strip
         if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
-          validation_errors << "Customer email format is invalid"
+          validation_errors << "Client email format is invalid"
         end
         validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
@@ -532,10 +532,10 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        validation_errors << "Client email is required" if normalized_row['customer_email'].to_s.strip.empty?
         customer_email_val = normalized_row['customer_email'].to_s.strip
         if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
-          validation_errors << "Customer email format is invalid"
+          validation_errors << "Client email format is invalid"
         end
         validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
@@ -670,10 +670,10 @@ class Admin::ImportsController < Admin::ApplicationController
         validation_errors = []
 
         # Check required fields
-        validation_errors << "Customer email is required" if normalized_row['customer_email'].to_s.strip.empty?
+        validation_errors << "Client email is required" if normalized_row['customer_email'].to_s.strip.empty?
         customer_email_val = normalized_row['customer_email'].to_s.strip
         if customer_email_val.present? && !customer_email_val.match?(URI::MailTo::EMAIL_REGEXP)
-          validation_errors << "Customer email format is invalid"
+          validation_errors << "Client email format is invalid"
         end
         validation_errors << "Policy number is required" if normalized_row['policy_number'].to_s.strip.empty?
         validation_errors << "Insurance company name is required" if normalized_row['insurance_company_name'].to_s.strip.empty?
@@ -829,7 +829,7 @@ class Admin::ImportsController < Admin::ApplicationController
   def customers
     uploaded_file = params[:file]
 
-    Rails.logger.info "Customer import started with file: #{uploaded_file&.original_filename}"
+    Rails.logger.info "Client import started with file: #{uploaded_file&.original_filename}"
     Rails.logger.info "Request format: #{request.format}"
     Rails.logger.info "Request headers: Accept = #{request.headers['Accept']}"
 
@@ -849,7 +849,7 @@ class Admin::ImportsController < Admin::ApplicationController
 
       respond_to do |format|
         if import_result[:success]
-          success_message = "Successfully imported #{import_result[:imported_count]} customers. #{import_result[:skipped_count]} records were skipped due to validation errors."
+          success_message = "Successfully imported #{import_result[:imported_count]} clients. #{import_result[:skipped_count]} records were skipped due to validation errors."
           Rails.logger.info "Import successful: #{success_message}"
 
           format.html { redirect_to admin_customers_path, notice: success_message }
@@ -873,7 +873,7 @@ class Admin::ImportsController < Admin::ApplicationController
         end
       end
     rescue => e
-      Rails.logger.error "Customer import exception: #{e.class} - #{e.message}"
+      Rails.logger.error "Client import exception: #{e.class} - #{e.message}"
       Rails.logger.error e.backtrace.join("\n")
 
       respond_to do |format|
@@ -1478,24 +1478,24 @@ class Admin::ImportsController < Admin::ApplicationController
 
     # Check customer type
     if field_blank?(customer_type)
-      errors << "Customer type is required"
+      errors << "Client type is required"
     elsif !['individual', 'corporate'].include?(customer_type)
-      errors << "Customer type must be 'individual' or 'corporate'"
+      errors << "Client type must be 'individual' or 'corporate'"
     end
 
     # Individual customer validation
     if customer_type == 'individual'
-      errors << "First name is required for individual customers" if field_blank?(row_data['first_name'])
-      errors << "Last name is required for individual customers" if field_blank?(row_data['last_name'])
-      errors << "Mobile is required for individual customers" if field_blank?(row_data['mobile'])
+      errors << "First name is required for individual clients" if field_blank?(row_data['first_name'])
+      errors << "Last name is required for individual clients" if field_blank?(row_data['last_name'])
+      errors << "Mobile is required for individual clients" if field_blank?(row_data['mobile'])
     end
 
     # Corporate customer validation
     if customer_type == 'corporate'
-      errors << "Company name is required for corporate customers" if field_blank?(row_data['company_name'])
-      errors << "Mobile is required for corporate customers" if field_blank?(row_data['mobile'])
-      errors << "Email is required for corporate customers" if field_blank?(row_data['email'])
-      errors << "GST number is required for corporate customers" if field_blank?(row_data['gst_no'])
+      errors << "Company name is required for corporate clients" if field_blank?(row_data['company_name'])
+      errors << "Mobile is required for corporate clients" if field_blank?(row_data['mobile'])
+      errors << "Email is required for corporate clients" if field_blank?(row_data['email'])
+      errors << "GST number is required for corporate clients" if field_blank?(row_data['gst_no'])
     end
 
     # Mobile validation
@@ -1551,9 +1551,9 @@ class Admin::ImportsController < Admin::ApplicationController
 
     # Check customer type
     if customer_type.nil? || customer_type.empty?
-      errors << "Customer type is required"
+      errors << "Client type is required"
     elsif !['individual', 'corporate'].include?(customer_type)
-      errors << "Customer type must be 'individual' or 'corporate'"
+      errors << "Client type must be 'individual' or 'corporate'"
     end
 
     # Individual customer validation
@@ -1562,9 +1562,9 @@ class Admin::ImportsController < Admin::ApplicationController
       last_name = row_data['last_name*'] || row_data['last_name']
       mobile = row_data['mobile*'] || row_data['mobile']
 
-      errors << "First name is required for individual customers" if first_name.nil? || first_name.to_s.strip.empty?
-      errors << "Last name is required for individual customers" if last_name.nil? || last_name.to_s.strip.empty?
-      errors << "Mobile is required for individual customers" if mobile.nil? || mobile.to_s.strip.empty?
+      errors << "First name is required for individual clients" if first_name.nil? || first_name.to_s.strip.empty?
+      errors << "Last name is required for individual clients" if last_name.nil? || last_name.to_s.strip.empty?
+      errors << "Mobile is required for individual clients" if mobile.nil? || mobile.to_s.strip.empty?
     end
 
     # Corporate customer validation
@@ -1574,10 +1574,10 @@ class Admin::ImportsController < Admin::ApplicationController
       email = row_data['email*'] || row_data['email']
       gst_no = row_data['gst_no*'] || row_data['gst_no']
 
-      errors << "Company name is required for corporate customers" if company_name.nil? || company_name.to_s.strip.empty?
-      errors << "Mobile is required for corporate customers" if mobile.nil? || mobile.to_s.strip.empty?
-      errors << "Email is required for corporate customers" if email.nil? || email.to_s.strip.empty?
-      errors << "GST number is required for corporate customers" if gst_no.nil? || gst_no.to_s.strip.empty?
+      errors << "Company name is required for corporate clients" if company_name.nil? || company_name.to_s.strip.empty?
+      errors << "Mobile is required for corporate clients" if mobile.nil? || mobile.to_s.strip.empty?
+      errors << "Email is required for corporate clients" if email.nil? || email.to_s.strip.empty?
+      errors << "GST number is required for corporate clients" if gst_no.nil? || gst_no.to_s.strip.empty?
     end
 
     # Mobile validation

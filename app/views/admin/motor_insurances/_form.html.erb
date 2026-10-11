@@ -1537,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', function() {
               }
             }
           })
-          .catch(error => console.error('Error fetching customer affiliate info:', error));
+          .catch(error => console.error('Error fetching client affiliate info:', error));
       }
     });
   }
@@ -2690,9 +2690,9 @@ $(document).ready(function() {
 
   // Customer selection event handlers - Use Select2 events for better integration
   $('#customer_select').on('select2:select', function(e) {
-    console.log('🔄 Customer Select2 Event Triggered');
+    console.log('🔄 Client Select2 Event Triggered');
     var selectedCustomerId = e.params.data.id || this.value;
-    console.log('👤 Selected Customer ID:', selectedCustomerId);
+    console.log('👤 Selected Client ID:', selectedCustomerId);
 
     // Load policy holder options for the selected customer
     if (selectedCustomerId) {
@@ -2703,7 +2703,7 @@ $(document).ready(function() {
     $('#affiliate_select').val(null).trigger('change');
 
     if (selectedCustomerId) {
-      console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+      console.log('Client selected, filtering affiliates for client ID:', selectedCustomerId);
 
 
       // Load customer nominees when customer is selected
@@ -2713,7 +2713,7 @@ $(document).ready(function() {
 
   // Handle customer clear event
   $('#customer_select').on('select2:clear', function(e) {
-    console.log('🔄 Customer cleared');
+    console.log('🔄 Client cleared');
 
     // Reset policy holder options to default
     const policyHolderSelect = $('#policy_holder_select');
@@ -2724,7 +2724,7 @@ $(document).ready(function() {
 
     // Clear affiliate dropdown when customer is cleared
     $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, showing all affiliates');
+    console.log('Client cleared, showing all affiliates');
 
     // Clear nominees when no customer is selected
     clearNominees();
@@ -3225,7 +3225,7 @@ $(document).ready(function() {
     const customerSelect = document.getElementById('customer_select');
     if (customerSelect && customerSelect.value) {
       $(customerSelect).trigger('change');
-      console.log('Triggered customer change for edit form');
+      console.log('Triggered client change for edit form');
 
       // Set timeout to restore policy holder after customer change completes
       // Use a retry mechanism to ensure the policy holder is set correctly
@@ -3366,7 +3366,7 @@ $(document).ready(function() {
         }
       },
       error: function(xhr, status, error) {
-        console.error('Error loading customer nominees:', error);
+        console.error('Error loading client nominees:', error);
       }
     });
   }
@@ -3475,7 +3475,7 @@ function loadNomineesFromCustomer() {
       btn.disabled = false;
     },
     error: function(xhr, status, error) {
-      console.error('Error loading customer nominees:', error);
+      console.error('Error loading client nominees:', error);
       alert('Error loading nominees. Please try again.');
 
       // Restore button state

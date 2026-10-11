@@ -726,14 +726,14 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          message: 'Customer not found',
+          message: 'Client not found',
           nominees: []
         }
       end
     else
       render json: {
         success: false,
-        message: 'Customer ID is required',
+        message: 'Client ID is required',
         nominees: []
       }
     end
@@ -855,7 +855,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
                 InsuranceCompany SumInsured TotalPremium NetPremium PaymentMode
                 PolicyStartDate PolicyEndDate Status Source Affiliate BookingDate CreatedAt]
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         status = if p.policy_end_date && p.policy_end_date < Date.current then 'Expired'
                  elsif p.policy_end_date && p.policy_end_date <= 30.days.from_now then 'Expiring Soon'
                  else 'Active' end
@@ -879,7 +879,7 @@ class Admin::OtherInsurancesController < Admin::ApplicationController
                        InsuranceCompany SumInsured TotalPremium NetPremium PaymentMode
                        PolicyStartDate PolicyEndDate Status Source Affiliate BookingDate CreatedAt], style: hdr
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         status = if p.policy_end_date && p.policy_end_date < Date.current then 'Expired'
                  elsif p.policy_end_date && p.policy_end_date <= 30.days.from_now then 'Expiring Soon'
                  else 'Active' end

@@ -386,7 +386,7 @@ class Admin::CommissionTrackingController < ApplicationController
           main_agent_commission_received: false,
           main_agent_commission_paid_date: nil,
           created_at: Time.current - i.days,
-          customer: OpenStruct.new(display_name: "Sample Customer #{i}"),
+          customer: OpenStruct.new(display_name: "Sample Client #{i}"),
           try: ->(method) { nil }
         ),
         type: i.odd? ? 'health' : 'life',

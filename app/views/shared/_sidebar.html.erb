@@ -43,16 +43,16 @@
           </li>
         <% end %>
 
-        <!-- Customers -->
+        <!-- Clients -->
         <% if show_sidebar_item?('customers') %>
           <li class="nav-item">
-            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}", 'data-tooltip': 'Customers' do %>
+            <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}", 'data-tooltip': 'Clients' do %>
               <div class="nav-icon-modern">
                 <div class="icon-bg gradient-green">
                   <i class="bi bi-people-fill"></i>
                 </div>
               </div>
-              <span class="nav-text">Customers</span>
+              <span class="nav-text">Clients</span>
               <div class="nav-indicator"></div>
             <% end %>
           </li>

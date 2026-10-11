@@ -22,15 +22,15 @@
 
           <div class="row g-3 mb-3">
             <div class="col-12">
-              <label class="form-label fw-semibold">Link to existing customer (optional)</label>
+              <label class="form-label fw-semibold">Link to existing client (optional)</label>
               <%= f.select :customer_id,
                     options_from_collection_for_select(@customers, :id, :display_name, @appointment.customer_id),
-                    { include_blank: '— Select customer —' },
+                    { include_blank: '— Select client —' },
                     class: 'form-select', style: 'border-radius:12px;' %>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
-              <%= f.text_field :customer_name, class: 'form-control', placeholder: 'Customer Name', style: 'border-radius:12px;' %>
+              <label class="form-label fw-semibold">Client Name <span class="text-danger">*</span></label>
+              <%= f.text_field :customer_name, class: 'form-control', placeholder: 'Client Name', style: 'border-radius:12px;' %>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Email</label>

@@ -131,7 +131,7 @@
         <table class="table table-hover mb-0">
           <thead class="bg-light">
             <tr>
-              <th class="border-0">Customer</th>
+              <th class="border-0">Client</th>
               <th class="border-0">Policy Details</th>
               <th class="border-0">Payment Amount</th>
               <th class="border-0">Due Date</th>
@@ -144,7 +144,7 @@
               <tr>
                 <td>
                   <div>
-                    <h6 class="mb-1"><%= policy.customer&.display_name || 'Unknown Customer' %></h6>
+                    <h6 class="mb-1"><%= policy.customer&.display_name || 'Unknown Client' %></h6>
                     <small class="text-muted"><%= policy.customer&.email || 'No email' %></small>
                     <div><small class="text-muted">Mobile: <%= policy.customer&.mobile || 'N/A' %></small></div>
                   </div>
@@ -260,13 +260,13 @@
 
 <script>
 function setupAutoReminders() {
-  if (confirm('Would you like to setup automatic payment reminders for customers?')) {
+  if (confirm('Would you like to setup automatic payment reminders for clients?')) {
     alert('Feature coming soon! This will allow you to configure automatic reminder schedules.');
   }
 }
 
 function sendPaymentReminder(policyId) {
-  if (confirm('Send payment reminder to this customer?')) {
+  if (confirm('Send payment reminder to this client?')) {
     alert(`Feature coming soon! Payment reminder will be sent for policy ID: ${policyId}`);
   }
 }

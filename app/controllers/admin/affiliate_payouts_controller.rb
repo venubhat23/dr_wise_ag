@@ -222,7 +222,7 @@ class Admin::AffiliatePayoutsController < Admin::ApplicationController
           id: "virtual_#{policy.id}",
           lead_id: policy.try(:lead_id) || "POLICY-#{policy.id}",
           first_name: policy.try(:customer)&.first_name || 'Unknown',
-          last_name: policy.try(:customer)&.last_name || 'Customer',
+          last_name: policy.try(:customer)&.last_name || 'Client',
           email: policy.try(:customer)&.email || '',
           mobile: policy.try(:customer)&.mobile || '',
           created_at: policy.created_at

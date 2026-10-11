@@ -2071,14 +2071,14 @@ document.addEventListener('DOMContentLoaded', function() {
       $('#affiliate_select').val(null).trigger('change');
       var selectedCustomerId = this.value;
       if (selectedCustomerId) {
-        console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+        console.log('Client selected, filtering affiliates for client ID:', selectedCustomerId);
       }
     });
 
     // Handle customer clearing
     $('#customer_select').on('select2:clear', function(e) {
       $('#affiliate_select').val(null).trigger('change');
-      console.log('Customer cleared, showing all affiliates');
+      console.log('Client cleared, showing all affiliates');
     });
 
     // Sub-agent commission event listeners

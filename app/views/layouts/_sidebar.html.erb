@@ -1277,7 +1277,7 @@ body.sidebar-collapsed .main-content {
         </li>
         <% end %>
 
-        <!-- Clients (renamed from Customers) -->
+        <!-- Clients (renamed from Clients) -->
         <% if show_sidebar_item?('customers') %>
           <li class="nav-item">
             <%= link_to admin_customers_path, class: "nav-link-modern #{'active' if request.path.include?('/admin/customers')}", data: { tooltip: "Clients" } do %>

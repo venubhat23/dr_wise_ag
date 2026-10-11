@@ -180,7 +180,7 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
 
     <div class="row g-2 align-items-end">
       <div class="col-lg-3 col-md-6">
-        <label class="filter-label"><i class="bi bi-person-circle me-1"></i>Customer</label>
+        <label class="filter-label"><i class="bi bi-person-circle me-1"></i>Client</label>
         <select id="customerSelect" name="customer_id" style="width:100%">
           <option value=""></option>
           <% @customers_for_filter.each do |c| %>
@@ -298,7 +298,7 @@ body.modal-open { overflow:visible !important; padding-right:0 !important; }
           <tr>
             <th>Policy Details</th>
             <th><i class="bi bi-calendar-event me-1"></i>Created</th>
-            <th>Customer</th>
+            <th>Client</th>
             <th>Premium</th>
             <th>Commission</th>
             <th>Main Agent</th>
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
 $(function() {
   $('#customerSelect').select2({
     theme: 'bootstrap-5',
-    placeholder: 'Search and select customer...',
+    placeholder: 'Search and select client...',
     allowClear: true,
     width: '100%',
     dropdownParent: $('body'),
@@ -713,7 +713,7 @@ $(function() {
       );
     },
     templateSelection: function(option) {
-      return option.text || 'Search and select customer...';
+      return option.text || 'Search and select client...';
     },
     escapeMarkup: function(m) { return m; }
   });

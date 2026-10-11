@@ -1043,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle customer selection change using Select2 events
   $('#customer_select').on('select2:select', function(e) {
     const customerId = $(this).val();
-    console.log('Customer selected:', customerId);
+    console.log('Client selected:', customerId);
 
     if (customerId) {
       // Fetch customer family members and update policy holder options
@@ -1104,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Refresh affiliate dropdown to filter by customer
       $('#affiliate_select').val(null).trigger('change');
-      console.log('Customer selected, affiliate dropdown will now filter for customer ID:', customerId);
+      console.log('Client selected, affiliate dropdown will now filter for client ID:', customerId);
 
       // Auto-load customer nominees (like Motor Insurance)
       loadCustomerNominees(customerId);
@@ -1113,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Handle customer clearing
   $('#customer_select').on('select2:clear', function(e) {
-    console.log('Customer cleared');
+    console.log('Client cleared');
 
     // Reset policy holder to Self only
     const policyHolderSelect = $('#policy_holder_select');
@@ -1136,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Clear affiliate selection and refresh dropdown
     $('#affiliate_select').val(null).trigger('change');
-    console.log('Customer cleared, affiliate dropdown will now show all affiliates');
+    console.log('Client cleared, affiliate dropdown will now show all affiliates');
 
     // Clear nominees when customer is cleared (like Motor Insurance)
     clearNominees();
@@ -1817,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       error: function(xhr, status, error) {
-        console.error('Error auto-loading customer nominees:', error);
+        console.error('Error auto-loading client nominees:', error);
       }
     });
   };

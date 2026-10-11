@@ -119,7 +119,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -133,7 +133,7 @@
             <tr>
               <td>
                 <div>
-                  <h6 class="mb-1"><%= insurance.customer&.display_name || 'Unknown Customer' %></h6>
+                  <h6 class="mb-1"><%= insurance.customer&.display_name || 'Unknown Client' %></h6>
                   <small class="text-muted"><%= insurance.customer&.email || 'No email' %></small>
                   <div><small class="text-muted"><%= insurance.customer&.mobile || 'No mobile' %></small></div>
                 </div>
@@ -209,7 +209,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -223,7 +223,7 @@
             <tr>
               <td>
                 <div>
-                  <h6 class="mb-1"><%= insurance.customer&.display_name || 'Unknown Customer' %></h6>
+                  <h6 class="mb-1"><%= insurance.customer&.display_name || 'Unknown Client' %></h6>
                   <small class="text-muted"><%= insurance.customer&.email || 'No email' %></small>
                   <div><small class="text-muted"><%= insurance.customer&.mobile || 'No mobile' %></small></div>
                 </div>
@@ -299,7 +299,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Vehicle & Company</th>
             <th class="border-0">Coverage</th>
@@ -313,7 +313,7 @@
             <tr>
               <td>
                 <div>
-                  <h6 class="mb-1"><%= insurance.policy&.customer&.display_name || 'Unknown Customer' %></h6>
+                  <h6 class="mb-1"><%= insurance.policy&.customer&.display_name || 'Unknown Client' %></h6>
                   <small class="text-muted"><%= insurance.policy&.customer&.email || 'No email' %></small>
                   <div><small class="text-muted"><%= insurance.policy&.customer&.mobile || 'No mobile' %></small></div>
                 </div>
@@ -388,7 +388,7 @@
       <table class="table table-hover mb-0">
         <thead class="bg-light">
           <tr>
-            <th class="border-0">Customer</th>
+            <th class="border-0">Client</th>
             <th class="border-0">Policy Details</th>
             <th class="border-0">Company & Plan</th>
             <th class="border-0">Coverage</th>
@@ -402,7 +402,7 @@
             <tr>
               <td>
                 <div>
-                  <h6 class="mb-1"><%= insurance.policy&.customer&.display_name || 'Unknown Customer' %></h6>
+                  <h6 class="mb-1"><%= insurance.policy&.customer&.display_name || 'Unknown Client' %></h6>
                   <small class="text-muted"><%= insurance.policy&.customer&.email || 'No email' %></small>
                   <div><small class="text-muted"><%= insurance.policy&.customer&.mobile || 'No mobile' %></small></div>
                 </div>
@@ -479,14 +479,14 @@
 
 <script>
 function sendRenewalReminders() {
-  if (confirm('Are you sure you want to send renewal reminders to all customers with upcoming renewals?')) {
+  if (confirm('Are you sure you want to send renewal reminders to all clients with upcoming renewals?')) {
     // Implementation for bulk reminder sending
-    alert('Feature coming soon! This will send reminders to all customers with policies due for renewal.');
+    alert('Feature coming soon! This will send reminders to all clients with policies due for renewal.');
   }
 }
 
 function sendIndividualReminder(insuranceId, insuranceType) {
-  if (confirm('Are you sure you want to send a renewal reminder to this customer?')) {
+  if (confirm('Are you sure you want to send a renewal reminder to this client?')) {
     // Implementation for individual reminder sending
     alert(`Feature coming soon! This will send a renewal reminder for ${insuranceType} insurance policy ID: ${insuranceId}`);
   }

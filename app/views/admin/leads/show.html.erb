@@ -36,13 +36,13 @@
 
         <!-- Conversion Action Button -->
         <% if @lead.can_convert_to_customer? %>
-          <%= link_to new_admin_customer_path(lead_id: @lead.id), class: "btn btn-success btn-sm", title: "Convert this lead to customer" do %>
-            <i class="bi bi-person-plus-fill me-1"></i>Convert to Customer
+          <%= link_to new_admin_customer_path(lead_id: @lead.id), class: "btn btn-success btn-sm", title: "Convert this lead to client" do %>
+            <i class="bi bi-person-plus-fill me-1"></i>Convert to Client
           <% end %>
         <% elsif @lead.converted_customer.present? %>
           <%= link_to admin_customer_path(@lead.converted_customer), class: "btn btn-info btn-sm customer-link",
               title: "View Customer: #{@lead.converted_customer.display_name}" do %>
-            <i class="bi bi-person-check-fill me-1"></i>View Customer
+            <i class="bi bi-person-check-fill me-1"></i>View Client
           <% end %>
         <% end %>
 
@@ -115,16 +115,16 @@
             { key: 'lead_generated', title: '🟢 Lead Generated', description: 'Initial lead entry into the system' },
             { key: 'consultation_scheduled', title: '📅 Consultation Scheduled', description: 'First contact and consultation setup' },
             { key: 'one_on_one', title: '🤝 One-on-One Discussion', description: 'Detailed discussion about insurance needs' },
-            { key: 'follow_up', title: '🔁 Follow-Up', description: 'Follow-up to gauge customer interest' },
-            { key: 'follow_up_successful', title: '✅ Follow-Up Successful', description: 'Customer shows interest and ready to proceed' },
-            { key: 'converted', title: '👤 Converted to Customer', description: 'Lead successfully converted to customer' }
+            { key: 'follow_up', title: '🔁 Follow-Up', description: 'Follow-up to gauge client interest' },
+            { key: 'follow_up_successful', title: '✅ Follow-Up Successful', description: 'Client shows interest and ready to proceed' },
+            { key: 'converted', title: '👤 Converted to Client', description: 'Lead successfully converted to client' }
           ]
 
           # Define alternative flow stages that branch after follow_up
           alt_timeline_stages = [
-            { key: 'follow_up_unsuccessful', title: '❌ Follow-Up Unsuccessful', description: 'Customer not interested at this time', is_alt_path: true },
-            { key: 're_follow_up', title: '🔄 Re-Follow-Up', description: 'Second attempt to contact customer', is_alt_path: true },
-            { key: 'not_interested', title: '❌ Not Interested', description: 'Customer declined insurance', is_alt_path: true },
+            { key: 'follow_up_unsuccessful', title: '❌ Follow-Up Unsuccessful', description: 'Client not interested at this time', is_alt_path: true },
+            { key: 're_follow_up', title: '🔄 Re-Follow-Up', description: 'Second attempt to contact client', is_alt_path: true },
+            { key: 'not_interested', title: '❌ Not Interested', description: 'Client declined insurance', is_alt_path: true },
             { key: 'closed', title: '🚫 Lead Closed', description: 'Lead marked as closed/complete', is_alt_path: true }
           ]
 
@@ -203,7 +203,7 @@
       <div class="section-icon">
         <i class="bi bi-person-check"></i>
       </div>
-      <h5 class="section-title">Customer Type & Basic Information</h5>
+      <h5 class="section-title">Client Type & Basic Information</h5>
     </div>
     <i class="bi bi-chevron-down collapse-icon"></i>
   </div>
@@ -218,7 +218,7 @@
         </div>
         <div class="col-md-4">
           <div class="info-field">
-            <label>CUSTOMER TYPE</label>
+            <label>CLIENT TYPE</label>
             <div class="info-value">
               <% if @lead.customer_type.present? %>
                 <%= @lead.customer_type.humanize %>
@@ -503,12 +503,12 @@
         <i class="bi bi-check-circle-fill me-2 fs-4"></i>
         <div class="flex-grow-1">
           <h6 class="alert-heading mb-1">Successfully Converted!</h6>
-          <p class="mb-2">This lead has been successfully converted to a customer.</p>
+          <p class="mb-2">This lead has been successfully converted to a client.</p>
           <% if @lead.converted_customer.present? %>
             <div class="d-flex flex-wrap gap-2">
               <%= link_to admin_customer_path(@lead.converted_customer), class: "btn btn-success btn-sm" do %>
                 <i class="bi bi-person-check-fill me-1"></i>
-                View Customer Profile: <%= @lead.converted_customer.display_name %>
+                View Client Profile: <%= @lead.converted_customer.display_name %>
               <% end %>
               <% service_type_map = {
                    'taxation'    => { 'itr' => 'taxation_itr', 'tax_planning' => 'taxation_tax_planning' },
@@ -660,8 +660,8 @@
               <div class="d-flex align-items-start">
                 <span class="stage-icon me-2">👤</span>
                 <div>
-                  <h6 class="mb-1">Customer Converted</h6>
-                  <small class="text-muted">Customer converted - Ready for policy creation</small>
+                  <h6 class="mb-1">Client Converted</h6>
+                  <small class="text-muted">Client converted - Ready for policy creation</small>
                 </div>
               </div>
             </div>
@@ -695,7 +695,7 @@
                 <span class="stage-icon me-2">🚫</span>
                 <div>
                   <h6 class="mb-1">Not Interested</h6>
-                  <small class="text-muted">Lead not interested - Customer declined the offer</small>
+                  <small class="text-muted">Lead not interested - Client declined the offer</small>
                 </div>
               </div>
             </div>

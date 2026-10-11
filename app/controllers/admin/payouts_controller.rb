@@ -251,7 +251,7 @@ class Admin::PayoutsController < Admin::ApplicationController
                                 .select(:id, :policy_number, :customer_id, :total_premium)
                                 .limit(100)
                                 .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         {
           id: policy.id,
           policy_number: policy.policy_number || "Policy ##{policy.id}",
@@ -264,7 +264,7 @@ class Admin::PayoutsController < Admin::ApplicationController
                               .select(:id, :policy_number, :customer_id, :total_premium)
                               .limit(100)
                               .map do |policy|
-        customer_name = policy.customer&.display_name || 'Unknown Customer'
+        customer_name = policy.customer&.display_name || 'Unknown Client'
         {
           id: policy.id,
           policy_number: policy.policy_number || "Policy ##{policy.id}",
@@ -278,7 +278,7 @@ class Admin::PayoutsController < Admin::ApplicationController
                                  .select(:id, :policy_number, :customer_id, :total_premium)
                                  .limit(100)
                                  .map do |policy|
-          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          customer_name = policy.customer&.display_name || 'Unknown Client'
           {
             id: policy.id,
             policy_number: policy.policy_number || "Policy ##{policy.id}",
@@ -293,7 +293,7 @@ class Admin::PayoutsController < Admin::ApplicationController
                                    .select(:id, :policy_number, :customer_id, :total_premium)
                                    .limit(100)
                                    .map do |policy|
-          customer_name = policy.customer&.display_name || 'Unknown Customer'
+          customer_name = policy.customer&.display_name || 'Unknown Client'
           {
             id: policy.id,
             policy_number: policy.policy_number || "Policy ##{policy.id}",
@@ -554,7 +554,7 @@ class Admin::PayoutsController < Admin::ApplicationController
     require 'csv'
 
     CSV.generate(headers: true) do |csv|
-      csv << ['Policy Type', 'Policy ID', 'Customer', 'Recipient', 'Amount', 'Status', 'Date', 'Reference']
+      csv << ['Policy Type', 'Policy ID', 'Client', 'Recipient', 'Amount', 'Status', 'Date', 'Reference']
 
       report_data[:details].each do |payout|
         csv << [

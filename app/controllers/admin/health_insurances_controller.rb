@@ -603,7 +603,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
       rescue ActiveRecord::RecordNotFound
         render json: {
           success: false,
-          message: 'Customer not found',
+          message: 'Client not found',
           nominees: []
         }
       rescue => e
@@ -616,7 +616,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
     else
       render json: {
         success: false,
-        message: 'Customer ID is required',
+        message: 'Client ID is required',
         nominees: []
       }
     end
@@ -690,7 +690,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
                 PolicyStartDate PolicyEndDate PolicyHolder PlanName Status Source
                 Affiliate BookingDate CreatedAt]
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         csv << [p.id, p.policy_number, p.policy_type, p.insurance_type,
                 p.customer&.display_name, p.customer&.email, p.insurance_company_name,
                 p.sum_insured, p.total_premium, p.net_premium, p.payment_mode,
@@ -713,7 +713,7 @@ class Admin::HealthInsurancesController < Admin::ApplicationController
                        PolicyStartDate PolicyEndDate PolicyHolder PlanName Status Source
                        Affiliate BookingDate CreatedAt], style: hdr
       records.find_each do |p|
-        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Customer' else 'Unknown' end
+        source = if p.is_admin_added? then 'Admin' elsif p.is_agent_added? then 'Agent' elsif p.is_customer_added? then 'Client' else 'Unknown' end
         sheet.add_row [p.id, p.policy_number, p.policy_type, p.insurance_type,
                        p.customer&.display_name, p.customer&.email, p.insurance_company_name,
                        p.sum_insured.to_f, p.total_premium.to_f, p.net_premium.to_f, p.payment_mode,

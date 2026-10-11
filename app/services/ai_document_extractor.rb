@@ -7,13 +7,19 @@
 # left alone on the form. Dropdown fields are limited to the options the
 # form actually offers (sent by the browser as `field_options`).
 #
-# Needs ENV["ANTHROPIC_API_KEY"]; without it `configured?` is false and the
-# endpoint says so instead of failing.
+# Uses Claude when ENV["ANTHROPIC_API_KEY"] is set, otherwise Google Gemini
+# (free tier) with GEMINI_API_KEY - hardcoded on purpose, same convention as
+# OcrService::OCR_SPACE_API_KEY (not read from ENV).
+require "net/http"
+
 class AiDocumentExtractor
   class Error < StandardError; end
   class NotConfiguredError < Error; end
 
   MODEL = :"claude-opus-5-5"
+  GEMINI_MODEL = "gemini-flash-latest"
+  GEMINI_API_KEY = "AQ.Ab8RN6Jsct6qbsWFpJxRVDYhCMvGGFF27dannJMt5oI73_kpjw"
+  GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
   MAX_FILE_BYTES = 20.megabytes
   PDF_TYPE = "application/pdf"
   IMAGE_TYPES = %w[image/jpeg image/png image/webp image/gif].freeze
@@ -27,7 +33,15 @@ class AiDocumentExtractor
   }.freeze
 
   def self.configured?
+    anthropic? || gemini_api_key.present?
+  end
+
+  def self.anthropic?
     ENV["ANTHROPIC_API_KEY"].present?
+  end
+
+  def self.gemini_api_key
+    GEMINI_API_KEY
   end
 
   # field_options: { "payment_mode" => ["Yearly", ...] } from the form's <select>s
@@ -43,7 +57,8 @@ class AiDocumentExtractor
 
   # Returns the extracted fields as a Hash with string keys.
   def call
-    raise NotConfiguredError, "AI Upload is not configured (ANTHROPIC_API_KEY is missing)." unless self.class.configured?
+    raise NotConfiguredError, "AI Upload is not configured (no ANTHROPIC_API_KEY or GEMINI_API_KEY)." unless self.class.configured?
+    return call_gemini unless self.class.anthropic?
 
     message = client.beta.messages.create(
       model: MODEL,
@@ -79,6 +94,45 @@ class AiDocumentExtractor
   end
 
   private
+
+  # Same schema, prompt and file as the Claude path, via the Gemini REST API.
+  def call_gemini
+    uri = URI(format(GEMINI_ENDPOINT, GEMINI_MODEL))
+    request = Net::HTTP::Post.new(uri)
+    request["Content-Type"] = "application/json"
+    request["x-goog-api-key"] = self.class.gemini_api_key
+    request.body = {
+      systemInstruction: { parts: [{ text: system_prompt }] },
+      contents: [{ role: "user", parts: [
+        { inline_data: { mime_type: @file.content_type.to_s, data: Base64.strict_encode64(@file.read) } },
+        { text: "Extract the details from this document." }
+      ] }],
+      generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0 }
+    }.to_json
+
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 10, read_timeout: 120) { |http| http.request(request) }
+    body = JSON.parse(response.body) rescue {}
+    unless response.is_a?(Net::HTTPSuccess)
+      Rails.logger.error "[AI Upload] Gemini #{response.code}: #{body.dig('error', 'message') || response.body.to_s.first(300)}"
+      raise Error, "The AI service is busy right now. Please try again in a minute." if response.code == "429"
+      raise Error, "The AI could not process this file. Try a clearer PDF or photo." if response.code == "400"
+      raise Error, "The AI service is unavailable right now. Please fill the form manually or try again."
+    end
+
+    candidate = body.dig("candidates", 0)
+    raise Error, "The AI could not read this document." if candidate.nil? || candidate["finishReason"].in?(%w[SAFETY RECITATION PROHIBITED_CONTENT])
+    raise Error, "The document was too long to read completely." if candidate["finishReason"] == "MAX_TOKENS"
+
+    text = Array(candidate.dig("content", "parts")).map { |part| part["text"] }.join
+    raise Error, "The AI returned no details." if text.blank?
+
+    JSON.parse(text)
+  rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNREFUSED => e
+    Rails.logger.error "[AI Upload] Gemini #{e.class}: #{e.message}"
+    raise Error, "The AI service is unavailable right now. Please fill the form manually or try again."
+  rescue JSON::ParserError
+    raise Error, "The AI reply could not be read. Please try again."
+  end
 
   def object_schema(properties)
     { type: "object", additionalProperties: false, required: properties.keys, properties: properties }

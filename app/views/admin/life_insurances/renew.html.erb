@@ -2198,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Customer selection change event listeners
   $('#customer_select').on('select2:select', function(e) {
     var selectedCustomerId = this.value;
-    console.log('Customer selected, filtering affiliates for customer ID:', selectedCustomerId);
+    console.log('Client selected, filtering affiliates for client ID:', selectedCustomerId);
 
     // Refresh the affiliate dropdown with the new customer filter
     setTimeout(function() {
@@ -2212,7 +2212,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#affiliate_select').val(null).trigger('change');
     // Also clear distributor when customer is cleared
     $('#distributor_id_hidden').val('');
-    console.log('Customer cleared, showing all affiliates and clearing distributor');
+    console.log('Client cleared, showing all affiliates and clearing distributor');
     // Clear nominee fields
     $('#renew_nominee_name').val('');
     $('#nominee_relationship_select').val('').trigger('change');
@@ -2276,7 +2276,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Only refresh if customer is selected but affiliate is not yet set
     if (selectedCustomerId && !currentAffiliateValue) {
-      console.log('Customer is pre-selected but no affiliate selected, may need to refresh affiliate dropdown');
+      console.log('Client is pre-selected but no affiliate selected, may need to refresh affiliate dropdown');
 
       // Optional: Force refresh the affiliate dropdown for the specific customer
       // This is usually not needed since we pre-select the affiliate above
@@ -2284,7 +2284,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (currentAffiliateValue) {
       console.log('Affiliate already pre-selected:', currentAffiliateValue);
     } else if (!selectedCustomerId) {
-      console.log('No customer pre-selected, affiliate dropdown will show all affiliates');
+      console.log('No client pre-selected, affiliate dropdown will show all affiliates');
     }
   }, 2000); // Delay to ensure both Select2 dropdowns are initialized
 

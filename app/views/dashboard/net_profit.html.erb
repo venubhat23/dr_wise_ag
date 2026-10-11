@@ -186,7 +186,7 @@ function loadProfitData() {
 
 function downloadCSV() {
   if (!_profitData || !_profitData.policies) return;
-  const rows = [['Policy Number', 'Type', 'Customer', 'Company', 'Booking Date', 'Net Premium', 'Profit Amount']];
+  const rows = [['Policy Number', 'Type', 'Client', 'Company', 'Booking Date', 'Net Premium', 'Profit Amount']];
   _profitData.policies.forEach(p => {
     rows.push([p.policy_number, p.policy_type, p.customer, p.company, p.booking_date,
                p.net_premium, p.profit_amount]);

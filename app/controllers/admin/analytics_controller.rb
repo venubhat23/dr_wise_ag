@@ -586,7 +586,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     location_data = { 'Unknown' => total_customers || Customer.where(created_at: dt_start..dt_end).count } if location_data.empty?
     location_data
   rescue => e
-    Rails.logger.error "Error calculating customer location for period: #{e.message}"
+    Rails.logger.error "Error calculating client location for period: #{e.message}"
     { 'Unknown' => 0 }
   end
 
@@ -602,7 +602,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
         labels: @monthly_trends.keys,
         datasets: [
           {
-            label: 'Customers',
+            label: 'Clients',
             data: @monthly_trends.values.map { |v| v[:customers] }
           },
           {
@@ -1145,7 +1145,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     agent_customers
   rescue => e
-    Rails.logger.error "Error calculating agent customer data: #{e.message}"
+    Rails.logger.error "Error calculating agent client data: #{e.message}"
     {}
   end
 
@@ -1188,7 +1188,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     ((customers_with_multiple_policies.to_f / total_customers.to_f) * 100).round(1)
   rescue => e
-    Rails.logger.error "Error calculating customer retention: #{e.message}"
+    Rails.logger.error "Error calculating client retention: #{e.message}"
     0
   end
 
@@ -1253,7 +1253,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
     location_data
   rescue => e
-    Rails.logger.error "Error calculating customer location: #{e.message}"
+    Rails.logger.error "Error calculating client location: #{e.message}"
     { 'Unknown' => Customer.count }
   end
 
@@ -1275,7 +1275,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     end
     trend_data.to_a.reverse.to_h
   rescue => e
-    Rails.logger.error "Error calculating customer acquisition trend: #{e.message}"
+    Rails.logger.error "Error calculating client acquisition trend: #{e.message}"
     {
       'Jan 2024' => 0,
       'Feb 2024' => 0,
@@ -1478,7 +1478,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     case metric
     when 'customers'
       Customer.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |c|
-        { type: 'Customer', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
+        { type: 'Client', name: c.display_name, created_at: c.created_at.strftime('%d-%m-%Y'),
           city: c.city.to_s, phone: c.mobile.to_s }
       end
     when 'policies', 'premium'

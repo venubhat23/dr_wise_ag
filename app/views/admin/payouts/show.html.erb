@@ -143,20 +143,20 @@
       </div>
     <% end %>
 
-    <!-- Customer Information -->
+    <!-- Client Information -->
     <% if @customer %>
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-0">
-          <h5 class="mb-0">Customer Information</h5>
+          <h5 class="mb-0">Client Information</h5>
         </div>
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-6">
-              <strong class="text-muted d-block">Customer Name</strong>
+              <strong class="text-muted d-block">Client Name</strong>
               <%= @customer.display_name %>
             </div>
             <div class="col-md-6">
-              <strong class="text-muted d-block">Customer Type</strong>
+              <strong class="text-muted d-block">Client Type</strong>
               <span class="badge bg-<%= @customer.customer_type == 'individual' ? 'primary' : 'success' %>">
                 <%= @customer.customer_type.humanize %>
               </span>

@@ -18,7 +18,7 @@
     <div class="d-flex align-items-center">
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       <div>
-        <h6 class="mb-1"><%= pluralize(@customer.errors.count, "error") %> prohibited this customer from being saved:</h6>
+        <h6 class="mb-1"><%= pluralize(@customer.errors.count, "error") %> prohibited this client from being saved:</h6>
         <ul class="mb-0">
           <% @customer.errors.full_messages.each do |message| %>
             <li><%= message %></li>
@@ -35,11 +35,11 @@
   <!-- Hidden field for lead_id if creating from lead -->
   <%= form.hidden_field :lead_id if @customer.lead_id.present? %>
 
-  <!-- 1. Customer Type Selection -->
+  <!-- 1. Client Type Selection -->
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-transparent border-0 d-flex align-items-center">
       <i class="bi bi-person-gear me-2 text-primary"></i>
-      <h5 class="mb-0">Customer Type</h5>
+      <h5 class="mb-0">Client Type</h5>
     </div>
     <div class="card-body">
       <div class="customer-type-selection">
@@ -54,7 +54,7 @@
                 <div class="text-center p-4">
                   <i class="bi bi-person-circle fs-1 d-block mb-3 text-primary"></i>
                   <h6 class="fw-bold">Individual</h6>
-                  <p class="text-muted small mb-0">Personal Customer</p>
+                  <p class="text-muted small mb-0">Personal Client</p>
                 </div>
               </label>
             </div>
@@ -69,7 +69,7 @@
                 <div class="text-center p-4">
                   <i class="bi bi-building fs-1 d-block mb-3 text-success"></i>
                   <h6 class="fw-bold">Corporate</h6>
-                  <p class="text-muted small mb-0">Business Customer</p>
+                  <p class="text-muted small mb-0">Business Client</p>
                 </div>
               </label>
             </div>
@@ -85,7 +85,7 @@
     </div>
   </div>
 
-  <!-- 2. Corporate Customer Form -->
+  <!-- 2. Corporate Client Form -->
   <div id="corporate_sections" style="display: none;">
     <!-- Basic Information (Corporate) -->
     <div class="card border-0 shadow-sm mb-4">
@@ -164,7 +164,7 @@
             <h6 class="text-primary mb-3">
               <i class="bi bi-key me-2"></i>Login Credentials
             </h6>
-            <p class="text-muted small mb-3">Create login account for this corporate customer</p>
+            <p class="text-muted small mb-3">Create login account for this corporate client</p>
           </div>
 
           <!-- Password Type Selection -->
@@ -196,7 +196,7 @@
           <div id="corporate_system_password_info" class="col-12">
             <div class="alert alert-info">
               <i class="bi bi-info-circle me-2"></i>
-              <strong>Default Password:</strong> The mobile app login will be created with password <strong>atma@123</strong> (username: customer email or mobile).
+              <strong>Default Password:</strong> The mobile app login will be created with password <strong>atma@123</strong> (username: client email or mobile).
             </div>
           </div>
         </div>
@@ -306,11 +306,11 @@
     </div>
   </div>
 
-  <!-- 3. Basic Information (Individual Customer) -->
+  <!-- 3. Basic Information (Individual Client) -->
   <div id="individual_sections" style="display: none;">
 
     <!-- Document Quick Import (Aadhaar / PAN / Cheque OCR) -->
-    <%= render 'admin/shared/document_quick_import', subject: 'customer', config: {
+    <%= render 'admin/shared/document_quick_import', subject: 'client', config: {
           fields: {
             first_name: ['#individual_first_name'],
             middle_name: ['[name="customer[middle_name]"]'],
@@ -363,7 +363,7 @@
             <% if @customer.errors[:sub_agent_id].any? %>
               <div class="invalid-feedback"><%= @customer.errors[:sub_agent_id].first %></div>
             <% end %>
-            <small class="form-text text-muted">Select the affiliate for this customer</small>
+            <small class="form-text text-muted">Select the affiliate for this client</small>
           </div>
         </div>
         <div class="row mt-3">
@@ -430,7 +430,7 @@
             <h6 class="text-primary mb-3">
               <i class="bi bi-key me-2"></i>Login Credentials
             </h6>
-            <p class="text-muted small mb-3">Create login account for this customer to access mobile app</p>
+            <p class="text-muted small mb-3">Create login account for this client to access mobile app</p>
           </div>
 
           <!-- Password Type Selection -->
@@ -462,14 +462,14 @@
           <div id="system_password_info" class="col-12">
             <div class="alert alert-info">
               <i class="bi bi-info-circle me-2"></i>
-              <strong>Default Password:</strong> The mobile app login will be created with password <strong>atma@123</strong> (username: customer email or mobile).
+              <strong>Default Password:</strong> The mobile app login will be created with password <strong>atma@123</strong> (username: client email or mobile).
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 3. Advance Details (Individual Customer) -->
+    <!-- 3. Advance Details (Individual Client) -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-transparent border-0 d-flex align-items-center">
         <i class="bi bi-gear me-2 text-primary"></i>
@@ -678,7 +678,7 @@
           <i class="bi bi-file-earmark-text me-2 text-primary"></i>
           Upload Documents
         </h5>
-        <p class="text-muted mb-0 mt-1">Upload customer documents like ID proof, address proof, etc.</p>
+        <p class="text-muted mb-0 mt-1">Upload client documents like ID proof, address proof, etc.</p>
       </div>
       <button type="button" class="btn btn-sm btn-primary" id="add_customer_document">
         <i class="bi bi-plus-lg me-1"></i>
@@ -687,16 +687,16 @@
     </div>
     <div class="card-body">
       <div id="customer_documents_container">
-        <!-- Customer document entries will be added here -->
+        <!-- Client document entries will be added here -->
       </div>
 
       <div id="no_documents_message" class="text-center text-muted py-4">
         <i class="bi bi-file-earmark-plus fs-1 mb-3 d-block"></i>
-        <p class="mb-0">No documents added yet. Click "Add Document" to upload customer documents.</p>
+        <p class="mb-0">No documents added yet. Click "Add Document" to upload client documents.</p>
       </div>
 
       <p class="text-muted mb-0 mt-3">
-        <small><strong>Note:</strong> This is a repeatable list. Add multiple documents as needed for proper customer verification.</small>
+        <small><strong>Note:</strong> This is a repeatable list. Add multiple documents as needed for proper client verification.</small>
       </p>
     </div>
   </div>
@@ -708,7 +708,7 @@
         <i class="bi bi-people me-2 text-primary"></i>
         Nominee Details *
       </h5>
-      <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual customer registration</p>
+      <p class="text-muted mb-0 mt-1">Nominee information is mandatory for individual client registration</p>
     </div>
     <div class="card-body">
       <div class="row">
@@ -756,7 +756,7 @@
       <div class="alert alert-info d-flex align-items-center">
         <i class="bi bi-info-circle me-2"></i>
         <div>
-          <small><strong>Important:</strong> Nominee details are mandatory for individual customers. Please ensure the information is accurate as it will be used for legal purposes.</small>
+          <small><strong>Important:</strong> Nominee details are mandatory for individual clients. Please ensure the information is accurate as it will be used for legal purposes.</small>
         </div>
       </div>
     </div>
@@ -775,7 +775,7 @@
       </div>
       <div class="d-flex justify-content-end gap-2">
         <%= link_to "Cancel", admin_customers_path, class: "btn btn-outline-secondary" %>
-        <%= form.submit "Create Customer", class: "btn btn-primary" %>
+        <%= form.submit "Create Client", class: "btn btn-primary" %>
       </div>
     </div>
   </div>
@@ -1947,8 +1947,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (individualState && individualCity) {
     // Get initial city value from server-side data (from lead conversion)
     const initialCityValue = '<%= @customer.city.to_s.html_safe if @customer.city.present? %>'; // Get from server instead of empty dropdown
-    console.log('Individual customer - Initial city value:', initialCityValue);
-    console.log('Individual customer - Initial state value:', individualState.value);
+    console.log('Individual client - Initial city value:', initialCityValue);
+    console.log('Individual client - Initial state value:', individualState.value);
 
     // Handle both regular change and Select2 change events
     individualState.addEventListener('change', function() {
@@ -1968,7 +1968,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading cities with initial city selection for individual customer:', initialCityValue);
         loadCitiesForState(individualState.value, individualCity, initialCityValue);
       } else if (individualState.value) {
-        console.log('Loading cities without initial city selection for individual customer');
+        console.log('Loading cities without initial city selection for individual client');
         loadCitiesForState(individualState.value, individualCity);
       }
     }, 200);
@@ -1981,8 +1981,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (corporateState && corporateCity) {
     // Get initial city value from server-side data (from lead conversion)
     const initialCorporateCityValue = '<%= @customer.city.to_s.html_safe if @customer.city.present? %>'; // Get from server instead of empty dropdown
-    console.log('Corporate customer - Initial city value:', initialCorporateCityValue);
-    console.log('Corporate customer - Initial state value:', corporateState.value);
+    console.log('Corporate client - Initial city value:', initialCorporateCityValue);
+    console.log('Corporate client - Initial state value:', corporateState.value);
 
     // Handle both regular change and Select2 change events
     corporateState.addEventListener('change', function() {
@@ -2002,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Loading cities with initial city selection for corporate customer:', initialCorporateCityValue);
         loadCitiesForState(corporateState.value, corporateCity, initialCorporateCityValue);
       } else if (corporateState.value) {
-        console.log('Loading cities without initial city selection for corporate customer');
+        console.log('Loading cities without initial city selection for corporate client');
         loadCitiesForState(corporateState.value, corporateCity);
       }
     }, 200);

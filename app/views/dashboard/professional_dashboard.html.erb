@@ -632,13 +632,13 @@
   <div class="dashboard-main-content">
     <!-- Primary Stats Grid -->
     <div class="stats-grid">
-      <!-- Total Customers -->
+      <!-- Total Clients -->
       <div class="premium-stat-card" style="--accent-gradient: linear-gradient(135deg, #3b82f6, #2563eb); --icon-bg: #dbeafe; --icon-color: #2563eb;">
         <div class="stat-icon-wrapper">
           <i class="bi bi-people-fill"></i>
         </div>
         <div class="stat-metric-value"><%= number_with_delimiter(@total_customers || 699) %></div>
-        <div class="stat-metric-label">Total Customers</div>
+        <div class="stat-metric-label">Total Clients</div>
         <div class="stat-trend-indicator trend-positive">
           <i class="bi bi-arrow-up"></i>
           +12.5%
@@ -769,7 +769,7 @@
         </div>
         <div class="kpi-details">
           <div class="kpi-value">94.3%</div>
-          <div class="kpi-label">Customer Satisfaction</div>
+          <div class="kpi-label">Client Satisfaction</div>
         </div>
       </div>
 
@@ -867,7 +867,7 @@
 
         <div class="progress-container">
           <div class="progress-info">
-            <span class="progress-label">New Customers</span>
+            <span class="progress-label">New Clients</span>
             <span class="progress-value">72%</span>
           </div>
           <div class="progress-bar-bg">
@@ -981,7 +981,7 @@
                 <div class="activity-content">
                   <div class="activity-title">New <%= policy.class.name.underscore.humanize %></div>
                   <div class="activity-description">
-                    <%= policy.customer&.display_name || "Customer" %> -
+                    <%= policy.customer&.display_name || "Client" %> -
                     <%= policy.try(:plan_name) || policy.try(:policy_number) || "Policy" %>
                   </div>
                   <div class="activity-time"><%= time_ago_in_words(policy.created_at) %> ago</div>
@@ -997,7 +997,7 @@
                   <i class="bi bi-person-plus" style="color: #059669;"></i>
                 </div>
                 <div class="activity-content">
-                  <div class="activity-title">New Customer Onboarded</div>
+                  <div class="activity-title">New Client Onboarded</div>
                   <div class="activity-description">
                     <%= customer.display_name %> - <%= customer.city || "Location N/A" %>
                   </div>

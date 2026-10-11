@@ -320,7 +320,7 @@ class Admin::Reports::ExpiredInsuranceReportsController < Admin::Reports::BaseCo
       headers = []
       headers << 'Policy Number' if @selected_columns.include?('policy_number')
       headers << 'Policy Type' if @selected_columns.include?('policy_type')
-      headers << 'Customer Name' if @selected_columns.include?('customer_name')
+      headers << 'Client Name' if @selected_columns.include?('customer_name')
       headers << 'Insurance Company' if @selected_columns.include?('insurance_company')
       headers << 'Policy Holder' if @selected_columns.include?('policy_holder')
       headers << 'Start Date' if @selected_columns.include?('start_date')

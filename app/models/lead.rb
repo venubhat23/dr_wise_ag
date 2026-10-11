@@ -341,7 +341,7 @@ class Lead < ApplicationRecord
     when 'follow_up_unsuccessful' then '❌ Not Successful'
     when 'not_interested' then '🚫 Not Interested'
     when 're_follow_up' then '🔄 Re-Follow Up'
-    when 'converted' then '👤 Convert to Customer'
+    when 'converted' then '👤 Convert to Client'
     when 'lead_closed' then '📁 Lead Close - Follow-Up Unsuccessful'
     else current_stage.humanize
     end
@@ -444,12 +444,12 @@ class Lead < ApplicationRecord
     when 'lead_generated' then 'Initial lead entry into system'
     when 'consultation_scheduled' then 'Initial consultation scheduled'
     when 'one_on_one' then 'Detailed discussion on premium and policy benefits'
-    when 'follow_up' then 'Following up with customer for interest confirmation'
-    when 'follow_up_successful' then 'Customer confirmed interest'
-    when 'follow_up_unsuccessful' then 'Customer not interested at this time'
-    when 'not_interested' then 'Customer explicitly not interested'
+    when 'follow_up' then 'Following up with client for interest confirmation'
+    when 'follow_up_successful' then 'Client confirmed interest'
+    when 'follow_up_unsuccessful' then 'Client not interested at this time'
+    when 'not_interested' then 'Client explicitly not interested'
     when 're_follow_up' then 'Additional follow-up attempt'
-    when 'converted' then 'Lead converted to customer'
+    when 'converted' then 'Lead converted to client'
     when 'lead_closed' then 'Lead close - Follow-up unsuccessful'
     else 'Unknown stage'
     end
