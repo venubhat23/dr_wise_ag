@@ -113,14 +113,31 @@
   .ai-doc-card .ai-doc-meta { font-size: .8rem; color: #6b7280; }
   .ai-doc-card .ai-doc-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 600; color: #5b21b6;
                                background: #ede9fe; border-radius: 999px; padding: .1rem .55rem; margin-left: .4rem; }
+  .ai-result { border: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 50px rgba(79, 70, 229, .25); }
+  .ai-result-head { text-align: center; color: #fff; padding: 1.6rem 1rem 1.3rem; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #a855f7 100%); }
+  .ai-result-badge { width: 52px; height: 52px; margin: 0 auto .5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                     font-size: 1.5rem; background: rgba(255, 255, 255, .2); animation: aiPop .5s ease-out; }
+  .ai-result-count { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+  .ai-result-label { opacity: .9; font-weight: 500; }
+  .ai-result-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem .9rem; border-radius: 12px; margin-bottom: .6rem; }
+  .ai-result-item > i { font-size: 1.2rem; margin-top: .1rem; }
+  .ai-result-item.info { background: #f5f3ff; color: #4c1d95; }
+  .ai-result-item.ok { background: #ecfdf5; color: #065f46; }
+  .ai-result-item.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+  .ai-result-section { font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #9ca3af; margin: .9rem 0 .5rem; }
+  .ai-result-btn { color: #fff; font-weight: 600; border-radius: 10px; padding: .6rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: 0; }
+  .ai-result-btn:hover { color: #fff; filter: brightness(1.08); }
+  @keyframes aiPop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
   @keyframes aiDocIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 </style>
 
 <script>
 (function() {
   // Defined once per tab: Turbo re-runs this script on each visit but keeps
-  // `window`, so later visits just bind the new modal.
-  if (window.aiUploadBind) { window.aiUploadBind(); return; }
+  // `window`, so later visits just bind the new modal. Bump VERSION on change
+  // so a tab opened before a deploy picks up the new code.
+  var VERSION = 3;
+  if (window.aiUploadBind && window.aiUploadVersion === VERSION) { window.aiUploadBind(); return; }
 
   var state = { file: null, result: null, timers: [], cfg: null };
 
@@ -377,14 +394,47 @@
       filled += rowFields.length;
     }
 
-    var docNote = attachMainDocument(state.file);
-    if (docNote) notes.push(docNote);
+    var doc = attachMainDocument(state.file);
+    if (doc.note) notes.push(doc.note);
 
-    var bs = window.bootstrap && window.bootstrap.Modal.getInstance(modalEl());
-    if (bs) bs.hide();
-    toast(filled + ' field' + (filled === 1 ? '' : 's') + ' filled from the document. Highlighted fields came from AI — please review before saving.', notes);
-    var first = document.querySelector('.ai-filled');
-    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var m = modalEl(), bs = window.bootstrap && window.bootstrap.Modal.getInstance(m);
+    var summary = function() { showResult(filled, notes, doc.attached ? state.file : null); };
+    if (bs && m.classList.contains('show')) { m.addEventListener('hidden.bs.modal', summary, { once: true }); bs.hide(); } else summary();
+  }
+
+  // Result popup after Apply: how many fields were filled, the attached
+  // policy document, and anything the admin still has to do.
+  function showResult(filled, notes, file) {
+    var old = document.getElementById('aiResultModal');
+    if (old) old.remove();
+    var actions = notes.map(function(n) {
+      var i = n.indexOf(': '), title = i > 0 ? n.slice(0, i) : 'Please check', text = i > 0 ? n.slice(i + 2) : n;
+      return '<div class="ai-result-item warn"><i class="bi bi-exclamation-circle-fill"></i><div><div class="fw-semibold">' + esc(title) + '</div><div class="small">' + esc(text) + '</div></div></div>';
+    }).join('');
+    var docHtml = file
+      ? '<div class="ai-result-item ok"><i class="bi bi-paperclip"></i><div><div class="fw-semibold">Policy document attached</div><div class="small">' + esc(file.name) +
+        ' is set as the Main Policy Document and will be saved with this policy — no need to upload it again.</div></div></div>'
+      : '';
+    var el = document.createElement('div');
+    el.className = 'modal fade'; el.id = 'aiResultModal'; el.tabIndex = -1;
+    el.innerHTML =
+      '<div class="modal-dialog modal-dialog-centered"><div class="modal-content ai-result">' +
+        '<div class="ai-result-head"><div class="ai-result-badge"><i class="bi bi-stars"></i></div>' +
+          '<div class="ai-result-count">' + filled + '</div><div class="ai-result-label">field' + (filled === 1 ? '' : 's') + ' filled from your document</div></div>' +
+        '<div class="modal-body">' +
+          '<div class="ai-result-item info"><i class="bi bi-highlighter"></i><div><div class="fw-semibold">Review before saving</div><div class="small">Filled fields are highlighted in purple. Check them against the document.</div></div></div>' +
+          docHtml + (actions ? '<div class="ai-result-section">Action needed</div>' + actions : '') +
+        '</div>' +
+        '<div class="modal-footer border-0 pt-0"><button type="button" class="btn ai-result-btn w-100" data-bs-dismiss="modal"><i class="bi bi-arrow-down-circle me-1"></i>Review the form</button></div>' +
+      '</div></div>';
+    document.body.appendChild(el);
+    el.addEventListener('hidden.bs.modal', function() {
+      el.remove();
+      var first = document.querySelector('.ai-filled');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    if (window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(el).show();
+    else toast(filled + ' fields filled from the document. Please review before saving.', notes);
   }
 
   // The document read by AI Upload is also the policy's main document: put the
@@ -393,18 +443,18 @@
   var MAIN_DOC_MAX = 10 * 1024 * 1024;
   function attachMainDocument(file) {
     var input = document.querySelector('input[type="file"][name$="[main_policy_document]"]');
-    if (!input || !file) return null;
-    if (input.files.length && !input.dataset.aiAttached) return null; // admin already chose one
-    if (file.size > MAIN_DOC_MAX) return 'Main Policy Document: this file is over 10 MB, so it was not attached — please upload a smaller copy.';
+    if (!input || !file) return {};
+    if (input.files.length && !input.dataset.aiAttached) return {}; // admin already chose one
+    if (file.size > MAIN_DOC_MAX) return { note: 'Main Policy Document: this file is over 10 MB, so it was not attached — please upload a smaller copy.' };
     try {
       var dt = new DataTransfer();
       dt.items.add(file);
       input.files = dt.files;
-    } catch (e) { return null; } // very old browsers: leave the input as it is
+    } catch (e) { return {}; } // very old browsers: leave the input as it is
     input.dataset.aiAttached = '1';
     input.dispatchEvent(new Event('change', { bubbles: true }));
     showDocCard(input, file);
-    return null;
+    return { attached: true };
   }
 
   function showDocCard(input, file) {
@@ -483,6 +533,7 @@
   }
 
   window.aiUploadBind = bind;
+  window.aiUploadVersion = VERSION;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
 })();
 </script>

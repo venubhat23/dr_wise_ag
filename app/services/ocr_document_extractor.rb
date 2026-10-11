@@ -411,7 +411,8 @@ class OcrDocumentExtractor
       core = normalize(name.gsub(/\b(?:co|company|ltd|limited|pvt|private|the|of|india)\b\.?/i, ' '))
       [name, core.length] if core.length >= 4 && " #{normalized} ".include?(" #{core} ")
     end.max_by(&:last)&.first
-    from_options || @text[/\b((?:[A-Z][A-Za-z&.]*\s+){1,5}(?:General\s+|Life\s+|Health\s+)?(?:Insurance|Assurance)\s+(?:Co(?:mpany)?\.?\s+)?(?:Ltd|Limited)\.?)/, 1]&.strip
+    # Name on one line only ("Limited\nNational Insurance..." must not merge).
+    from_options || @text[/\b((?:(?!(?:Ltd|Limited)\b)[A-Z][A-Za-z&.]*[ \t]+){1,5}(?:General[ \t]+|Life[ \t]+|Health[ \t]+)?(?:Insurance|Assurance)[ \t]+(?:Co(?:mpany)?\.?[ \t]+)?(?:Ltd|Limited)\.?)/, 1]&.strip
   end
 
   def dates_into(r)
