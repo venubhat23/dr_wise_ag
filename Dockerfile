@@ -44,7 +44,7 @@ RUN npm run build:css
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # ---- final stage ------------------------------------------------------------
-FROM base
+FROM base AS production
 
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries
 

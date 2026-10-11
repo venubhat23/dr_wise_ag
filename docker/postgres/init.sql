@@ -1,4 +1,4 @@
--- Initialize PostgreSQL for Insurebook Application
+-- Initialize PostgreSQL for Dr WISE CRM Application
 -- This script runs when the PostgreSQL container starts for the first time
 
 -- Create additional databases for different environments
