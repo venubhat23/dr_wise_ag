@@ -978,18 +978,16 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       validation_errors << 'Invalid email format'
     end
 
-    # Check for existing leads with same contact number or email
-    if lead_params[:contact_number].present?
-      existing_lead = Lead.find_by(contact_number: lead_params[:contact_number])
-      if existing_lead
-        validation_errors << "A lead with contact number #{lead_params[:contact_number]} already exists (Lead ID: #{existing_lead.lead_id})"
-      end
-    end
-
-    if lead_params[:email].present?
-      existing_lead = Lead.find_by(email: lead_params[:email])
-      if existing_lead
-        validation_errors << "A lead with email #{lead_params[:email]} already exists (Lead ID: #{existing_lead.lead_id})"
+    # One client can have many leads - several vehicles, health cover for self
+    # and parents, etc. - so the same contact/email is allowed again (as on the
+    # admin side). Only an identical lead submitted within the last minute is
+    # refused, which catches an accidental double tap.
+    if lead_params[:contact_number].present? && product_category.present?
+      just_created = Lead.where(contact_number: lead_params[:contact_number], product_category: product_category,
+                                product_subcategory: product_subcategory)
+                         .where('created_at > ?', 1.minute.ago).first
+      if just_created
+        validation_errors << "This lead was just submitted (Lead ID: #{just_created.lead_id}). Please wait a minute before adding the same product again."
       end
     end
 
