@@ -18,7 +18,7 @@
         <div>
           <h5 class="modal-title mb-0" id="aiUploadTitle">
             <span class="ai-sparkle"><i class="bi bi-stars"></i></span> AI Upload
-            <span class="badge ai-beta ms-1">Beta</span>
+            <span class="badge ai-beta ms-1">Beta version</span>
           </h5>
           <small class="text-muted">Upload the <%= ai_config[:label].downcase %> document and we'll fill the form for you. You review everything before it's applied.</small>
         </div>
@@ -28,6 +28,14 @@
       <div class="modal-body">
         <!-- Step 1: choose file -->
         <div data-ai-step="pick">
+          <div class="ai-notice mb-3">
+            <div class="ai-notice-icon"><i class="bi bi-shield-check"></i></div>
+            <div>
+              <div class="fw-bold">AI-interpreted details — please double-check</div>
+              <div class="small">The details are read automatically from your document and may contain mistakes.
+                You can correct any value on the next screen. Please verify everything against the original document before creating the record.</div>
+            </div>
+          </div>
           <label class="ai-drop" for="aiDocFile" data-ai-drop>
             <input type="file" id="aiDocFile" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
             <div class="ai-drop-icon"><i class="bi bi-cloud-arrow-up"></i></div>
@@ -63,11 +71,11 @@
           </div>
           <div class="table-responsive ai-review-wrap">
             <table class="table table-sm align-middle mb-0">
-              <thead class="table-light"><tr><th style="width:34px"><input type="checkbox" class="form-check-input" data-ai-check-all checked title="Select all"></th><th>Field</th><th>Found in document</th></tr></thead>
+              <thead class="table-light"><tr><th style="width:34px"><input type="checkbox" class="form-check-input" data-ai-check-all checked title="Select all"></th><th>Field</th><th>Found in document <span class="fw-normal text-muted small"><i class="bi bi-pencil ms-1"></i> edit if wrong</span></th></tr></thead>
               <tbody data-ai-review></tbody>
             </table>
           </div>
-          <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Untick anything you don't want. AI can make mistakes — filled fields are highlighted so you can check them before saving.</p>
+          <p class="small text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Correct any value right here before applying, or untick what you don't want. Filled fields are highlighted on the form so you can check them before saving.</p>
         </div>
       </div>
 
@@ -101,6 +109,13 @@
   .ai-steps li.active { color: #4f46e5; font-weight: 600; }
   .ai-steps li.done { color: #059669; }
   .ai-steps .spinner-border { width: .9rem; height: .9rem; border-width: .15em; }
+  .ai-notice { display: flex; gap: .85rem; align-items: flex-start; padding: .9rem 1rem; border-radius: 14px; color: #78350f;
+               background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fcd34d; box-shadow: 0 2px 8px rgba(245, 158, 11, .12); }
+  .ai-notice-icon { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    font-size: 1.25rem; color: #fff; background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .ai-edit { min-width: 180px; border-color: #e5e7eb; background-color: #fcfcfd; }
+  .ai-edit:focus { border-color: #a78bfa; box-shadow: 0 0 0 .15rem rgba(167, 139, 250, .25); background-color: #fff; }
+  .ai-edit.ai-edited { border-color: #f59e0b; background-color: #fffbeb; }
   .ai-review-wrap { max-height: 46vh; overflow-y: auto; border: 1px solid #eef0f4; border-radius: 10px; }
   .ai-filled { background-color: #f5f3ff !important; border-color: #a78bfa !important; box-shadow: 0 0 0 .15rem rgba(167, 139, 250, .25) !important; }
   .select2-container.ai-filled .select2-selection { background-color: #f5f3ff !important; border-color: #a78bfa !important; }
@@ -136,7 +151,7 @@
   // Defined once per tab: Turbo re-runs this script on each visit but keeps
   // `window`, so later visits just bind the new modal. Bump VERSION on change
   // so a tab opened before a deploy picks up the new code.
-  var VERSION = 3;
+  var VERSION = 4;
   if (window.aiUploadBind && window.aiUploadVersion === VERSION) { window.aiUploadBind(); return; }
 
   var state = { file: null, result: null, timers: [], cfg: null };
@@ -243,16 +258,62 @@
     if (f.kind === 'company') return { text: v };
     return { text: f.money ? money(v) : String(v) };
   }
+  // Plain fields get an editor in the review table so a wrong value (e.g. the
+  // insurer) can be corrected before Apply; edits go straight into
+  // state.result.fields, which apply() reads.
+  function editable(f) { return !f.info && f.kind !== 'customer' && f.type !== 'rows'; }
+  function editor(f, v) {
+    var val = blank(v) ? '' : String(v), ph = blank(v) ? ' placeholder="Not found — type to add"' : '';
+    var attrs = ' class="form-control form-control-sm ai-edit" data-ai-edit="' + f.key + '"';
+    if (f.type === 'select') {
+      var opts = realOptions(q(f.target));
+      if (opts.length) {
+        var has = opts.some(function(o) { return o.value.toLowerCase() === val.toLowerCase() || o.text.trim().toLowerCase() === val.toLowerCase(); });
+        return '<select' + attrs.replace('form-control', 'form-select') + '><option value="">— Not set —</option>' +
+          (val && !has ? '<option value="' + esc(val) + '" selected>' + esc(val) + ' (from document)</option>' : '') +
+          opts.map(function(o) {
+            var sel = o.value.toLowerCase() === val.toLowerCase() || o.text.trim().toLowerCase() === val.toLowerCase();
+            return '<option value="' + esc(o.value) + '"' + (sel ? ' selected' : '') + '>' + esc(o.text.trim()) + '</option>';
+          }).join('') + '</select>';
+      }
+    }
+    if (f.type === 'date') return '<input type="date"' + attrs + ' value="' + esc(val) + '">';
+    if (f.type === 'number' || f.type === 'integer') {
+      return '<div class="input-group input-group-sm">' + (f.money ? '<span class="input-group-text">₹</span>' : '') +
+             '<input type="number" step="' + (f.type === 'integer' ? '1' : 'any') + '"' + attrs + ' value="' + esc(val) + '"' + ph + '></div>';
+    }
+    var list = '';
+    if (f.kind === 'company') {
+      var names = realOptions(q(f.target)).map(function(o) { return o.text.trim(); });
+      if (names.length) list = ' list="aiCompanyList"';
+      return '<input type="text"' + attrs + list + ' value="' + esc(val) + '"' + ph + '>' +
+             (names.length ? '<datalist id="aiCompanyList">' + names.map(function(n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>' : '');
+    }
+    return '<input type="text"' + attrs + ' value="' + esc(val) + '"' + ph + '>';
+  }
   function renderReview(data) {
     var rows = '', found = 0, fields = state.cfg.fields;
     fields.forEach(function(f) {
-      var d = display(f, data);
+      var d = display(f, data), canEdit = editable(f);
       if (d && !d.off) found++;
-      rows += '<tr><td><input type="checkbox" class="form-check-input" data-ai-field="' + f.key + '"' + (d && !d.off ? ' checked' : ' disabled') + '></td>' +
+      rows += '<tr><td><input type="checkbox" class="form-check-input" data-ai-field="' + f.key + '"' + (d && !d.off ? ' checked' : (canEdit ? '' : ' disabled')) + '></td>' +
               '<td class="fw-semibold small">' + esc(f.label) + '</td>' +
-              (d ? '<td class="small">' + esc(d.text) + '</td>' : '<td class="small text-muted fst-italic">Not found</td>') + '</tr>';
+              (canEdit ? '<td class="small">' + editor(f, data.fields[f.key]) + '</td>'
+                       : (d ? '<td class="small">' + esc(d.text) + '</td>' : '<td class="small text-muted fst-italic">Not found</td>')) + '</tr>';
     });
-    q('[data-ai-review]', modalEl()).innerHTML = rows;
+    var body = q('[data-ai-review]', modalEl());
+    body.innerHTML = rows;
+    var onEdit = function(e) {
+      var key = e.target.dataset && e.target.dataset.aiEdit;
+      if (!key) return;
+      var f = fields.find(function(x) { return x.key === key; }), raw = e.target.value.trim();
+      data.fields[key] = raw === '' ? null : ((f.type === 'number' || f.type === 'integer') ? Number(raw) : raw);
+      e.target.classList.add('ai-edited');
+      var cb = body.querySelector('[data-ai-field="' + key + '"]');
+      if (cb) cb.checked = raw !== '';
+    };
+    body.oninput = onEdit; // assigned, not added: the table is re-rendered per upload
+    body.onchange = onEdit;
     q('[data-ai-summary]', modalEl()).textContent = 'Found ' + found + ' of ' + fields.length + ' fields. Review and apply.';
     q('[data-ai-check-all]', modalEl()).checked = true;
   }
