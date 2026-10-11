@@ -104,6 +104,16 @@
   .ai-review-wrap { max-height: 46vh; overflow-y: auto; border: 1px solid #eef0f4; border-radius: 10px; }
   .ai-filled { background-color: #f5f3ff !important; border-color: #a78bfa !important; box-shadow: 0 0 0 .15rem rgba(167, 139, 250, .25) !important; }
   .select2-container.ai-filled .select2-selection { background-color: #f5f3ff !important; border-color: #a78bfa !important; }
+  .ai-doc-card { display: flex; align-items: center; gap: .9rem; padding: .85rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+                 border: 1px solid #c4b5fd; box-shadow: 0 2px 10px rgba(99, 102, 241, .12); animation: aiDocIn .35s ease-out; }
+  .ai-doc-card .ai-doc-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+                              font-size: 1.45rem; color: #fff; background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  .ai-doc-card .ai-doc-icon.image { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+  .ai-doc-card .ai-doc-name { font-weight: 600; color: #1f2937; word-break: break-all; }
+  .ai-doc-card .ai-doc-meta { font-size: .8rem; color: #6b7280; }
+  .ai-doc-card .ai-doc-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .72rem; font-weight: 600; color: #5b21b6;
+                               background: #ede9fe; border-radius: 999px; padding: .1rem .55rem; margin-left: .4rem; }
+  @keyframes aiDocIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 </style>
 
 <script>
@@ -367,11 +377,70 @@
       filled += rowFields.length;
     }
 
+    var docNote = attachMainDocument(state.file);
+    if (docNote) notes.push(docNote);
+
     var bs = window.bootstrap && window.bootstrap.Modal.getInstance(modalEl());
     if (bs) bs.hide();
     toast(filled + ' field' + (filled === 1 ? '' : 's') + ' filled from the document. Highlighted fields came from AI — please review before saving.', notes);
     var first = document.querySelector('.ai-filled');
     if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // The document read by AI Upload is also the policy's main document: put the
+  // same file into the form's "Main Policy Document" input so it isn't chosen
+  // twice, and show it as a card (View / Remove) in place of the bare input.
+  var MAIN_DOC_MAX = 10 * 1024 * 1024;
+  function attachMainDocument(file) {
+    var input = document.querySelector('input[type="file"][name$="[main_policy_document]"]');
+    if (!input || !file) return null;
+    if (input.files.length && !input.dataset.aiAttached) return null; // admin already chose one
+    if (file.size > MAIN_DOC_MAX) return 'Main Policy Document: this file is over 10 MB, so it was not attached — please upload a smaller copy.';
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    } catch (e) { return null; } // very old browsers: leave the input as it is
+    input.dataset.aiAttached = '1';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    showDocCard(input, file);
+    return null;
+  }
+
+  function showDocCard(input, file) {
+    var old = input.parentNode.querySelector('.ai-doc-card');
+    if (old) old.remove();
+    var isPdf = file.type === 'application/pdf', url = URL.createObjectURL(file);
+    var size = file.size >= 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : Math.max(1, Math.round(file.size / 1024)) + ' KB';
+    var card = document.createElement('div');
+    card.className = 'ai-doc-card mb-2';
+    card.innerHTML =
+      '<div class="ai-doc-icon ' + (isPdf ? '' : 'image') + '"><i class="bi ' + (isPdf ? 'bi-file-earmark-pdf-fill' : 'bi-file-earmark-image-fill') + '"></i></div>' +
+      '<div class="flex-grow-1 min-w-0">' +
+        '<div class="ai-doc-name">' + esc(file.name) + '<span class="ai-doc-badge"><i class="bi bi-stars"></i>Attached from AI Upload</span></div>' +
+        '<div class="ai-doc-meta"><i class="bi bi-check-circle-fill text-success me-1"></i>' + size + ' · will be saved to secure R2 storage with this policy</div>' +
+      '</div>' +
+      '<div class="d-flex gap-2 flex-shrink-0">' +
+        '<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" href="' + url + '"><i class="bi bi-eye me-1"></i>View</a>' +
+        '<button type="button" class="btn btn-sm btn-outline-danger" data-ai-doc-remove><i class="bi bi-x-lg me-1"></i>Remove</button>' +
+      '</div>';
+    input.parentNode.insertBefore(card, input);
+    input.style.display = 'none';
+    card.querySelector('[data-ai-doc-remove]').addEventListener('click', function() {
+      input.value = '';
+      delete input.dataset.aiAttached;
+      input.style.display = '';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      URL.revokeObjectURL(url);
+      card.remove();
+    });
+    // Choosing another file by hand replaces the AI one.
+    input.addEventListener('change', function onManual() {
+      if (input.dataset.aiAttached) return;
+      input.removeEventListener('change', onManual);
+      if (card.parentNode) card.remove();
+      input.style.display = '';
+    });
   }
 
   function toast(msg, notes) {
