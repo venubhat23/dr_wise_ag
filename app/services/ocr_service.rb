@@ -39,12 +39,16 @@ class OcrService
   # or its #tempfile) with image bytes - must be called while the upload is
   # still in memory/on disk (i.e. within the original request), not from a
   # later background job.
-  def self.extract_text(file)
-    new(file).extract_text
+  # table: true asks OCR.space to keep each printed row on one line, with cells
+  # separated by tabs ("Make\tHYUNDAI"), and returns the text of every page -
+  # used by OcrDocumentExtractor to read label/value pairs off policy schedules.
+  def self.extract_text(file, table: false)
+    new(file, table: table).extract_text
   end
 
-  def initialize(file)
+  def initialize(file, table: false)
     @file = file
+    @table = table
   end
 
   def extract_text
@@ -71,7 +75,8 @@ class OcrService
         [ "OCREngine", OCR_ENGINE ],
         [ "scale", "true" ],
         [ "detectOrientation", "true" ],
-        [ "isOverlayRequired", "false" ]
+        [ "isOverlayRequired", "false" ],
+        [ "isTable", @table.to_s ]
       ],
       "multipart/form-data"
     )
@@ -87,7 +92,10 @@ class OcrService
       raise ExtractionError, error_message(body).presence || "OCR.space responded with #{response.code}"
     end
 
-    if body["IsErroredOnProcessing"]
+    # Free tier parses only the first 3 pages of a PDF and flags the rest as an
+    # error; in table mode (long policy PDFs) keep the pages it did read.
+    page_limit_only = @table && error_message(body).match?(/page limit/i) && Array(body["ParsedResults"]).any?
+    if body["IsErroredOnProcessing"] && !page_limit_only
       raise ExtractionError, error_message(body).presence || "OCR.space reported a processing error"
     end
 
@@ -95,6 +103,8 @@ class OcrService
     if result && result["FileParseExitCode"].to_i != 1
       raise ExtractionError, result["ErrorMessage"].presence || "OCR.space could not parse the document"
     end
+
+    return Array(body["ParsedResults"]).map { |page| page["ParsedText"].to_s }.join("\n") if @table
 
     result&.dig("ParsedText").to_s
   rescue ExtractionError, ConfigurationError

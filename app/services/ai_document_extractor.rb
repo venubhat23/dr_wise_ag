@@ -9,7 +9,9 @@
 #
 # Uses Claude when ENV["ANTHROPIC_API_KEY"] is set, otherwise Google Gemini
 # (free tier) with GEMINI_API_KEY - hardcoded on purpose, same convention as
-# OcrService::OCR_SPACE_API_KEY (not read from ENV).
+# OcrService::OCR_SPACE_API_KEY (not read from ENV). If Gemini fails, the
+# document is read without AI by OcrDocumentExtractor (label rules), which
+# fills fewer fields but always works.
 require "net/http"
 
 class AiDocumentExtractor
@@ -49,6 +51,7 @@ class AiDocumentExtractor
   # context: extra words about the record, e.g. "Home Loan"
   def initialize(file:, product:, field_options: {}, company_options: [], context: nil)
     @file = file
+    @product = product.to_s
     @profile = AiDocumentProfiles.fetch(product) or raise Error, "AI Upload is not available for this form."
     @field_options = field_options.to_h.transform_values { |v| Array(v).map(&:to_s).reject(&:blank?).uniq.first(MAX_OPTIONS) }
     @company_options = Array(company_options).map(&:to_s).reject(&:blank?).uniq.first(MAX_OPTIONS)
@@ -58,7 +61,7 @@ class AiDocumentExtractor
   # Returns the extracted fields as a Hash with string keys.
   def call
     raise NotConfiguredError, "AI Upload is not configured (no ANTHROPIC_API_KEY or GEMINI_API_KEY)." unless self.class.configured?
-    return call_gemini unless self.class.anthropic?
+    return call_gemini_or_ocr unless self.class.anthropic?
 
     message = client.beta.messages.create(
       model: MODEL,
@@ -95,6 +98,24 @@ class AiDocumentExtractor
 
   private
 
+  GEMINI_BLOCKED_KEY = "ai_upload/gemini_blocked"
+
+  # Gemini first; on any failure fall back to OCR. A key Google has refused
+  # (401/403) is skipped for an hour instead of being retried on every upload.
+  def call_gemini_or_ocr
+    unless Rails.cache.read(GEMINI_BLOCKED_KEY)
+      begin
+        return call_gemini
+      rescue Error => e
+        Rails.logger.warn "[AI Upload] Gemini failed (#{e.message}) - reading with OCR instead"
+      end
+    end
+
+    @file.rewind if @file.respond_to?(:rewind)
+    OcrDocumentExtractor.new(file: @file, product: @product, field_options: @field_options,
+                             company_options: @company_options, context: @context).call
+  end
+
   # Same schema, prompt and file as the Claude path, via the Gemini REST API.
   def call_gemini
     uri = URI(format(GEMINI_ENDPOINT, GEMINI_MODEL))
@@ -114,6 +135,7 @@ class AiDocumentExtractor
     body = JSON.parse(response.body) rescue {}
     unless response.is_a?(Net::HTTPSuccess)
       Rails.logger.error "[AI Upload] Gemini #{response.code}: #{body.dig('error', 'message') || response.body.to_s.first(300)}"
+      Rails.cache.write(GEMINI_BLOCKED_KEY, true, expires_in: 1.hour) if response.code.in?(%w[401 403])
       raise Error, "The AI service is busy right now. Please try again in a minute." if response.code == "429"
       raise Error, "The AI could not process this file. Try a clearer PDF or photo." if response.code == "400"
       raise Error, "The AI service is unavailable right now. Please fill the form manually or try again."
