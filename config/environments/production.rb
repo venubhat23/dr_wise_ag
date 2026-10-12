@@ -58,10 +58,10 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch('APP_HOST', 'dr-wise-ag.onrender.com') }
+  config.action_mailer.default_url_options = { host: ENV.fetch('APP_HOST', 'system.dr-wise.in'), protocol: ENV.fetch('APP_PROTOCOL', 'https') }
 
   # Set default URL options for Rails routes (including Active Storage URLs)
-  Rails.application.routes.default_url_options = { host: ENV.fetch('APP_HOST', 'dr-wise-ag.onrender.com') }
+  Rails.application.routes.default_url_options = { host: ENV.fetch('APP_HOST', 'system.dr-wise.in'), protocol: ENV.fetch('APP_PROTOCOL', 'https') }
 
   # Specify outgoing SMTP server (Gmail).
   config.action_mailer.delivery_method = :smtp
@@ -71,7 +71,7 @@ Rails.application.configure do
     password: "eynrfikkliphtqcv",
     address: "smtp.gmail.com",
     port: 587,
-    domain: ENV.fetch("APP_HOST", "dr-wise-ag.onrender.com"),
+    domain: ENV.fetch("APP_HOST", "system.dr-wise.in"),
     authentication: :plain,
     enable_starttls_auto: true
   }

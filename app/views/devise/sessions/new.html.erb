@@ -57,7 +57,7 @@
               <%= f.label :remember_me, "Remember me", class: "form-check-label" %>
             </div>
           <% end %>
-
+          <%= link_to "Forgot password?", new_password_path(resource_name), class: "text-decoration-none small" %>
         </div>
 
         <%= f.submit "Sign In", class: "btn btn-primary w-100 py-3 fs-5 fw-semibold" %>
