@@ -166,8 +166,12 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
   end
 
   # POST /api/v1/mobile/auth/forgot_password
+  # params: email | mobile | login, optional role (client | sub_agent)
+  # Sends a 6-digit password-reset OTP to the given email / mobile. The app then
+  # calls POST /auth/reset_password with that OTP and the new password.
   def forgot_password
-    login_field = params[:email] || params[:mobile]
+    login_field = params[:login] || params[:email] || params[:mobile]
+    role = params[:role]&.downcase
 
     if login_field.blank?
       return render json: {
@@ -176,41 +180,92 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
       }, status: :unprocessable_entity
     end
 
-    # Check in all user types
-    user = User.find_by(email: login_field) || Customer.find_by(email: login_field) || SubAgent.find_by(email: login_field)
-
-    # If not found by email, try mobile search with formatting
-    unless user
-      formatted_mobile = format_mobile_number(login_field)
-      if formatted_mobile
-        variants = mobile_number_variants(formatted_mobile)
-        user = User.where(mobile: variants).first ||
-               Customer.where(mobile: variants).first ||
-               SubAgent.where(mobile: variants).first
-      else
-        user = User.find_by(mobile: login_field) ||
-               Customer.find_by(mobile: login_field) ||
-               SubAgent.find_by(mobile: login_field)
-      end
+    identity = resolve_password_reset_identity(login_field, role)
+    unless identity
+      return render json: {
+        success: false,
+        message: 'No account found with the provided email or mobile number'
+      }, status: :not_found
     end
 
-    if user
-      # Generate reset token (simplified - you might want to use a proper token system)
-      reset_token = SecureRandom.urlsafe_base64(32)
+    otp, _record, retry_at = OtpVerification.generate!(
+      identifier: identity[:identifier],
+      identifier_type: identity[:identifier_type],
+      purpose: 'password_reset'
+    )
 
-      # Here you would typically:
-      # 1. Save the reset token to database with expiry
-      # 2. Send email with reset link
+    if otp.nil?
+      return render json: {
+        success: false,
+        message: 'An OTP was already sent recently. Please wait before requesting a new one.',
+        retry_after: retry_at
+      }, status: :too_many_requests
+    end
 
+    SendOtpJob.perform_later(identifier: identity[:identifier], identifier_type: identity[:identifier_type], otp: otp, purpose: 'password_reset')
+
+    render json: {
+      success: true,
+      message: "Password reset OTP sent to your #{identity[:identifier_type] == 'email' ? 'email address' : 'mobile number'}",
+      data: {
+        identifier_type: identity[:identifier_type],
+        expires_in: OtpVerification::EXPIRY.to_i
+      }
+    }
+  end
+
+  # POST /api/v1/mobile/auth/reset_password
+  # params: email | mobile | login, otp, new_password (or password),
+  #         password_confirmation (optional), optional role (client | sub_agent)
+  def reset_password
+    login_field = params[:login] || params[:email] || params[:mobile]
+    role = params[:role]&.downcase
+    otp = params[:otp]
+    new_password = params[:new_password] || params[:password]
+    confirmation = params[:password_confirmation] || params[:new_password_confirmation] || params[:confirm_password]
+
+    if login_field.blank? || otp.blank? || new_password.blank?
+      return render json: {
+        success: false,
+        message: 'Email or mobile number, OTP and new password are required'
+      }, status: :unprocessable_entity
+    end
+
+    if new_password.length < 6
+      return render json: {
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      }, status: :unprocessable_entity
+    end
+
+    if confirmation.present? && confirmation != new_password
+      return render json: {
+        success: false,
+        message: 'Password confirmation does not match'
+      }, status: :unprocessable_entity
+    end
+
+    identity = resolve_password_reset_identity(login_field, role)
+    unless identity
+      return render json: {
+        success: false,
+        message: 'No account found with the provided email or mobile number'
+      }, status: :not_found
+    end
+
+    case OtpVerification.verify!(identifier: identity[:identifier], otp: otp, purpose: 'password_reset')
+    when :verified
+      apply_new_password!(identity[:sub_agent] || identity[:user], new_password)
       render json: {
         success: true,
-        message: 'Password reset instructions have been sent to your email'
+        message: 'Password reset successfully. Please log in with your new password.'
       }
-    else
-      render json: {
-        success: false,
-        message: 'Email address not found'
-      }, status: :not_found
+    when :invalid
+      render json: { success: false, message: 'Invalid OTP' }, status: :unauthorized
+    when :too_many_attempts
+      render json: { success: false, message: 'Too many incorrect attempts. Please request a new OTP.' }, status: :too_many_requests
+    when :not_found
+      render json: { success: false, message: 'OTP expired or not found. Please request a new OTP.' }, status: :unauthorized
     end
   end
 
@@ -818,6 +873,42 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
       { role: 'user', user: user, identifier: identifier, identifier_type: identifier_type, active: user.status }
     end
+  end
+
+  # Same lookup as OTP login. Without a role, a User account (admin / agent /
+  # customer - a customer's password lives on its User) wins, then an affiliate.
+  def resolve_password_reset_identity(login_field, role)
+    return resolve_otp_identity(login_field, role) if role.present?
+
+    resolve_otp_identity(login_field, nil) || resolve_otp_identity(login_field, 'sub_agent')
+  end
+
+  # Mirrors SettingsController#change_password: SubAgent uses has_secure_password
+  # (plus the plain/original password columns the admin UI shows) and keeps any
+  # User with the same email in sync; User is Devise.
+  def apply_new_password!(record, new_password)
+    ActiveRecord::Base.transaction do
+      if record.is_a?(SubAgent)
+        columns = { password_digest: BCrypt::Password.create(new_password) }
+        %w[plain_password original_password].each do |col|
+          columns[col] = new_password if SubAgent.column_names.include?(col)
+        end
+        record.update_columns(columns)
+
+        user = User.find_by(email: record.email)
+        set_user_password!(user, new_password) if user
+      else
+        set_user_password!(record, new_password)
+      end
+    end
+  end
+
+  def set_user_password!(user, new_password)
+    user.password = new_password
+    user.password_confirmation = new_password
+    user.plain_password = new_password if user.respond_to?(:plain_password=)
+    user.original_password = new_password if user.respond_to?(:original_password=)
+    user.save(validate: false)
   end
 
   # Normalizes the raw login input into the key used to store/look up the OTP.

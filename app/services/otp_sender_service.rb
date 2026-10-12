@@ -11,14 +11,15 @@ class OtpSenderService
   TWOFACTOR_API_KEY = "fb821f89-f745-11f0-a6b2-0200cd936042"
   TWOFACTOR_OTP_TEMPLATE = "LoginOTP"
 
-  def self.deliver(identifier:, identifier_type:, otp:)
-    new(identifier, identifier_type, otp).deliver
+  def self.deliver(identifier:, identifier_type:, otp:, purpose: "login")
+    new(identifier, identifier_type, otp, purpose).deliver
   end
 
-  def initialize(identifier, identifier_type, otp)
+  def initialize(identifier, identifier_type, otp, purpose = "login")
     @identifier = identifier
     @identifier_type = identifier_type
     @otp = otp
+    @purpose = purpose
   end
 
   def deliver
@@ -27,10 +28,10 @@ class OtpSenderService
 
   private
 
-  attr_reader :identifier, :identifier_type, :otp
+  attr_reader :identifier, :identifier_type, :otp, :purpose
 
   def deliver_email
-    OtpMailer.otp_code(identifier, otp).deliver_now
+    OtpMailer.otp_code(identifier, otp, purpose).deliver_now
   rescue => e
     Rails.logger.error("OTP email delivery failed for #{identifier}: #{e.message}")
     raise DeliveryError, e.message

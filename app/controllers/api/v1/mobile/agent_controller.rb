@@ -478,14 +478,20 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
     # Get other insurance policies
     if policy_type.blank? || policy_type == 'other' || policy_type == 'all'
-      other_policies = if is_admin?(agent)
-                         Policy.where(insurance_type: 'other')
-                       else
-                         Policy.where(insurance_type: 'other', user: agent)
-                       end
+      if agent.is_a?(SubAgent)
+        OtherInsurance.where(sub_agent_id: agent.id).includes(:customer).each do |policy|
+          policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+        end
+      else
+        other_policies = if is_admin?(agent)
+                           Policy.where(insurance_type: 'other')
+                         else
+                           Policy.where(insurance_type: 'other', user: agent)
+                         end
 
-      other_policies.includes(:customer, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
-        policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+        other_policies.includes(:customer, documents_attachments: :blob, policy_documents_attachments: :blob).each do |policy|
+          policies << format_policy_data_with_commission(policy, 'Other', commission_payouts)
+        end
       end
     end
 
@@ -590,7 +596,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       policy_holder: policy_params[:policy_holder],
       insurance_company_name: policy_params[:insurance_company_name],
       policy_type: policy_params[:policy_type],
-      insurance_type: policy_params[:insurance_type] || 'health',
+      insurance_type: policy_params[:insurance_type].presence_in(%w[Individual Family\ Floater Group]) || 'Individual',
       plan_name: policy_params[:plan_name],
       policy_number: policy_params[:policy_number],
       policy_booking_date: parse_date(policy_params[:policy_booking_date]) || Date.current,
@@ -881,6 +887,13 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
 
   # POST /api/v1/mobile/agent/policies/other
   def add_other_policy
+    # Policy belongs_to a User, so an affiliate's "other" policy is stored as
+    # an OtherInsurance - same as POST /agent/policies/general.
+    if current_user.is_a?(SubAgent)
+      params[:insurance_type] = params[:insurance_type].presence || params[:coverage_type].presence || 'Other'
+      return add_general_policy
+    end
+
     policy_params = params.permit(
       :customer_id, :policy_holder, :plan_name, :policy_number,
       :insurance_company_name, :policy_type, :policy_start_date, :policy_end_date,
@@ -1151,7 +1164,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         last_name: lead.last_name,
         company_name: lead.company_name,
         contact_number: lead.contact_number,
-        alternate_contact_number: lead.alternate_contact_number,
+        alternate_contact_number: nil,
         email: lead.email,
         current_stage: lead.current_stage,
         stage_display_name: lead.stage_display_name,
@@ -1165,7 +1178,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         product_badge_class: lead.product_badge_class,
         customer_type: lead.customer_type,
         gender: lead.gender,
-        date_of_birth: lead.date_of_birth,
+        date_of_birth: lead.birth_date,
         age: lead.age,
         marital_status: lead.marital_status,
         occupation: lead.occupation,
@@ -1179,14 +1192,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         address: lead.address,
         city: lead.city,
         state: lead.state,
-        pincode: lead.pincode,
+        pincode: nil,
         full_address: lead.full_address,
         created_date: lead.created_date,
         formatted_created_date: lead.formatted_created_date,
         stage_updated_at: lead.stage_updated_at,
         notes: lead.notes,
-        follow_up_date: lead.follow_up_date,
-        follow_up_time: lead.follow_up_time,
+        follow_up_date: nil,
+        follow_up_time: nil,
         is_converted: lead.converted_customer_id.present?,
         converted_customer_id: lead.converted_customer_id,
         converted_customer_name: lead.converted_customer&.display_name,
@@ -1205,12 +1218,12 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         can_create_policy: lead.can_create_policy?,
         locked_stage: lead.locked_stage?,
         is_branch_out: lead.is_branch_out?,
-        disease_details: lead.disease_details,
-        medicine_details: lead.medicine_details,
-        doctor_details: lead.doctor_details,
-        smoke_habbit: lead.smoke_habbit,
-        alcohol_habbit: lead.alcohol_habbit,
-        existing_policy_details: lead.existing_policy_details,
+        disease_details: nil,
+        medicine_details: nil,
+        doctor_details: nil,
+        smoke_habbit: nil,
+        alcohol_habbit: nil,
+        existing_policy_details: nil,
         branch_out_leads: lead.branch_out_leads.map { |bl|
           {
             id: bl.id,
@@ -1780,6 +1793,14 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         @current_user = User.find(user_id)
       elsif role == 'sub_agent'
         @current_user = SubAgent.find(user_id)
+        if @current_user.renewal_required?
+          return render json: {
+            success: false,
+            code: 'subscription_expired',
+            message: 'Your yearly subscription has expired. Please renew to continue.',
+            data: { subscription: @current_user.subscription_summary }
+          }, status: :payment_required
+        end
       else
         return render json: {
           success: false,
@@ -3171,6 +3192,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
   end
 
   # GET /api/v1/mobile/agent/policies/general
+  public
+
   def general_policies
     page     = (params[:page]     || 1).to_i
     per_page = (params[:per_page] || 20).to_i
@@ -3270,6 +3293,8 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       }, status: :unprocessable_entity
     end
   end
+
+  private
 
   def format_general_policy(policy)
     {

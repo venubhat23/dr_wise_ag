@@ -20,4 +20,14 @@ namespace :wallet do
       owner_id: ENV['DISTRIBUTOR_ID'].presence&.to_i
     ).call
   end
+
+  # Wipe + rebuild affiliate wallets as per-policy history (see AffiliateWalletRebuild).
+  # Dry run: bin/rails wallet:rebuild_affiliate_wallets [SUB_AGENT_ID=8]; write with APPLY=1.
+  desc 'Rebuild affiliate wallets: welcome bonus, unlock on first commission, credit + paid debit per policy'
+  task rebuild_affiliate_wallets: :environment do
+    AffiliateWalletRebuild.new(
+      dry_run: ENV['APPLY'] != '1',
+      sub_agent_id: ENV['SUB_AGENT_ID'].presence&.to_i
+    ).call
+  end
 end

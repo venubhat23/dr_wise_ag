@@ -47,57 +47,7 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       data: {
         leads: leads.map do |lead|
           begin
-            {
-              id: lead.id,
-              lead_id: lead.lead_id,
-              name: lead.name,
-              display_name: lead.name,
-              first_name: lead.first_name,
-              middle_name: lead.middle_name,
-              last_name: lead.last_name,
-              company_name: lead.company_name,
-              contact_number: lead.contact_number,
-              email: lead.email,
-              current_stage: lead.current_stage,
-              stage_display_name: lead.current_stage&.titleize || 'Unknown',
-              product_category: lead.product_category,
-              product_subcategory: lead.product_subcategory,
-              product_interest: lead.product_interest,
-              lead_source: lead.lead_source,
-              customer_type: lead.customer_type,
-              referred_by: lead.referred_by,
-              referral_amount: lead.referral_amount || 0,
-              birth_date: lead.birth_date,
-              gender: lead.gender,
-              marital_status: lead.marital_status,
-              occupation: lead.occupation,
-              annual_income: lead.annual_income,
-              business_job: lead.business_job,
-              pan_no: lead.pan_no,
-              gst_no: lead.gst_no,
-              height: lead.height,
-              weight: lead.weight,
-              address: lead.address,
-              city: lead.city,
-              state: lead.state,
-              created_date: lead.created_date,
-              stage_updated_at: lead.stage_updated_at,
-              notes: lead.notes,
-              is_converted: lead.converted_customer_id.present?,
-              converted_customer_id: lead.converted_customer_id,
-              policy_created_id: lead.policy_created_id,
-              is_direct: lead.is_direct,
-              is_branch_out: lead.is_branch_out,
-              affiliate_id: lead.affiliate_id,
-              ambassador_id: lead.ambassador_id,
-              created_at: lead.created_at,
-              updated_at: lead.updated_at,
-              # Computed fields
-              affiliate_name: current_sub_agent.display_name,
-              ambassador_name: lead.ambassador_id.present? ? distributors_by_id[lead.ambassador_id]&.display_name : nil,
-              formatted_created_date: lead.created_date&.strftime('%d %b, %Y'),
-              full_address: [lead.address, lead.city, lead.state].compact.reject(&:blank?).join(', ')
-            }
+            lead_json(lead, distributors_by_id)
           rescue => e
             Rails.logger.error "Error formatting lead #{lead.id}: #{e.message}"
             {
@@ -127,6 +77,15 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
         }
       }
     }
+  end
+
+  # GET /api/v1/mobile/sub_agent/leads/:id
+  def lead_details
+    lead = Lead.find_by(id: params[:id], affiliate_id: current_sub_agent.id)
+    return render_error('Lead not found', :not_found) unless lead
+
+    distributors_by_id = lead.ambassador_id ? Distributor.where(id: lead.ambassador_id).index_by(&:id) : {}
+    render_success(lead_json(lead, distributors_by_id))
   end
 
   # GET /api/v1/mobile/sub_agent/notifications
@@ -197,6 +156,60 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       is_read: notification.read?,
       sent_at: notification.sent_at,
       read_at: notification.read_at
+    }
+  end
+
+  def lead_json(lead, distributors_by_id)
+    {
+      id: lead.id,
+      lead_id: lead.lead_id,
+      name: lead.name,
+      display_name: lead.name,
+      first_name: lead.first_name,
+      middle_name: lead.middle_name,
+      last_name: lead.last_name,
+      company_name: lead.company_name,
+      contact_number: lead.contact_number,
+      email: lead.email,
+      current_stage: lead.current_stage,
+      stage_display_name: lead.current_stage&.titleize || 'Unknown',
+      product_category: lead.product_category,
+      product_subcategory: lead.product_subcategory,
+      product_interest: lead.product_interest,
+      lead_source: lead.lead_source,
+      customer_type: lead.customer_type,
+      referred_by: lead.referred_by,
+      referral_amount: lead.referral_amount || 0,
+      birth_date: lead.birth_date,
+      gender: lead.gender,
+      marital_status: lead.marital_status,
+      occupation: lead.occupation,
+      annual_income: lead.annual_income,
+      business_job: lead.business_job,
+      pan_no: lead.pan_no,
+      gst_no: lead.gst_no,
+      height: lead.height,
+      weight: lead.weight,
+      address: lead.address,
+      city: lead.city,
+      state: lead.state,
+      created_date: lead.created_date,
+      stage_updated_at: lead.stage_updated_at,
+      notes: lead.notes,
+      is_converted: lead.converted_customer_id.present?,
+      converted_customer_id: lead.converted_customer_id,
+      policy_created_id: lead.policy_created_id,
+      is_direct: lead.is_direct,
+      is_branch_out: lead.is_branch_out,
+      affiliate_id: lead.affiliate_id,
+      ambassador_id: lead.ambassador_id,
+      created_at: lead.created_at,
+      updated_at: lead.updated_at,
+      # Computed fields
+      affiliate_name: current_sub_agent.display_name,
+      ambassador_name: lead.ambassador_id.present? ? distributors_by_id[lead.ambassador_id]&.display_name : nil,
+      formatted_created_date: lead.created_date&.strftime('%d %b, %Y'),
+      full_address: [lead.address, lead.city, lead.state].compact.reject(&:blank?).join(', ')
     }
   end
 

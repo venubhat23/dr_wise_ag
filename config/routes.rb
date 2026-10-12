@@ -930,6 +930,7 @@ Rails.application.routes.draw do
         post 'auth/login', to: 'authentication#login'
         post 'auth/register', to: 'authentication#register'
         post 'auth/forgot_password', to: 'authentication#forgot_password'
+        post 'auth/reset_password', to: 'authentication#reset_password'
         post 'auth/otp/request', to: 'authentication#request_otp'
         post 'auth/otp/verify', to: 'authentication#verify_otp'
 
@@ -977,8 +978,9 @@ Rails.application.routes.draw do
         # Sub Agent APIs
         get 'sub_agent/leads', to: 'sub_agent#leads'
         get 'sub_agent/leads/:id', to: 'sub_agent#lead_details'
-        post 'sub_agent/helpdesk', to: 'sub_agent#create_helpdesk_ticket'
-        get 'sub_agent/helpdesk_tickets', to: 'sub_agent#helpdesk_tickets'
+        # Same tickets as settings/helpdesk (SettingsController handles affiliates too)
+        post 'sub_agent/helpdesk', to: 'settings#helpdesk'
+        get 'sub_agent/helpdesk_tickets', to: 'settings#helpdesk_tickets'
 
         # Sub Agent Notification APIs
         get 'sub_agent/notifications', to: 'sub_agent#notifications'
