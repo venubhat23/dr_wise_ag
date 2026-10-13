@@ -1,7 +1,7 @@
 class Admin::LeadsController < Admin::ApplicationController
   include LocationData
   include ConfigurablePagination
-  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :convert_to_customer_branch_out, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage, :mark_not_interested, :close_lead]
+  before_action :set_lead, only: [:show, :edit, :update, :destroy, :convert_to_customer, :convert_to_customer_branch_out, :create_policy, :transfer_referral, :advance_stage, :go_back_stage, :update_stage, :convert_stage]
 
   # Skip authentication for AJAX endpoints used in forms
   skip_before_action :authenticate_user!, only: [:check_existing_customer, :search_sub_agents]
@@ -76,39 +76,21 @@ class Admin::LeadsController < Admin::ApplicationController
       @leads = paginate_records(@leads.order(created_at: :desc).eager_load(:converted_customer, :affiliate, :vendor))
     end
 
-    # Statistics — all stage counts in one query instead of 7 separate count queries
-    stats = ActiveRecord::Base.connection.execute(<<~SQL).first
-      SELECT
-        COUNT(*) FILTER (WHERE current_stage != 'converted')                    AS total_active,
-        COUNT(*) FILTER (WHERE current_stage = 'lead_generated')                AS lead_generated,
-        COUNT(*) FILTER (WHERE current_stage = 'consultation_scheduled')        AS consultation,
-        COUNT(*) FILTER (WHERE current_stage = 'one_on_one')                    AS one_on_one,
-        COUNT(*) FILTER (WHERE current_stage = 'follow_up')                     AS follow_up,
-        COUNT(*) FILTER (WHERE current_stage = 'converted')                     AS converted,
-        COUNT(*) FILTER (WHERE current_stage = 'lead_closed')                   AS lead_closed
-      FROM leads
-    SQL
-    @total_leads          = stats['total_active'].to_i
-    @lead_generated_leads = stats['lead_generated'].to_i
-    @consultation_leads   = stats['consultation'].to_i
-    @one_on_one_leads     = stats['one_on_one'].to_i
-    @follow_up_leads      = stats['follow_up'].to_i
-    @converted_leads      = stats['converted'].to_i
-    @lead_closed_leads    = stats['lead_closed'].to_i
+    # Statistics — all stage counts in one query instead of one count query per stage
+    stage_counts = Lead.group(:current_stage).count
+    @total_leads          = Lead::ACTIVE_STAGES.sum { |st| stage_counts[st].to_i }
+    @lead_generated_leads = stage_counts['lead_generated'].to_i
+    @consultation_leads   = stage_counts['consultation_scheduled'].to_i
+    @one_on_one_leads     = stage_counts['one_on_one'].to_i
+    @follow_up_leads      = stage_counts['follow_up'].to_i
+    @converted_leads      = stage_counts['converted'].to_i
 
     # Conversion rate calculation
     total_converted = @converted_leads
     @conversion_rate = @total_leads > 0 ? (total_converted.to_f / @total_leads * 100).round(1) : 0
 
     # Pipeline stats
-    @pipeline_stats = {
-      lead_generated: @lead_generated_leads,
-      consultation_scheduled: @consultation_leads,
-      one_on_one: @one_on_one_leads,
-      follow_up: @follow_up_leads,
-      converted: @converted_leads,
-      lead_closed: @lead_closed_leads
-    }
+    @pipeline_stats = Lead::STAGE_ORDER.index_with { |st| stage_counts[st].to_i }.symbolize_keys
 
     # Temporarily use simple view for debugging
     if params[:debug] == 'simple'
@@ -145,17 +127,9 @@ class Admin::LeadsController < Admin::ApplicationController
       end
     end
     # Get stage definitions with display names and colors
-    @stages = {
-      'lead_generated' => { name: 'Lead Generated', color: 'primary' },
-      'consultation_scheduled' => { name: 'Consultation', color: 'info' },
-      'one_on_one' => { name: 'One-on-One', color: 'warning' },
-      'follow_up' => { name: 'Follow-Up Successful', color: 'secondary' },
-      'converted' => { name: 'Converted', color: 'success' },
-      'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
-      'not_interested' => { name: 'Not Interested', color: 'dark' },
-      're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
-      'lead_closed' => { name: 'Closed', color: 'secondary' }
-    }
+    @stages = Lead::STAGES.transform_values do |st|
+      { name: st[:label], color: st[:badge].delete_prefix('bg-') }
+    end
   end
 
   # GET /admin/leads/kanban_flow
@@ -188,17 +162,9 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     # Get stage definitions with display names and colors
-    @stages = {
-      'lead_generated' => { name: 'Lead Generated', color: 'primary' },
-      'consultation_scheduled' => { name: 'Consultation', color: 'info' },
-      'one_on_one' => { name: 'One-on-One', color: 'warning' },
-      'follow_up' => { name: 'Follow-Up Successful', color: 'secondary' },
-      'converted' => { name: 'Converted', color: 'success' },
-      'follow_up_unsuccessful' => { name: 'Follow-Up Failed', color: 'danger' },
-      'not_interested' => { name: 'Not Interested', color: 'dark' },
-      're_follow_up' => { name: 'Re-Follow Up', color: 'warning' },
-      'lead_closed' => { name: 'Closed', color: 'secondary' }
-    }
+    @stages = Lead::STAGES.transform_values do |st|
+      { name: st[:label], color: st[:badge].delete_prefix('bg-') }
+    end
   end
 
   # GET /admin/leads/1
@@ -461,10 +427,7 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     ActiveRecord::Base.transaction do
-      @lead.update!(
-        current_stage: 'referral_settled',
-        transferred_amount: true
-      )
+      @lead.update!(transferred_amount: true)
 
       redirect_to admin_lead_path(@lead), notice: 'Referral payment transferred successfully.'
     end
@@ -482,7 +445,7 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     if @lead.update(current_stage: next_stage)
-      redirect_to admin_lead_path(@lead), notice: "Lead advanced to #{next_stage.humanize} stage."
+      redirect_to admin_lead_path(@lead), notice: "Lead advanced to #{Lead.stage_label(next_stage)} stage."
     else
       redirect_to admin_lead_path(@lead), alert: 'Failed to advance lead stage.'
     end
@@ -497,7 +460,7 @@ class Admin::LeadsController < Admin::ApplicationController
 
     previous_stage = @lead.previous_stage
     if @lead.update(current_stage: previous_stage)
-      redirect_to admin_lead_path(@lead), notice: "Lead moved back to #{previous_stage.humanize} stage."
+      redirect_to admin_lead_path(@lead), notice: "Lead moved back to #{Lead.stage_label(previous_stage)} stage."
     else
       redirect_to admin_lead_path(@lead), alert: 'Failed to move lead back.'
     end
@@ -525,38 +488,20 @@ class Admin::LeadsController < Admin::ApplicationController
       return
     end
 
-    # Use the appropriate transition method based on the new stage
-    success = case new_stage
-    when 'consultation_scheduled'
-      @lead.move_to_consultation_scheduled!
-    when 'one_on_one'
-      @lead.move_to_one_on_one!
-    when 'follow_up'
-      @lead.move_to_follow_up!
-    when 'follow_up_successful'
-      @lead.mark_follow_up_successful!
-    when 'follow_up_unsuccessful'
-      @lead.mark_follow_up_unsuccessful!
-    when 'not_interested'
-      @lead.mark_not_interested!
-    when 're_follow_up'
-      @lead.move_to_re_follow_up!
-    when 'converted'
+    success = if new_stage == 'converted'
       # For conversion, we might need to create a customer first
       # For now, just mark as converted without customer_id
       @lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
       true
-    when 'lead_closed'
-      @lead.close_lead!
     else
-      false
+      @lead.move_to_stage!(new_stage)
     end
 
     if success
       stage_display = @lead.stage_display_name
       redirect_to admin_lead_path(@lead), notice: "✅ Lead successfully moved to: #{stage_display}"
     else
-      redirect_to admin_lead_path(@lead), alert: "❌ Failed to update lead stage to #{new_stage.humanize}"
+      redirect_to admin_lead_path(@lead), alert: "❌ Failed to update lead stage to #{Lead.stage_label(new_stage)}"
     end
   end
 
@@ -580,35 +525,15 @@ class Admin::LeadsController < Admin::ApplicationController
     # Prevent changes if lead is already converted or closed
     if @lead.cannot_change_stage?
       respond_to do |format|
-        format.html { redirect_to admin_leads_path, alert: 'Lead stage cannot be changed after conversion or closure.' }
-        format.json { render json: { success: false, message: 'Lead stage cannot be changed after conversion or closure.' } }
+        format.html { redirect_to admin_leads_path, alert: 'Lead stage cannot be changed after conversion.' }
+        format.json { render json: { success: false, message: 'Lead stage cannot be changed after conversion.' } }
       end
       return
     end
 
     # Use the appropriate transition method based on the new stage
     old_stage = @lead.current_stage
-    success = case new_stage
-    when 'lead_generated'
-      @lead.update!(current_stage: 'lead_generated', stage_updated_at: Time.current)
-      true
-    when 'consultation_scheduled'
-      result = @lead.move_to_consultation_scheduled!
-      Rails.logger.info "Move to consultation_scheduled result: #{result}, new current_stage: #{@lead.reload.current_stage}"
-      result
-    when 'one_on_one'
-      @lead.move_to_one_on_one!
-    when 'follow_up'
-      @lead.move_to_follow_up!
-    when 'follow_up_successful'
-      @lead.mark_follow_up_successful!
-    when 'follow_up_unsuccessful'
-      @lead.mark_follow_up_unsuccessful!
-    when 'not_interested'
-      @lead.mark_not_interested!
-    when 're_follow_up'
-      @lead.move_to_re_follow_up!
-    when 'converted'
+    success = if new_stage == 'converted'
       # Instead of just updating the stage, redirect to customer conversion flow
       # This ensures that a customer is actually created when lead is marked as converted
       Rails.logger.info "Lead #{@lead.id} marked for conversion - redirecting to client creation flow"
@@ -617,14 +542,8 @@ class Admin::LeadsController < Admin::ApplicationController
       # Set a flag to handle this special case in the response
       @redirect_to_conversion = true
       true
-    when 'referral_settled'
-      @lead.update!(current_stage: 'referral_settled', stage_updated_at: Time.current, transferred_amount: true)
-      true
-    when 'lead_closed'
-      @lead.close_lead!
     else
-      Rails.logger.error "Unknown stage: #{new_stage}"
-      false
+      @lead.move_to_stage!(new_stage)
     end
 
     Rails.logger.info "Stage transition: #{old_stage} → #{new_stage}, success: #{success}"
@@ -645,8 +564,8 @@ class Admin::LeadsController < Admin::ApplicationController
       end
     else
       respond_to do |format|
-        format.html { redirect_to admin_leads_path, alert: "❌ Failed to convert lead stage to #{new_stage.humanize}" }
-        format.json { render json: { success: false, message: "Failed to convert lead stage to #{new_stage.humanize}" } }
+        format.html { redirect_to admin_leads_path, alert: "❌ Failed to convert lead stage to #{Lead.stage_label(new_stage)}" }
+        format.json { render json: { success: false, message: "Failed to convert lead stage to #{Lead.stage_label(new_stage)}" } }
       end
     end
   rescue => e
@@ -815,39 +734,11 @@ class Admin::LeadsController < Admin::ApplicationController
     end
 
     if failed_count == 0
-      redirect_to admin_leads_path, notice: "Successfully updated #{updated_count} leads to #{new_stage.humanize} stage."
+      redirect_to admin_leads_path, notice: "Successfully updated #{updated_count} leads to #{Lead.stage_label(new_stage)} stage."
     elsif updated_count > 0
       redirect_to admin_leads_path, notice: "Updated #{updated_count} leads. #{failed_count} leads could not be updated due to stage restrictions."
     else
       redirect_to admin_leads_path, alert: "No leads could be updated. Please check stage transition rules."
-    end
-  end
-
-  # PATCH /admin/leads/1/mark_not_interested
-  def mark_not_interested
-    unless @lead.can_mark_not_interested?
-      redirect_to admin_lead_path(@lead), alert: 'Lead cannot be marked as not interested at this stage.'
-      return
-    end
-
-    if @lead.mark_not_interested!
-      redirect_to admin_lead_path(@lead), notice: '🚫 Lead marked as Not Interested.'
-    else
-      redirect_to admin_lead_path(@lead), alert: 'Failed to mark lead as not interested.'
-    end
-  end
-
-  # PATCH /admin/leads/1/close_lead
-  def close_lead
-    unless @lead.can_close_lead?
-      redirect_to admin_lead_path(@lead), alert: 'Lead cannot be closed at this stage.'
-      return
-    end
-
-    if @lead.close_lead!
-      redirect_to admin_lead_path(@lead), notice: '📁 Lead successfully closed.'
-    else
-      redirect_to admin_lead_path(@lead), alert: 'Failed to close lead.'
     end
   end
 
@@ -1034,7 +925,7 @@ class Admin::LeadsController < Admin::ApplicationController
                 l.address, l.city, l.state, l.gender&.humanize, l.birth_date,
                 l.pan_no, l.gst_no, l.annual_income,
                 l.product_category&.humanize, l.product_subcategory,
-                l.lead_source&.humanize, l.current_stage&.humanize,
+                l.lead_source&.humanize, Lead.stage_label(l.current_stage),
                 l.is_direct ? 'Direct' : 'Affiliate',
                 l.affiliate&.full_name,
                 l.referral_amount,
@@ -1061,7 +952,7 @@ class Admin::LeadsController < Admin::ApplicationController
                        l.address, l.city, l.state, l.gender&.humanize, l.birth_date&.to_s,
                        l.pan_no, l.gst_no, l.annual_income&.to_f,
                        l.product_category&.humanize, l.product_subcategory,
-                       l.lead_source&.humanize, l.current_stage&.humanize,
+                       l.lead_source&.humanize, Lead.stage_label(l.current_stage),
                        l.is_direct ? 'Direct' : 'Affiliate',
                        l.affiliate&.full_name,
                        l.referral_amount&.to_f,

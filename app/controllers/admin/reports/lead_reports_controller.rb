@@ -158,7 +158,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
 
   def load_form_data
     # Load lead stages for dropdown
-    @lead_stages = Lead.current_stages.keys.map { |stage| [stage.humanize, stage] }
+    @lead_stages = Lead.stage_options_for_select
     @lead_stages.unshift(['All Stages', ''])
 
     # Load product categories
@@ -176,7 +176,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
         'lead_details' => "#{lead.lead_id}<br/>#{lead.display_name}",
         'contact_information' => "#{lead.contact_number}<br/>#{lead.email || 'N/A'}",
         'referred_by_product_interest' => "#{lead.affiliate_name}<br/>#{lead.product_display_name}",
-        'current_stage' => lead.current_stage&.humanize || 'N/A',
+        'current_stage' => Lead.stage_label(lead.current_stage),
         'created_date' => lead.created_date&.strftime('%d %b %Y') || 'N/A'
       }
     end
@@ -237,7 +237,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
         'lead_details' => "#{lead.lead_id} - #{lead.display_name}",
         'contact_information' => "#{lead.contact_number} - #{lead.email || 'N/A'}",
         'referred_by_product_interest' => "#{lead.affiliate_name} - #{lead.product_display_name}",
-        'current_stage' => lead.current_stage&.humanize || 'N/A',
+        'current_stage' => Lead.stage_label(lead.current_stage),
         'created_date' => lead.created_date&.strftime('%d %b %Y') || 'N/A',
         'lead_source' => lead.lead_source&.humanize || 'N/A',
         'product_category' => lead.product_category&.humanize || 'N/A',
@@ -255,7 +255,7 @@ class Admin::Reports::LeadReportsController < Admin::Reports::BaseController
       'leads_by_source' => stats_query.group(:lead_source).count,
       'leads_by_product' => stats_query.group(:product_category).count,
       'converted_leads' => stats_query.where(current_stage: 'converted').count,
-      'active_leads' => stats_query.where.not(current_stage: ['converted', 'lead_closed', 'not_interested']).count
+      'active_leads' => stats_query.where(current_stage: Lead::ACTIVE_STAGES).count
     }
 
     {

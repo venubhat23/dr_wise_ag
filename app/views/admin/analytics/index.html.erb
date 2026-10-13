@@ -850,7 +850,7 @@
       <div class="chart-stats">
         <div class="stat-item">
           <span class="stat-label">Active Leads:</span>
-          <span class="stat-value"><%= (@lead_stage_distribution || {}).reject { |k, _| ['Converted', 'Lead Closed', 'Not Interested', 'Follow Up Unsuccessful'].include?(k) }.values.sum %></span>
+          <span class="stat-value"><%= (@lead_stage_distribution || {}).reject { |k, _| k == Lead.stage_label('converted') }.values.sum %></span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Converted Leads:</span>
@@ -885,18 +885,8 @@
                 <div style="font-size: 0.75rem; color: #9ca3af;"><%= lead.contact_number %></div>
               </td>
               <td>
-                <%
-                  stage_colors = {
-                    'new' => 'bg-info',
-                    'contacted' => 'bg-warning',
-                    'consultation' => 'bg-info',
-                    'one_on_one' => 'bg-warning',
-                    'converted' => 'bg-success',
-                    'policy_created' => 'bg-success'
-                  }
-                %>
-                <span class="badge <%= stage_colors[lead.current_stage] || 'bg-info' %>">
-                  <%= lead.current_stage&.humanize || 'New' %>
+                <span class="badge <%= lead.stage_badge_class %>">
+                  <%= Lead.stage_label(lead.current_stage) %>
                 </span>
               </td>
               <td>
@@ -918,9 +908,9 @@
               <td>
                 <%
                   priority = case lead.current_stage
-                  when 'new', 'contacted'
+                  when 'lead_generated', 'consultation_scheduled'
                     { label: 'High', class: 'bg-danger' }
-                  when 'consultation', 'one_on_one'
+                  when 'one_on_one', 'follow_up'
                     { label: 'Medium', class: 'bg-warning' }
                   else
                     { label: 'Low', class: 'bg-success' }

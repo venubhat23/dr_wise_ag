@@ -109,7 +109,7 @@
                       <div class="detail-item">
                         <label>Status</label>
                         <span class="status-badge <%= lead.current_stage == 'converted' ? 'converted' : 'pending' %>">
-                          <%= lead.current_stage.humanize %>
+                          <%= Lead.stage_label(lead.current_stage) %>
                         </span>
                       </div>
                     </div>

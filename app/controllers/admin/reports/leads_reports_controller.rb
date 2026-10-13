@@ -55,15 +55,13 @@ class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
   end
 
   def calculate_lead_statistics(leads)
-    # Single query with FILTER instead of 7 separate COUNT round trips.
-    total_leads, direct_count, affiliate_count, converted_count, in_progress_count, not_interested_count, closed_count = leads.pick(
+    # Single query with FILTER instead of 5 separate COUNT round trips.
+    total_leads, direct_count, affiliate_count, converted_count, in_progress_count = leads.pick(
       Arel.sql('COUNT(*)'),
       Arel.sql('COUNT(*) FILTER (WHERE is_direct = true)'),
       Arel.sql('COUNT(*) FILTER (WHERE is_direct = false)'),
       Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'converted')"),
-      Arel.sql("COUNT(*) FILTER (WHERE current_stage NOT IN ('converted', 'not_interested', 'lead_closed'))"),
-      Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'not_interested')"),
-      Arel.sql("COUNT(*) FILTER (WHERE current_stage = 'lead_closed')")
+      Arel.sql("COUNT(*) FILTER (WHERE current_stage != 'converted')")
     )
 
     {
@@ -77,9 +75,7 @@ class Admin::Reports::LeadsReportsController < Admin::Reports::BaseController
       },
       conversion_stats: {
         converted: converted_count.to_i,
-        in_progress: in_progress_count.to_i,
-        not_interested: not_interested_count.to_i,
-        closed: closed_count.to_i
+        in_progress: in_progress_count.to_i
       },
       monthly_trend: leads.group_by_month(:created_date, last: 12).count,
       affiliate_performance: calculate_affiliate_performance(leads)

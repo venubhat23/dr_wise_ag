@@ -189,18 +189,7 @@
             </div>
             <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Stage</label>
-              <%= form.select :current_stage, options_for_select([
-                ['All Stages', ''],
-                ['Lead Generated', 'lead_generated'],
-                ['Consultation', 'consultation_scheduled'],
-                ['One-on-One', 'one_on_one'],
-                ['Follow-Up', 'follow_up'],
-                ['Successful', 'follow_up_successful'],
-                ['Unsuccessful', 'follow_up_unsuccessful'],
-                ['Not Interested', 'not_interested'],
-                ['Re-Follow Up', 're_follow_up'],
-                ['Lead Close - Follow-Up Unsuccessful', 'lead_closed']
-              ], params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
+              <%= form.select :current_stage, options_for_select([['All Stages', '']] + Lead.stage_options_for_select.reject { |_, v| v == 'converted' }, params[:current_stage]), {}, { class: "form-select stage-filter-dropdown" } %>
             </div>
             <div class="col-lg-2 col-md-6">
               <label class="form-label small text-muted mb-1">Category</label>
@@ -315,7 +304,7 @@
                       <% end %>
                     </td>
                     <td>
-                      <%= lead.current_stage&.humanize || 'Unknown' %>
+                      <%= Lead.stage_label(lead.current_stage) %>
                     </td>
                     <td>
                       <div>
@@ -344,22 +333,11 @@
                             <!-- Current Stage Display -->
                             <li class="px-3 py-2 bg-light">
                               <small class="text-muted d-block mb-1">Current:</small>
-                              <span class="badge bg-primary"><%= lead.current_stage&.humanize || 'Unknown' %></span>
+                              <span class="badge bg-primary"><%= Lead.stage_label(lead.current_stage) %></span>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <!-- All Available Stages -->
-                            <% stage_options = [
-                                 { key: 'lead_generated', name: 'Lead Generated', icon: '🟢', desc: 'New lead created' },
-                                 { key: 'consultation_scheduled', name: 'Consultation Scheduled', icon: '📅', desc: 'Meeting scheduled' },
-                                 { key: 'one_on_one', name: 'One-on-One Meeting', icon: '🤝', desc: 'Personal meeting' },
-                                 { key: 'follow_up', name: 'Follow-Up Successful', icon: '📞', desc: 'Following up with lead' },
-                                 { key: 'follow_up_successful', name: 'Follow-Up Successful', icon: '✅', desc: 'Successful follow-up' },
-                                 { key: 'follow_up_unsuccessful', name: 'Follow-Up Unsuccessful', icon: '❌', desc: 'Unsuccessful follow-up' },
-                                 { key: 'converted', name: 'Converted (Client)', icon: '🎉', desc: 'Successfully converted' },
-                                 { key: 'not_interested', name: 'Not Interested', icon: '🚫', desc: 'Lead not interested' },
-                                 { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', desc: 'Re-attempting follow-up' },
-                                 { key: 'lead_closed', name: 'Lead Close - Follow-Up Unsuccessful', icon: '📁', desc: 'Lead closed - follow-up unsuccessful' }
-                               ] %>
+                            <% stage_options = Lead::STAGES.map { |key, st| { key: key, name: st[:label], icon: st[:icon], desc: st[:description] } } %>
 
                             <% stage_options.each do |stage| %>
                               <% if stage[:key] == lead.current_stage %>
@@ -767,7 +745,7 @@
                   <%= lead_product_badges(lead, category_class: 'bg-info', sub_class: 'bg-light text-info border') %>
                 </div>
                 <div class="small text-muted">
-                  <strong>Stage:</strong> <%= lead.current_stage&.humanize || 'Unknown' %>
+                  <strong>Stage:</strong> <%= Lead.stage_label(lead.current_stage) %>
                 </div>
                 <div class="small text-muted">
                   <strong>Affiliate:</strong>
@@ -821,21 +799,11 @@
                     <li><hr class="dropdown-divider"></li>
                     <li class="dropdown-item-text current-stage-display bg-light px-3 py-2">
                       <small class="text-muted d-block">Current Stage:</small>
-                      <span class="badge bg-primary mt-1"><%= lead.current_stage&.humanize || 'Unknown' %></span>
+                      <span class="badge bg-primary mt-1"><%= Lead.stage_label(lead.current_stage) %></span>
                     </li>
                     <li><hr class="dropdown-divider"></li>
 
-                    <% all_stages = [
-                         { key: 'lead_generated', name: 'Lead Generated', icon: '🟢', color: 'secondary' },
-                         { key: 'consultation_scheduled', name: 'Consultation', icon: '📅', color: 'info' },
-                         { key: 'one_on_one', name: 'One-on-One', icon: '🤝', color: 'warning' },
-                         { key: 'follow_up', name: 'Follow-Up', icon: '🔁', color: 'primary' },
-                         { key: 'follow_up_successful', name: 'Follow-Up Success', icon: '✅', color: 'success' },
-                         { key: 'follow_up_unsuccessful', name: 'Follow-Up Failed', icon: '❌', color: 'danger' },
-                         { key: 'not_interested', name: 'Not Interested', icon: '🚫', color: 'dark' },
-                         { key: 're_follow_up', name: 'Re-Follow Up', icon: '🔄', color: 'warning' },
-                         { key: 'lead_closed', name: 'Lead Closed', icon: '📁', color: 'secondary' }
-                       ] %>
+                    <% all_stages = Lead::STAGES.except('converted').map { |key, st| { key: key, name: st[:label], icon: st[:icon], color: st[:badge].delete_prefix('bg-') } } %>
 
                     <% all_stages.each do |stage| %>
                       <% if stage[:key] != lead.current_stage %>
@@ -1389,12 +1357,7 @@ function bulkUpdateStage(stage) {
     return;
   }
 
-  const stageNames = {
-    'consultation': 'Consultation',
-    'one_on_one': 'One-on-One',
-    'converted': 'Converted',
-    'referral_settled': 'Referral Settled'
-  };
+  const stageNames = <%= raw Lead::STAGES.transform_values { |st| st[:label] }.to_json %>;
 
   if (confirm(`Move ${selectedIds.length} leads to ${stageNames[stage]} stage?`)) {
     const form = document.createElement('form');
@@ -2183,14 +2146,6 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Stage option animations */
 .stage-option[data-stage="converted"] {
   background: linear-gradient(90deg, rgba(25, 135, 84, 0.1), transparent);
-}
-
-.stage-option[data-stage="not_interested"] {
-  background: linear-gradient(90deg, rgba(108, 117, 125, 0.1), transparent);
-}
-
-.stage-option[data-stage="lead_closed"] {
-  background: linear-gradient(90deg, rgba(108, 117, 125, 0.1), transparent);
 }
 
 /* Pagination Styling */

@@ -1544,7 +1544,7 @@ class Api::V1::Mobile::AuthenticationController < Api::V1::Mobile::BaseControlle
 
     begin
       total_leads = Lead.where(affiliate_id: sub_agent.id).where('created_at >= ?', three_months_ago).count
-      converted_leads = Lead.where(affiliate_id: sub_agent.id).where('created_at >= ?', three_months_ago).where(current_stage: ['converted', 'policy_created']).count
+      converted_leads = Lead.where(affiliate_id: sub_agent.id).where('created_at >= ?', three_months_ago).where(current_stage: 'converted').count
 
       if total_leads > 0
         conversion_rate = ((converted_leads.to_f / total_leads) * 100).round

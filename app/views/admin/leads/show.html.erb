@@ -18,7 +18,7 @@
             ID: <%= @lead.lead_id %>
           </span>
           <span class="badge status-badge <%= @lead.current_stage == 'converted' ? 'active' : 'inactive' %>">
-            <%= @lead.current_stage&.humanize || 'Unknown Stage' %>
+            <%= Lead.stage_label(@lead.current_stage) %>
           </span>
         </div>
         <div class="text-muted small">
@@ -94,69 +94,28 @@
         <h6 class="mb-2">
           <i class="bi bi-info-circle me-1"></i>Lead Flow Guide
         </h6>
-        <div class="row">
-          <div class="col-md-6">
-            <small class="text-success">
-              <strong>✅ Success Path:</strong> Lead Generated → Consultation → Discussion → Follow-Up → Success → Converted
-            </small>
-          </div>
-          <div class="col-md-6">
-            <small class="text-danger">
-              <strong>❌ Alternative Path:</strong> Follow-Up → Unsuccessful → Re-Follow-Up → Not Interested → Closed
-            </small>
-          </div>
-        </div>
+        <small class="text-success">
+          <strong>Lead Flow:</strong> <%= Lead::STAGES.values.map { |st| st[:label] }.join(' → ') %>
+        </small>
       </div>
 
       <div class="timeline-container">
         <%
-          # Define timeline stages with their proper flow
-          timeline_stages = [
-            { key: 'lead_generated', title: '🟢 Lead Generated', description: 'Initial lead entry into the system' },
-            { key: 'consultation_scheduled', title: '📅 Consultation Scheduled', description: 'First contact and consultation setup' },
-            { key: 'one_on_one', title: '🤝 One-on-One Discussion', description: 'Detailed discussion about insurance needs' },
-            { key: 'follow_up', title: '🔁 Follow-Up', description: 'Follow-up to gauge client interest' },
-            { key: 'follow_up_successful', title: '✅ Follow-Up Successful', description: 'Client shows interest and ready to proceed' },
-            { key: 'converted', title: '👤 Converted to Client', description: 'Lead successfully converted to client' }
-          ]
-
-          # Define alternative flow stages that branch after follow_up
-          alt_timeline_stages = [
-            { key: 'follow_up_unsuccessful', title: '❌ Follow-Up Unsuccessful', description: 'Client not interested at this time', is_alt_path: true },
-            { key: 're_follow_up', title: '🔄 Re-Follow-Up', description: 'Second attempt to contact client', is_alt_path: true },
-            { key: 'not_interested', title: '❌ Not Interested', description: 'Client declined insurance', is_alt_path: true },
-            { key: 'closed', title: '🚫 Lead Closed', description: 'Lead marked as closed/complete', is_alt_path: true }
-          ]
-
-          # Combine all stages for rendering
-          all_stages = timeline_stages + alt_timeline_stages
-
-          # Successful path stages
-          successful_path = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'converted']
-
-          # Check if lead is on unsuccessful path
-          is_on_unsuccessful_path = ['follow_up_unsuccessful', 're_follow_up', 'not_interested', 'closed'].include?(@lead.current_stage)
+          timeline_stages = Lead::STAGES.map { |key, st| { key: key, title: "#{st[:icon]} #{st[:label]}", description: st[:description] } }
+          current_stage_index = Lead::STAGE_ORDER.index(@lead.current_stage) || -1
 
           # Get stage history if available
           stage_history = @lead.respond_to?(:stage_history) ? @lead.stage_history : {}
         %>
 
-        <% all_stages.each_with_index do |stage, index| %>
+        <% timeline_stages.each_with_index do |stage, this_stage_index| %>
           <%
-            # Determine status for this stage
-            current_stage_index = timeline_stages.map { |s| s[:key] }.index(@lead.current_stage) || -1
-            this_stage_index = timeline_stages.map { |s| s[:key] }.index(stage[:key]) || -1
-
             # Status logic
             if stage[:key] == @lead.current_stage
               status = 'active'
               status_class = 'text-primary fw-bold'
               date_text = 'Currently at this stage'
-            elsif (this_stage_index >= 0 && current_stage_index >= 0 && this_stage_index < current_stage_index) ||
-                 (stage[:is_alt_path] && is_on_unsuccessful_path &&
-                  ['follow_up_unsuccessful', 're_follow_up', 'not_interested'].include?(stage[:key]) &&
-                  (['follow_up_unsuccessful', 're_follow_up', 'not_interested', 'closed'].index(@lead.current_stage) || 0) >=
-                  (['follow_up_unsuccessful', 're_follow_up', 'not_interested', 'closed'].index(stage[:key]) || 0))
+            elsif this_stage_index < current_stage_index
               status = 'completed'
               status_class = 'text-success'
               # Try to get actual date from stage history
@@ -173,7 +132,7 @@
           %>
 
           <!-- Timeline Stage -->
-          <div class="timeline-item <%= status %> <%= 'alternative-path' if stage[:is_alt_path] %> <%= 'inaccessible' if is_on_unsuccessful_path && successful_path.include?(stage[:key]) && successful_path.index(stage[:key]) > successful_path.index('follow_up') %> <%= 'branching-point' if stage[:key] == 'follow_up' && is_on_unsuccessful_path %>">
+          <div class="timeline-item <%= status %>">
             <div class="timeline-marker"></div>
             <div class="timeline-content">
               <h6><%= stage[:title] %></h6>
@@ -557,7 +516,7 @@
         <div class="info-field">
           <label>CURRENT STAGE</label>
           <div class="info-value">
-            <span class="badge bg-primary fs-6"><%= @lead.current_stage&.humanize || 'Unknown' %></span>
+            <span class="badge bg-primary fs-6"><%= Lead.stage_label(@lead.current_stage) %></span>
           </div>
         </div>
       </div>
@@ -605,131 +564,30 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <h6 class="text-success mb-3">
+          <i class="bi bi-arrow-right-circle me-1"></i>Lead Flow
+        </h6>
         <div class="row">
-          <!-- Main Flow Stages -->
-          <div class="col-md-6">
-            <h6 class="text-success mb-3">
-              <i class="bi bi-arrow-right-circle me-1"></i>Main Success Flow
-            </h6>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">🟢</span>
-                <div>
-                  <h6 class="mb-1">Lead Generated</h6>
-                  <small class="text-muted">Initial stage - Lead entry into system</small>
+          <% Lead::STAGES.each do |_key, st| %>
+            <div class="col-md-6">
+              <div class="stage-guide-item mb-3">
+                <div class="d-flex align-items-start">
+                  <span class="stage-icon me-2"><%= st[:icon] %></span>
+                  <div>
+                    <h6 class="mb-1"><%= st[:label] %></h6>
+                    <small class="text-muted"><%= st[:description] %></small>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">📅</span>
-                <div>
-                  <h6 class="mb-1">Consultation Scheduled</h6>
-                  <small class="text-muted">Meeting scheduled - Initial contact and requirement gathering</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">🤝</span>
-                <div>
-                  <h6 class="mb-1">One-on-One</h6>
-                  <small class="text-muted">Personal meeting - Detailed discussion and product presentation</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">🔁</span>
-                <div>
-                  <h6 class="mb-1">Follow-Up</h6>
-                  <small class="text-muted">Following up - Regular contact to maintain engagement</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">✅</span>
-                <div>
-                  <h6 class="mb-1">Follow-Up Successful</h6>
-                  <small class="text-muted">Successful follow-up - Positive response received</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">👤</span>
-                <div>
-                  <h6 class="mb-1">Client Converted</h6>
-                  <small class="text-muted">Client converted - Ready for policy creation</small>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Alternative Flow Stages -->
-          <div class="col-md-6">
-            <h6 class="text-danger mb-3">
-              <i class="bi bi-arrow-down-circle me-1"></i>Alternative Flow
-            </h6>
-            <div class="stage-guide-item mb-3 alternative-stage">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">❌</span>
-                <div>
-                  <h6 class="mb-1">Follow-Up Unsuccessful</h6>
-                  <small class="text-muted">Unsuccessful follow-up - No positive response</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3 alternative-stage">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">🔄</span>
-                <div>
-                  <h6 class="mb-1">Re-Follow Up</h6>
-                  <small class="text-muted">Re-attempting follow-up - Second attempt to engage</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3 alternative-stage">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">🚫</span>
-                <div>
-                  <h6 class="mb-1">Not Interested</h6>
-                  <small class="text-muted">Lead not interested - Client declined the offer</small>
-                </div>
-              </div>
-            </div>
-            <div class="stage-guide-item mb-3 alternative-stage">
-              <div class="d-flex align-items-start">
-                <span class="stage-icon me-2">📁</span>
-                <div>
-                  <h6 class="mb-1">Lead Close - Follow-Up Unsuccessful</h6>
-                  <small class="text-muted">Lead close - Follow-up unsuccessful</small>
-                </div>
-              </div>
-            </div>
-          </div>
+          <% end %>
         </div>
 
         <!-- Quick Reference -->
         <hr class="my-4">
-        <div class="row">
-          <div class="col-12">
-            <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Quick Reference</h6>
-            <div class="row">
-              <div class="col-md-6">
-                <small class="text-success">
-                  <strong>✅ Success Path:</strong> Lead Generated → Consultation → Discussion → Follow-Up → Success → Converted
-                </small>
-              </div>
-              <div class="col-md-6">
-                <small class="text-danger">
-                  <strong>❌ Alternative Path:</strong> Follow-Up → Unsuccessful → Re-Follow-Up → Not Interested → Closed
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
+        <small class="text-success">
+          <strong>Lead Flow:</strong> <%= Lead::STAGES.values.map { |st| st[:label] }.join(' → ') %>
+        </small>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

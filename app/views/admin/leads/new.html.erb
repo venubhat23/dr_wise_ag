@@ -393,18 +393,7 @@
 
         <div class="col-md-6 mb-3">
           <%= form.label :current_stage, "Current Stage *", class: "form-label" %>
-          <%= form.select :current_stage, options_for_select([
-            ['🟢 Lead Generated', 'lead_generated'],
-            ['📅 Consultation Scheduled', 'consultation_scheduled'],
-            ['🤝 One-on-One Discussion', 'one_on_one'],
-            ['🔁 Follow-Up', 'follow_up'],
-            ['✅ Follow-Up Successful', 'follow_up_successful'],
-            ['❌ Follow-Up Unsuccessful', 'follow_up_unsuccessful'],
-            ['🚫 Not Interested', 'not_interested'],
-            ['🔄 Re-Follow Up', 're_follow_up'],
-            ['👤 Convert to Client', 'converted'],
-            ['📁 Lead Close - Follow-Up Unsuccessful', 'lead_closed']
-          ], @lead&.current_stage || 'lead_generated'), {}, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
+          <%= form.select :current_stage, options_for_select(Lead.stage_options_for_select(with_icons: true), @lead&.current_stage || 'lead_generated'), {}, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
         </div>
 
         <div class="col-md-6 mb-3">

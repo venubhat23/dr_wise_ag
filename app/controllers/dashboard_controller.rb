@@ -389,8 +389,7 @@ class DashboardController < ApplicationController
     results[:total_sum_insured]       = get_sum_insured_for_period(start_date, end_date)
 
     # Pending leads count for the period — all stages except terminal ones
-    active_lead_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
-                          'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
+    active_lead_stages = Lead::ACTIVE_STAGES
     results[:pending_leads] = Lead.where(current_stage: active_lead_stages)
                                   .where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
 
@@ -736,8 +735,7 @@ class DashboardController < ApplicationController
     end
 
     # Pending leads count — all stages except terminal ones
-    active_lead_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
-                          'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
+    active_lead_stages = Lead::ACTIVE_STAGES
     results[:pending_leads] = Lead.where(current_stage: active_lead_stages).count
 
     # Renewals and expired policies (date-based queries)
@@ -1387,12 +1385,11 @@ class DashboardController < ApplicationController
     when 'policies', 'premium'
       collect_policies_for_detail(range)
     when 'leads'
-      active_stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up',
-                       'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up']
+      active_stages = Lead::ACTIVE_STAGES
       Lead.where("created_at >= ? AND created_at < ?", start_date, next_day)
           .where(current_stage: active_stages)
           .order(created_at: :desc).map do |l|
-        { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
+        { type: 'Lead', name: l.name.to_s, stage: Lead.stage_label(l.current_stage),
           created_at: l.created_at.strftime('%d-%m-%Y') }
       end
     when 'investors'

@@ -147,19 +147,11 @@ class VendorPortalController < ApplicationController
     end
 
     # Same transition methods Admin::LeadsController#update_stage uses.
-    success = case new_stage
-    when 'consultation_scheduled' then lead.move_to_consultation_scheduled!
-    when 'one_on_one'             then lead.move_to_one_on_one!
-    when 'follow_up'               then lead.move_to_follow_up!
-    when 'follow_up_successful'    then lead.mark_follow_up_successful!
-    when 'follow_up_unsuccessful'  then lead.mark_follow_up_unsuccessful!
-    when 'not_interested'          then lead.mark_not_interested!
-    when 're_follow_up'            then lead.move_to_re_follow_up!
-    when 'converted'
+    success = if new_stage == 'converted'
       lead.update!(current_stage: 'converted', stage_updated_at: Time.current)
       true
-    when 'lead_closed' then lead.close_lead!
-    else false
+    else
+      lead.move_to_stage!(new_stage)
     end
 
     if success

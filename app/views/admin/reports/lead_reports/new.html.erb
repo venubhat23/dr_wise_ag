@@ -65,19 +65,7 @@
         <div class="col-md-6 mb-4">
           <%= form.label :current_stage, "Lead Stage", class: "form-label" %>
           <%= form.select :current_stage,
-                         options_for_select([
-                           ['All Stages', ''],
-                           ['Lead Generated', 'lead_generated'],
-                           ['Consultation Scheduled', 'consultation_scheduled'],
-                           ['One On One', 'one_on_one'],
-                           ['Follow Up', 'follow_up'],
-                           ['Follow Up Successful', 'follow_up_successful'],
-                           ['Follow Up Unsuccessful', 'follow_up_unsuccessful'],
-                           ['Not Interested', 'not_interested'],
-                           ['Converted', 'converted'],
-                           ['Re Follow Up', 're_follow_up'],
-                           ['Lead Closed', 'lead_closed']
-                         ]),
+                         options_for_select([['All Stages', '']] + Lead.stage_options_for_select),
                          {},
                          { class: "form-select" } %>
         </div>

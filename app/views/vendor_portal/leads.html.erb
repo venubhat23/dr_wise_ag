@@ -7,7 +7,7 @@
     <%= form_with url: vendor_leads_path, method: :get, local: true, class: "d-flex flex-wrap gap-3 align-items-end" do |form| %>
       <div>
         <%= form.select :stage,
-              options_for_select([['All Stages', '']] + Lead.current_stages.keys.map { |s| [s.humanize, s] }, params[:stage]),
+              options_for_select([['All Stages', '']] + Lead.stage_options_for_select, params[:stage]),
               {}, { class: "form-select" } %>
       </div>
       <div class="d-flex gap-2">
@@ -51,7 +51,7 @@
                       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
                       <select name="new_stage" class="form-select form-select-sm" style="width: auto;">
                         <% lead.next_stage_options.each do |stage| %>
-                          <option value="<%= stage %>"><%= stage.humanize %></option>
+                          <option value="<%= stage %>"><%= Lead.stage_label(stage) %></option>
                         <% end %>
                       </select>
                       <button type="submit" class="btn btn-sm btn-primary">Move</button>

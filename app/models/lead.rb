@@ -2,6 +2,31 @@ class Lead < ApplicationRecord
   include PgSearch::Model
   include ClearsAnalyticsCache
 
+  # Lead flow — the single source of truth for every stage list in the app
+  # (admin, vendor portal, mobile API, reports, analytics). Order = pipeline order.
+  STAGES = {
+    'lead_generated'         => { label: 'Lead Generated',  icon: '🟢', badge: 'bg-secondary', description: 'Initial lead entry into system' },
+    'consultation_scheduled' => { label: 'Consultation',    icon: '📅', badge: 'bg-info',      description: 'Initial consultation with the client' },
+    'one_on_one'             => { label: 'One on One',      icon: '🤝', badge: 'bg-warning',   description: 'Detailed discussion on needs, premium and benefits' },
+    'follow_up'              => { label: 'Follow-up',       icon: '🔁', badge: 'bg-primary',   description: 'Following up with client for interest confirmation' },
+    'proposal_quote'         => { label: 'Proposal/Quote',  icon: '📝', badge: 'bg-info',      description: 'Proposal / quote shared with the client' },
+    'payment_made'           => { label: 'Payment Made',    icon: '💳', badge: 'bg-primary',   description: 'Client has made the payment' },
+    'underwriting'           => { label: 'Underwriting',    icon: '🔍', badge: 'bg-warning',   description: 'Proposal under underwriting review' },
+    'converted'              => { label: 'Converted',       icon: '👤', badge: 'bg-success',   description: 'Lead converted to client' }
+  }.freeze
+  STAGE_ORDER = STAGES.keys.freeze
+  # Stages that still count as "in the pipeline" (everything except converted)
+  ACTIVE_STAGES = (STAGE_ORDER - ['converted']).freeze
+
+  def self.stage_label(stage)
+    STAGES.dig(stage.to_s, :label) || stage.to_s.humanize
+  end
+
+  # [[label, value], ...] for select boxes
+  def self.stage_options_for_select(with_icons: false)
+    STAGES.map { |key, s| [with_icons ? "#{s[:icon]} #{s[:label]}" : s[:label], key] }
+  end
+
   validates :name, presence: true
   validates :contact_number, presence: true
   validate :validate_mobile_number_format
@@ -12,7 +37,7 @@ class Lead < ApplicationRecord
   # Custom validations for uniqueness that skip branch out leads - DISABLED
   # validate :unique_contact_for_product_combination, unless: :is_branch_out?
   # validate :unique_email_for_product_combination, unless: :is_branch_out?
-  validates :current_stage, presence: true, inclusion: { in: ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested', 'converted', 're_follow_up', 'lead_closed'] }
+  validates :current_stage, presence: true, inclusion: { in: STAGE_ORDER }
   validates :lead_source, presence: true, inclusion: { in: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'] }
   validates :product_category, presence: true, inclusion: { in: ['insurance', 'investments', 'loans', 'taxation', 'travel', 'credit_card'] }
   validates :product_subcategory, presence: true
@@ -86,18 +111,7 @@ class Lead < ApplicationRecord
   before_validation :set_initial_stage
   before_validation :clean_mobile_number
 
-  enum :current_stage, {
-    lead_generated: 'lead_generated',
-    consultation_scheduled: 'consultation_scheduled',
-    one_on_one: 'one_on_one',
-    follow_up: 'follow_up',
-    follow_up_successful: 'follow_up_successful',
-    follow_up_unsuccessful: 'follow_up_unsuccessful',
-    not_interested: 'not_interested',
-    converted: 'converted',
-    re_follow_up: 're_follow_up',
-    lead_closed: 'lead_closed'
-  }
+  enum :current_stage, STAGE_ORDER.index_with(&:itself)
 
   enum :lead_source, {
     online: 'online',
@@ -138,9 +152,9 @@ class Lead < ApplicationRecord
   scope :by_product_subcategory, ->(subcategory) { where(product_subcategory: subcategory) }
   scope :by_product, ->(product) { where(product_subcategory: product) }
   scope :recent, -> { order(created_date: :desc) }
-  scope :pending_conversion, -> { where(current_stage: ['consultation_scheduled', 'one_on_one', 'follow_up', 're_follow_up']) }
+  scope :pending_conversion, -> { where(current_stage: ACTIVE_STAGES - ['lead_generated']) }
   scope :converted_leads, -> { where(current_stage: 'converted') }
-  scope :active_follow_up, -> { where(current_stage: ['follow_up', 're_follow_up']) }
+  scope :active_follow_up, -> { where(current_stage: 'follow_up') }
   scope :direct_leads, -> { where(is_direct: true) }
   scope :referred_leads, -> { where(is_direct: false) }
   scope :by_affiliate, ->(affiliate_id) { where(affiliate_id: affiliate_id) }
@@ -152,94 +166,25 @@ class Lead < ApplicationRecord
       tsearch: { prefix: true, any_word: true }
     }
 
-  # Stage transition methods - Made more flexible to allow stage jumps
-  def can_move_to_consultation?
-    # Allow from lead_generated or any early stage
-    lead_generated? || !cannot_change_stage?
-  end
-
-  def can_move_to_one_on_one?
-    # Allow from consultation_scheduled or any non-final stage
-    consultation_scheduled? || (!cannot_change_stage? && !in_follow_up_cycle?)
-  end
-
-  def can_move_to_follow_up?
-    # Allow from one_on_one, consultation_scheduled, or any non-final stage
-    one_on_one? || consultation_scheduled? || (!cannot_change_stage? && !in_follow_up_cycle?)
-  end
-
-  def can_mark_follow_up_successful?
-    # Allow from follow_up, re_follow_up, or any stage that makes sense
-    follow_up? || re_follow_up? || consultation_scheduled? || one_on_one? || (!cannot_change_stage?)
-  end
-
-  def can_mark_follow_up_unsuccessful?
-    # Allow from follow_up, re_follow_up, or any stage that makes sense
-    follow_up? || re_follow_up? || consultation_scheduled? || one_on_one? || (!cannot_change_stage?)
-  end
-
-  def can_mark_not_interested?
-    # Allow from any stage except final stages
-    !cannot_change_stage?
-  end
-
-  def can_re_follow_up?
-    # Allow from follow_up_unsuccessful or any follow-up stage
-    follow_up_unsuccessful? || follow_up? || (!cannot_change_stage?)
-  end
-
   def can_convert_to_customer?
-    # Allow conversion from any stage except already converted or closed
-    !['converted', 'lead_closed'].include?(current_stage) && converted_customer_id.nil?
+    !converted? && converted_customer_id.nil?
   end
 
   def can_create_policy?
     converted? && converted_customer_id.present?
   end
 
-  def can_close_lead?
-    not_interested? || converted? || (!cannot_change_stage?)
-  end
-
+  # Only converted leads are locked
   def cannot_change_stage?
-    # Only prevent changes if lead is in truly final states
-    lead_closed?
+    converted?
   end
 
-  # Stage transition methods with validation
-  def move_to_consultation_scheduled!
-    return false unless can_move_to_consultation?
-    update!(current_stage: 'consultation_scheduled', stage_updated_at: Time.current)
-  end
-
-  def move_to_one_on_one!
-    return false unless can_move_to_one_on_one?
-    update!(current_stage: 'one_on_one', stage_updated_at: Time.current)
-  end
-
-  def move_to_follow_up!
-    return false unless can_move_to_follow_up?
-    update!(current_stage: 'follow_up', stage_updated_at: Time.current)
-  end
-
-  def mark_follow_up_successful!
-    return false unless can_mark_follow_up_successful?
-    update!(current_stage: 'follow_up_successful', stage_updated_at: Time.current)
-  end
-
-  def mark_follow_up_unsuccessful!
-    return false unless can_mark_follow_up_unsuccessful?
-    update!(current_stage: 'follow_up_unsuccessful', stage_updated_at: Time.current)
-  end
-
-  def mark_not_interested!
-    return false unless can_mark_not_interested?
-    update!(current_stage: 'not_interested', stage_updated_at: Time.current)
-  end
-
-  def move_to_re_follow_up!
-    return false unless can_re_follow_up?
-    update!(current_stage: 're_follow_up', stage_updated_at: Time.current)
+  # Moves the lead to any non-converted stage (conversion goes through the
+  # client-creation flow so a Customer is always created).
+  def move_to_stage!(stage)
+    stage = stage.to_s
+    return false unless ACTIVE_STAGES.include?(stage) && !cannot_change_stage?
+    update!(current_stage: stage, stage_updated_at: Time.current)
   end
 
   def convert_to_customer!(customer_id)
@@ -247,18 +192,9 @@ class Lead < ApplicationRecord
     update!(current_stage: 'converted', converted_customer_id: customer_id, stage_updated_at: Time.current)
   end
 
-  def close_lead!
-    return false unless can_close_lead?
-    update!(current_stage: 'lead_closed', stage_updated_at: Time.current)
-  end
-
   # Helper methods
   def converted?
     current_stage == 'converted'
-  end
-
-  def in_follow_up_cycle?
-    ['follow_up', 'follow_up_successful', 'follow_up_unsuccessful', 're_follow_up'].include?(current_stage)
   end
 
   def can_settle_referral?
@@ -270,19 +206,7 @@ class Lead < ApplicationRecord
   end
 
   def stage_badge_class
-    case current_stage
-    when 'lead_generated' then 'bg-secondary'
-    when 'consultation_scheduled' then 'bg-info'
-    when 'one_on_one' then 'bg-warning'
-    when 'follow_up' then 'bg-primary'
-    when 'follow_up_successful' then 'bg-success'
-    when 'follow_up_unsuccessful' then 'bg-danger'
-    when 'not_interested' then 'bg-dark'
-    when 're_follow_up' then 'bg-warning'
-    when 'converted' then 'bg-success'
-    when 'lead_closed' then 'bg-secondary'
-    else 'bg-secondary'
-    end
+    STAGES.dig(current_stage, :badge) || 'bg-secondary'
   end
 
   def source_badge_class
@@ -308,43 +232,20 @@ class Lead < ApplicationRecord
     end
   end
 
-  def next_stage_options
-    # Define base next stage options
-    base_options = case current_stage
-    when 'lead_generated' then ['consultation_scheduled']
-    when 'consultation_scheduled' then ['one_on_one']
-    when 'one_on_one' then ['follow_up']
-    when 'follow_up' then ['follow_up_successful', 'follow_up_unsuccessful', 'not_interested']
-    when 're_follow_up' then ['follow_up_successful', 'follow_up_unsuccessful', 'not_interested']
-    when 'follow_up_successful' then ['converted']
-    when 'follow_up_unsuccessful' then ['re_follow_up']
-    when 'converted' then ['lead_closed']
-    when 'not_interested' then ['lead_closed']
-    else []
-    end
+  def stage_index
+    STAGE_ORDER.index(current_stage) || 0
+  end
 
-    # Add 'converted' option to all stages that can convert (except final stages)
-    if can_convert_to_customer? && !base_options.include?('converted')
-      base_options + ['converted']
-    else
-      base_options
-    end
+  def next_stage_options
+    return [] if converted?
+
+    # The next stage in the flow, plus 'converted' (allowed from any stage)
+    ([STAGE_ORDER[stage_index + 1]] + ['converted']).compact.uniq
   end
 
   def stage_display_name
-    case current_stage
-    when 'lead_generated' then '🟢 Lead Generated'
-    when 'consultation_scheduled' then '📅 Consultation Scheduled'
-    when 'one_on_one' then '🤝 One-on-One Discussion'
-    when 'follow_up' then '🔁 Follow-Up'
-    when 'follow_up_successful' then '✅ Successful'
-    when 'follow_up_unsuccessful' then '❌ Not Successful'
-    when 'not_interested' then '🚫 Not Interested'
-    when 're_follow_up' then '🔄 Re-Follow Up'
-    when 'converted' then '👤 Convert to Client'
-    when 'lead_closed' then '📁 Lead Close - Follow-Up Unsuccessful'
-    else current_stage.humanize
-    end
+    stage = STAGES[current_stage]
+    stage ? "#{stage[:icon]} #{stage[:label]}" : current_stage.to_s.humanize
   end
 
   def product_subcategory_display
@@ -381,23 +282,7 @@ class Lead < ApplicationRecord
   end
 
   def can_go_back?
-    return false if locked_stage?
-
-    # Define which stages can go back and to where
-    case current_stage
-    when 'consultation_scheduled'
-      true # can go back to lead_generated
-    when 'one_on_one'
-      true # can go back to consultation_scheduled
-    when 'follow_up'
-      true # can go back to one_on_one
-    when 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested'
-      true # can go back to follow_up
-    when 're_follow_up'
-      true # can go back to follow_up_unsuccessful
-    else
-      false # converted, policy_created, lead_closed cannot go back
-    end
+    !locked_stage? && previous_stage.present?
   end
 
   def next_stage
@@ -406,53 +291,25 @@ class Lead < ApplicationRecord
   end
 
   def previous_stage
-    # Define reverse stage mapping for going back
-    case current_stage
-    when 'consultation_scheduled'
-      'lead_generated'
-    when 'one_on_one'
-      'consultation_scheduled'
-    when 'follow_up'
-      'one_on_one'
-    when 'follow_up_successful', 'follow_up_unsuccessful', 'not_interested'
-      'follow_up'
-    when 're_follow_up'
-      'follow_up_unsuccessful'
-    else
-      nil
-    end
+    return nil if converted? || stage_index.zero?
+    STAGE_ORDER[stage_index - 1]
   end
 
   def locked_stage?
-    # Once lead is closed or converted, don't allow going back to prevent data inconsistency
-    ['lead_closed', 'converted'].include?(current_stage)
+    # Once converted, don't allow going back to prevent data inconsistency
+    converted?
   end
 
   def stage_progress_percentage
-    stages = ['lead_generated', 'consultation_scheduled', 'one_on_one', 'follow_up', 'converted', 'lead_closed']
-    current_index = stages.index(current_stage) || 0
-    ((current_index + 1).to_f / stages.length * 100).round
+    ((stage_index + 1).to_f / STAGE_ORDER.length * 100).round
   end
 
   def available_stages_for_transition
-    # Return only valid next stage transitions, not all possible stages
     next_stage_options
   end
 
   def stage_description
-    case current_stage
-    when 'lead_generated' then 'Initial lead entry into system'
-    when 'consultation_scheduled' then 'Initial consultation scheduled'
-    when 'one_on_one' then 'Detailed discussion on premium and policy benefits'
-    when 'follow_up' then 'Following up with client for interest confirmation'
-    when 'follow_up_successful' then 'Client confirmed interest'
-    when 'follow_up_unsuccessful' then 'Client not interested at this time'
-    when 'not_interested' then 'Client explicitly not interested'
-    when 're_follow_up' then 'Additional follow-up attempt'
-    when 'converted' then 'Lead converted to client'
-    when 'lead_closed' then 'Lead close - Follow-up unsuccessful'
-    else 'Unknown stage'
-    end
+    STAGES.dig(current_stage, :description) || 'Unknown stage'
   end
 
   def display_name

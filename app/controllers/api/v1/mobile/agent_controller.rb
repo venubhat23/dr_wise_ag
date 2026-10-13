@@ -977,6 +977,9 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
     validation_errors << 'Name is required' if lead_params[:name].blank?
     validation_errors << 'Contact number is required' if lead_params[:contact_number].blank?
     validation_errors << product_error if product_error
+    if lead_params[:current_stage].present? && !Lead::STAGE_ORDER.include?(lead_params[:current_stage])
+      validation_errors << "Invalid stage. Must be one of: #{Lead::STAGE_ORDER.join(', ')}"
+    end
 
     # Validate phone number format
     if lead_params[:contact_number].present?
@@ -1270,13 +1273,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
         document_types: ['policy_copy', 'proposal_form', 'medical_reports', 'id_proof', 'address_proof'],
 
         # Leads related dropdowns
-        lead_stages: [
-          { value: 'consultation', label: 'Consultation' },
-          { value: 'one_on_one', label: 'One-on-One' },
-          { value: 'converted', label: 'Converted' },
-          { value: 'policy_created', label: 'Policy Created' },
-          { value: 'referral_settled', label: 'Referral Settled' }
-        ],
+        lead_stages: Lead::STAGES.map { |value, st| { value: value, label: st[:label] } },
         lead_sources: [
           { value: 'online', label: 'Online' },
           { value: 'offline', label: 'Offline' },
@@ -2460,13 +2457,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       pending_leads: Lead.pending_conversion.count,
       converted_leads: Lead.converted_leads.count,
       conversion_rate: calculate_conversion_rate,
-      by_stage: {
-        consultation_scheduled: Lead.by_stage('consultation_scheduled').count,
-        one_on_one: Lead.by_stage('one_on_one').count,
-        follow_up: Lead.by_stage('follow_up').count,
-        converted: Lead.by_stage('converted').count,
-        lead_closed: Lead.by_stage('lead_closed').count
-      },
+      by_stage: Lead.group(:current_stage).count.then { |counts| Lead::STAGE_ORDER.index_with { |st| counts[st].to_i }.symbolize_keys },
       by_product: {
         health: Lead.by_product('health').count,
         life: Lead.by_product('life').count,
@@ -2514,13 +2505,7 @@ class Api::V1::Mobile::AgentController < Api::V1::Mobile::BaseController
       pending_leads: base_leads_query.pending_conversion.count,
       converted_leads: base_leads_query.converted_leads.count,
       conversion_rate: calculate_conversion_rate_for_query(base_leads_query),
-      by_stage: {
-        consultation_scheduled: base_leads_query.by_stage('consultation_scheduled').count,
-        one_on_one: base_leads_query.by_stage('one_on_one').count,
-        follow_up: base_leads_query.by_stage('follow_up').count,
-        converted: base_leads_query.by_stage('converted').count,
-        lead_closed: base_leads_query.by_stage('lead_closed').count
-      },
+      by_stage: base_leads_query.group(:current_stage).count.then { |counts| Lead::STAGE_ORDER.index_with { |st| counts[st].to_i }.symbolize_keys },
       by_product: {
         health: base_leads_query.by_product('health').count,
         life: base_leads_query.by_product('life').count,

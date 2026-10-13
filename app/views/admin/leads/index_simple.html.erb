@@ -11,11 +11,9 @@
 
   <h2>Pipeline Statistics</h2>
   <div style="background: #f8f9fa; padding: 15px; margin: 10px 0;">
-    <p>Consultation: <%= @consultation_leads %></p>
-    <p>One-on-One: <%= @one_on_one_leads %></p>
-    <p>Converted: <%= @converted_leads %></p>
-    <p>Policy Created: <%= @policy_created_leads %></p>
-    <p>Referral Settled: <%= @referral_settled_leads %></p>
+    <% @pipeline_stats.each do |stage, count| %>
+      <p><%= Lead.stage_label(stage) %>: <%= count %></p>
+    <% end %>
   </div>
 
   <h2>Leads List</h2>

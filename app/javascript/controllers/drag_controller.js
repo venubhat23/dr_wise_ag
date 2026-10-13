@@ -249,8 +249,8 @@ export default class extends Controller {
   }
 
   canMoveToStage(currentStage, targetStage) {
-    // For now, allow all stage transitions except to/from converted and lead_closed
-    const restrictedFromStages = ['converted', 'lead_closed']
+    // Allow all stage transitions except moving a lead out of converted
+    const restrictedFromStages = ['converted']
     const restrictedToStages = []
 
     if (restrictedFromStages.includes(currentStage)) {

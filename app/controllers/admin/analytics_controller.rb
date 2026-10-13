@@ -178,7 +178,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
     @lead_conversion_funnel  = build_lead_conversion_funnel(lead_stage_counts)
     @lead_stage_distribution = build_lead_stage_distribution(lead_stage_counts)
     @new_leads       = lead_stage_counts.values.sum
-    @converted_leads = (lead_stage_counts['policy_created'] || 0) + (lead_stage_counts['converted'] || 0)
+    @converted_leads = lead_stage_counts['converted'] || 0
     converted_only    = lead_stage_counts['converted'] || 0
     @conversion_rate = @new_leads > 0 ? ((converted_only.to_f / @new_leads.to_f) * 100).round(1) : 0
 
@@ -527,41 +527,22 @@ class Admin::AnalyticsController < Admin::ApplicationController
     nil
   end
 
+  # { 'Lead Generated' => n, ..., 'Converted' => n } in Lead flow order
+  def lead_stage_counts_by_label(stage_counts)
+    Lead::STAGES.each_with_object({}) { |(key, st), h| h[st[:label]] = stage_counts[key].to_i }
+  end
+
   # Was 5 separate COUNT queries (one per stage); now built from a single
   # pre-fetched stage_counts hash (see build_lead_stage_distribution, which
   # reuses the exact same query).
   def build_lead_conversion_funnel(stage_counts)
-    {
-      'Lead Generated'           => stage_counts['lead_generated'] || 0,
-      'Consultation Scheduled'   => stage_counts['consultation_scheduled'] || 0,
-      'One on One'               => stage_counts['one_on_one'] || 0,
-      'Follow Up'                => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
-      'Converted'                => stage_counts['converted'] || 0
-    }
-  rescue => e
-    Rails.logger.error "Error building lead conversion funnel: #{e.message}"
-    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
+    lead_stage_counts_by_label(stage_counts)
   end
 
   # Was 9 separate COUNT queries (one per stage); now built from the same
   # pre-fetched stage_counts hash as build_lead_conversion_funnel.
   def build_lead_stage_distribution(stage_counts)
-    {
-      'Lead Generated'         => stage_counts['lead_generated'] || 0,
-      'Consultation Scheduled' => stage_counts['consultation_scheduled'] || 0,
-      'One on One'             => stage_counts['one_on_one'] || 0,
-      'Follow Up'              => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
-      'Follow Up Successful'   => stage_counts['follow_up_successful'] || 0,
-      'Follow Up Unsuccessful' => stage_counts['follow_up_unsuccessful'] || 0,
-      'Not Interested'         => stage_counts['not_interested'] || 0,
-      'Converted'              => stage_counts['converted'] || 0,
-      'Lead Closed'            => stage_counts['lead_closed'] || 0
-    }
-  rescue => e
-    Rails.logger.error "Error building lead stage distribution: #{e.message}"
-    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0,
-      'Follow Up Successful' => 0, 'Follow Up Unsuccessful' => 0, 'Not Interested' => 0,
-      'Converted' => 0, 'Lead Closed' => 0 }
+    lead_stage_counts_by_label(stage_counts)
   end
 
   def calculate_customer_location_for_period(start_date, end_date, total_customers = nil)
@@ -1194,38 +1175,18 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   # Was 5 separate COUNT queries (one per stage); now one grouped query.
   def calculate_lead_conversion_funnel
-    stage_counts = Lead.group(:current_stage).count
-    {
-      'Lead Generated'           => stage_counts['lead_generated'] || 0,
-      'Consultation Scheduled'   => stage_counts['consultation_scheduled'] || 0,
-      'One on One'               => stage_counts['one_on_one'] || 0,
-      'Follow Up'                => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
-      'Converted'                => stage_counts['converted'] || 0
-    }
+    lead_stage_counts_by_label(Lead.group(:current_stage).count)
   rescue => e
-    Rails.logger.error "Error calculating lead conversion funnel: #{e.message}"
-    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0, 'Converted' => 0 }
+    Rails.logger.error "Error calculating lead stage counts: #{e.message}"
+    lead_stage_counts_by_label({})
   end
 
   # Was 9 separate COUNT queries (one per stage); now one grouped query.
   def calculate_lead_stage_distribution
-    stage_counts = Lead.group(:current_stage).count
-    {
-      'Lead Generated'         => stage_counts['lead_generated'] || 0,
-      'Consultation Scheduled' => stage_counts['consultation_scheduled'] || 0,
-      'One on One'             => stage_counts['one_on_one'] || 0,
-      'Follow Up'              => (stage_counts['follow_up'] || 0) + (stage_counts['re_follow_up'] || 0),
-      'Follow Up Successful'   => stage_counts['follow_up_successful'] || 0,
-      'Follow Up Unsuccessful' => stage_counts['follow_up_unsuccessful'] || 0,
-      'Not Interested'         => stage_counts['not_interested'] || 0,
-      'Converted'              => stage_counts['converted'] || 0,
-      'Lead Closed'            => stage_counts['lead_closed'] || 0
-    }
+    lead_stage_counts_by_label(Lead.group(:current_stage).count)
   rescue => e
-    Rails.logger.error "Error calculating lead stage distribution: #{e.message}"
-    { 'Lead Generated' => 0, 'Consultation Scheduled' => 0, 'One on One' => 0, 'Follow Up' => 0,
-      'Follow Up Successful' => 0, 'Follow Up Unsuccessful' => 0, 'Not Interested' => 0,
-      'Converted' => 0, 'Lead Closed' => 0 }
+    Rails.logger.error "Error calculating lead stage counts: #{e.message}"
+    lead_stage_counts_by_label({})
   end
 
   def calculate_customer_location
@@ -1339,7 +1300,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
 
   def calculate_converted_leads
     # Count leads that have been converted to customers with policies
-    Lead.where(current_stage: ['policy_created', 'converted']).count
+    Lead.where(current_stage: 'converted').count
   rescue => e
     Rails.logger.error "Error calculating converted leads: #{e.message}"
     0
@@ -1485,7 +1446,7 @@ class Admin::AnalyticsController < Admin::ApplicationController
       analytics_collect_policies(range)
     when 'leads'
       Lead.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |l|
-        { type: 'Lead', name: l.name.to_s, stage: l.current_stage.to_s.humanize,
+        { type: 'Lead', name: l.name.to_s, stage: Lead.stage_label(l.current_stage),
           created_at: l.created_at.strftime('%d-%m-%Y') }
       end
     when 'investors'

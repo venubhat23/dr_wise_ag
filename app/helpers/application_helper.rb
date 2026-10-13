@@ -442,37 +442,6 @@ module ApplicationHelper
     end
   end
 
-  # Lead stage helper methods
-  def get_stage_display_name(stage)
-    case stage.to_s
-    when 'new' then 'New Lead'
-    when 'contacted' then 'Contacted'
-    when 'qualified' then 'Qualified'
-    when 'proposal' then 'Proposal'
-    when 'negotiation' then 'Negotiation'
-    when 'closed_won' then 'Closed Won'
-    when 'closed_lost' then 'Closed Lost'
-    when 'follow_up' then 'Follow Up'
-    when 'not_interested' then 'Not Interested'
-    else stage.to_s.humanize
-    end
-  end
-
-  def get_stage_button_class(stage)
-    case stage.to_s
-    when 'new' then 'btn-outline-primary'
-    when 'contacted' then 'btn-outline-info'
-    when 'qualified' then 'btn-outline-warning'
-    when 'proposal' then 'btn-outline-secondary'
-    when 'negotiation' then 'btn-outline-dark'
-    when 'closed_won' then 'btn-outline-success'
-    when 'closed_lost' then 'btn-outline-danger'
-    when 'follow_up' then 'btn-outline-warning'
-    when 'not_interested' then 'btn-outline-secondary'
-    else 'btn-outline-secondary'
-    end
-  end
-
   # Terminology mapping helpers for new naming convention
   def display_term(old_term)
     terminology_map = {

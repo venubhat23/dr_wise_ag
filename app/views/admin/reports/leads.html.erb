@@ -113,7 +113,7 @@
           <div>
             <h6 class="text-muted mb-2">Active Pipeline</h6>
             <h3 class="mb-0 text-info">
-              <%= @leads_by_stage.except('converted', 'closed', 'rejected').values.sum %>
+              <%= @leads_by_stage.except('converted').values.sum %>
             </h3>
           </div>
           <div class="bg-info bg-opacity-10 rounded p-3">
@@ -166,36 +166,15 @@
   <div class="card-body">
     <% if @leads_by_stage.any? %>
       <div class="row">
-        <% @leads_by_stage.each do |stage, count| %>
+        <% Lead::STAGES.each do |stage, stage_info| %>
+          <% count = @leads_by_stage[stage].to_i %>
           <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
             <div class="text-center p-3 border rounded">
               <div class="mb-2">
-                <i class="bi bi-<%=
-                  case stage
-                  when 'new' then 'plus-circle text-primary'
-                  when 'contacted' then 'telephone text-info'
-                  when 'qualified' then 'check-circle text-success'
-                  when 'proposal' then 'file-earmark-text text-warning'
-                  when 'negotiation' then 'chat-dots text-secondary'
-                  when 'converted' then 'trophy text-success'
-                  when 'closed' then 'x-circle text-danger'
-                  else 'circle text-muted'
-                  end
-                %> fs-2"></i>
+                <span class="fs-2"><%= stage_info[:icon] %></span>
               </div>
-              <h6 class="fw-semibold mb-1"><%= stage.humanize %></h6>
-              <h4 class="text-<%=
-                case stage
-                when 'new' then 'primary'
-                when 'contacted' then 'info'
-                when 'qualified' then 'success'
-                when 'proposal' then 'warning'
-                when 'negotiation' then 'secondary'
-                when 'converted' then 'success'
-                when 'closed' then 'danger'
-                else 'muted'
-                end
-              %> mb-0"><%= count %></h4>
+              <h6 class="fw-semibold mb-1"><%= stage_info[:label] %></h6>
+              <h4 class="text-<%= stage_info[:badge].delete_prefix('bg-') %> mb-0"><%= count %></h4>
               <small class="text-muted">leads</small>
             </div>
           </div>

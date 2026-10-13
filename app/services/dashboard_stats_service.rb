@@ -85,7 +85,7 @@ class DashboardStatsService
       "SELECT
         COUNT(*) as total,
         COUNT(CASE WHEN current_stage = 'converted' THEN 1 END) as converted,
-        COUNT(CASE WHEN current_stage IN ('lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one') THEN 1 END) as pending
+        COUNT(CASE WHEN current_stage != 'converted' THEN 1 END) as pending
       FROM leads"
     )
 

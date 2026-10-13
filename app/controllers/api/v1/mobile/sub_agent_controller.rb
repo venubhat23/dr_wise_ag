@@ -72,8 +72,8 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
         statistics: {
           total_leads: Lead.where(affiliate_id: current_sub_agent.id).count,
           converted_leads: Lead.where(affiliate_id: current_sub_agent.id, converted_customer_id: [1..Float::INFINITY]).count,
-          pending_leads: Lead.where(affiliate_id: current_sub_agent.id, current_stage: ['consultation_scheduled', 'one_on_one', 'follow_up', 're_follow_up']).count,
-          closed_leads: Lead.where(affiliate_id: current_sub_agent.id, current_stage: 'lead_closed').count
+          pending_leads: Lead.where(affiliate_id: current_sub_agent.id, current_stage: Lead::ACTIVE_STAGES - ['lead_generated']).count,
+          closed_leads: 0 # 'lead_closed' stage removed; key kept for older app builds
         }
       }
     }
@@ -172,7 +172,7 @@ class Api::V1::Mobile::SubAgentController < Api::V1::Mobile::BaseController
       contact_number: lead.contact_number,
       email: lead.email,
       current_stage: lead.current_stage,
-      stage_display_name: lead.current_stage&.titleize || 'Unknown',
+      stage_display_name: Lead.stage_label(lead.current_stage),
       product_category: lead.product_category,
       product_subcategory: lead.product_subcategory,
       product_interest: lead.product_interest,

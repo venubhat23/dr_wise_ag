@@ -2180,7 +2180,7 @@ body {
                              else                               'linear-gradient(135deg, #6c757d, #495057)'
                              end %>
                         <div class="stage-badge" style="background: <%= stage_bg %>; color: white; padding: 10px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: capitalize; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: inline-block;">
-                          <i class="bi bi-<%= lead.current_stage == 'converted' ? 'check-circle-fill' : lead.current_stage == 'follow_up' ? 'clock-fill' : lead.current_stage == 'consultation_scheduled' ? 'calendar-check-fill' : 'hourglass-split' %> me-2"></i><%= lead.current_stage&.humanize || 'Unknown' %>
+                          <i class="bi bi-<%= lead.current_stage == 'converted' ? 'check-circle-fill' : lead.current_stage == 'follow_up' ? 'clock-fill' : lead.current_stage == 'consultation_scheduled' ? 'calendar-check-fill' : 'hourglass-split' %> me-2"></i><%= Lead.stage_label(lead.current_stage) %>
                         </div>
                       </div>
                     </div>

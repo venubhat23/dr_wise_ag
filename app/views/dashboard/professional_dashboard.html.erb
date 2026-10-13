@@ -1014,7 +1014,7 @@
                   <i class="bi bi-funnel" style="color: #d97706;"></i>
                 </div>
                 <div class="activity-content">
-                  <div class="activity-title">Lead <%= lead.current_stage&.humanize || "Created" %></div>
+                  <div class="activity-title">Lead <%= Lead.stage_label(lead.current_stage) %></div>
                   <div class="activity-description">
                     <%= lead.display_name %> - <%= lead.insurance_interest || "Insurance" %>
                   </div>

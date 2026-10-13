@@ -40,7 +40,7 @@
         <% if @report.filters['current_stage'].present? %>
           <div class="col-md-3">
             <small class="text-muted d-block">Lead Stage</small>
-            <%= @report.filters['current_stage'].humanize %>
+            <%= Lead.stage_label(@report.filters['current_stage']) %>
           </div>
         <% end %>
         <% if @report.filters['product_category'].present? %>

@@ -116,7 +116,7 @@ class DashboardUltraFastService
           SELECT
             COUNT(*) as total,
             COUNT(CASE WHEN current_stage = 'converted' THEN 1 END) as converted,
-            COUNT(CASE WHEN current_stage IN ('lead_generated', 'follow_up', 'follow_up_successful', 'consultation_scheduled', 'one_on_one') THEN 1 END) as pending,
+            COUNT(CASE WHEN current_stage != 'converted' THEN 1 END) as pending,
             COUNT(CASE WHEN created_at >= (SELECT month_start FROM date_series) THEN 1 END) as current_month,
             COUNT(CASE WHEN created_at BETWEEN (SELECT last_month_start FROM date_series) AND (SELECT last_month_end FROM date_series) THEN 1 END) as last_month
           FROM leads

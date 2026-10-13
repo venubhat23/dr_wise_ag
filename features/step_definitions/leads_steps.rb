@@ -288,44 +288,8 @@ Then('the lead stage should be {string}') do |stage_display|
   # Check via the stage badge visible on the show page header
   has_stage = page.has_text?(stage_display, wait: 5) ||
               page.has_css?('.badge', text: /#{Regexp.escape(stage_display)}/i, wait: 3) ||
-              @lead.current_stage.humanize.downcase.include?(stage_display.downcase)
+              Lead.stage_label(@lead.current_stage).downcase.include?(stage_display.downcase)
   expect(has_stage).to be_truthy
-end
-
-When('I mark the lead as not interested') do
-  page.execute_script(<<~JS)
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/leads/#{@lead.id}/mark_not_interested';
-    var method = document.createElement('input');
-    method.type = 'hidden'; method.name = '_method'; method.value = 'patch';
-    form.appendChild(method);
-    var csrf = document.createElement('input');
-    csrf.type = 'hidden'; csrf.name = 'authenticity_token';
-    csrf.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    form.appendChild(csrf);
-    document.body.appendChild(form);
-    form.submit();
-  JS
-  sleep 1
-end
-
-When('I close the lead') do
-  page.execute_script(<<~JS)
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/leads/#{@lead.id}/close_lead';
-    var method = document.createElement('input');
-    method.type = 'hidden'; method.name = '_method'; method.value = 'patch';
-    form.appendChild(method);
-    var csrf = document.createElement('input');
-    csrf.type = 'hidden'; csrf.name = 'authenticity_token';
-    csrf.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    form.appendChild(csrf);
-    document.body.appendChild(form);
-    form.submit();
-  JS
-  sleep 1
 end
 
 When('I search leads for {string}') do |query|
@@ -336,18 +300,7 @@ end
 
 When('I filter leads by stage {string}') do |stage_label|
   # Map display label to select option value
-  stage_value_map = {
-    'Lead Generated' => 'lead_generated',
-    'Consultation' => 'consultation_scheduled',
-    'One-on-One' => 'one_on_one',
-    'Follow-Up' => 'follow_up',
-    'Follow Up' => 'follow_up',
-    'Successful' => 'follow_up_successful',
-    'Unsuccessful' => 'follow_up_unsuccessful',
-    'Not Interested' => 'not_interested',
-    'Re-Follow Up' => 're_follow_up',
-    'Lead Close' => 'lead_closed'
-  }
+  stage_value_map = Lead::STAGES.to_h { |key, st| [st[:label], key] }
   stage_value = stage_value_map[stage_label] || stage_label.downcase.tr(' ', '_').tr('-', '_')
   page.execute_script(<<~JS)
     var sel = document.querySelector('.stage-filter-dropdown, [name="current_stage"]');

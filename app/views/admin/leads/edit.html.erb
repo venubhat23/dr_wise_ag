@@ -381,18 +381,7 @@
               <%= form.label :current_stage, class: "form-label" do %>
                 Current Stage <span class="text-danger">*</span>
               <% end %>
-              <%= form.select :current_stage, options_for_select([
-                ['🟢 Lead Generated', 'lead_generated'],
-                ['📅 Consultation Scheduled', 'consultation_scheduled'],
-                ['🤝 One-on-One Discussion', 'one_on_one'],
-                ['🔁 Follow-Up', 'follow_up'],
-                ['✅ Follow-Up Successful', 'follow_up_successful'],
-                ['❌ Follow-Up Unsuccessful', 'follow_up_unsuccessful'],
-                ['🚫 Not Interested', 'not_interested'],
-                ['🔄 Re-Follow Up', 're_follow_up'],
-                ['👤 Convert to Client', 'converted'],
-                ['📁 Lead Close - Follow-Up Unsuccessful', 'lead_closed']
-              ], @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
+              <%= form.select :current_stage, options_for_select(Lead.stage_options_for_select(with_icons: true), @lead.current_stage), { prompt: 'Select Stage' }, { class: "form-select searchable-select", required: true, data: { placeholder: "Search and select stage..." } } %>
               <div class="invalid-feedback">Please select a current stage.</div>
             </div>
 
@@ -465,10 +454,8 @@
         <div class="status-item mb-3">
           <div class="d-flex justify-content-between">
             <span class="text-muted">Current Stage:</span>
-            <span class="badge bg-<%= @lead.current_stage == 'consultation_scheduled' ? 'info' :
-                                       @lead.current_stage == 'one_on_one' ? 'warning' :
-                                       @lead.current_stage == 'converted' ? 'success' : 'dark' %>">
-              <%= @lead.current_stage&.humanize %>
+            <span class="badge <%= @lead.stage_badge_class %>">
+              <%= Lead.stage_label(@lead.current_stage) %>
             </span>
           </div>
         </div>
@@ -508,85 +495,15 @@
         </h6>
       </div>
       <div class="card-body">
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'lead_generated' ? 'bg-secondary' : 'bg-light text-dark' %> me-2">🟢</span>
-            <strong>Lead Generated</strong>
+        <% Lead::STAGES.each_with_index do |(stage, stage_info), i| %>
+          <div class="stage-item <%= i == Lead::STAGES.size - 1 ? 'mb-0' : 'mb-2' %>">
+            <div class="d-flex align-items-center">
+              <span class="badge <%= @lead.current_stage == stage ? stage_info[:badge] : 'bg-light text-dark' %> me-2"><%= stage_info[:icon] %></span>
+              <strong><%= stage_info[:label] %></strong>
+            </div>
+            <p class="small text-muted mb-0"><%= stage_info[:description] %></p>
           </div>
-          <p class="small text-muted mb-0">Initial stage - Lead entry into system</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'consultation_scheduled' ? 'bg-info' : 'bg-light text-dark' %> me-2">📅</span>
-            <strong>Consultation Scheduled</strong>
-          </div>
-          <p class="small text-muted mb-0">Meeting scheduled - Initial contact and requirement gathering</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'one_on_one' ? 'bg-warning' : 'bg-light text-dark' %> me-2">🤝</span>
-            <strong>One-on-One</strong>
-          </div>
-          <p class="small text-muted mb-0">Personal meeting - Detailed discussion and product presentation</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'follow_up' ? 'bg-primary' : 'bg-light text-dark' %> me-2">🔁</span>
-            <strong>Follow-Up</strong>
-          </div>
-          <p class="small text-muted mb-0">Following up - Regular contact to maintain engagement</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'follow_up_successful' ? 'bg-success' : 'bg-light text-dark' %> me-2">✅</span>
-            <strong>Follow-Up Successful</strong>
-          </div>
-          <p class="small text-muted mb-0">Successful follow-up - Positive response received</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'follow_up_unsuccessful' ? 'bg-danger' : 'bg-light text-dark' %> me-2">❌</span>
-            <strong>Follow-Up Unsuccessful</strong>
-          </div>
-          <p class="small text-muted mb-0">Unsuccessful follow-up - No positive response</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'not_interested' ? 'bg-secondary' : 'bg-light text-dark' %> me-2">🚫</span>
-            <strong>Not Interested</strong>
-          </div>
-          <p class="small text-muted mb-0">Lead not interested - Client declined the offer</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 're_follow_up' ? 'bg-info' : 'bg-light text-dark' %> me-2">🔄</span>
-            <strong>Re-Follow Up</strong>
-          </div>
-          <p class="small text-muted mb-0">Re-attempting follow-up - Second attempt to engage</p>
-        </div>
-
-        <div class="stage-item mb-2">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'converted' ? 'bg-success' : 'bg-light text-dark' %> me-2">📁</span>
-            <strong>Client Converted</strong>
-          </div>
-          <p class="small text-muted mb-0">Client converted - Ready for policy creation</p>
-        </div>
-
-        <div class="stage-item mb-0">
-          <div class="d-flex align-items-center">
-            <span class="badge <%= @lead.current_stage == 'lead_closed' ? 'bg-dark' : 'bg-light text-dark' %> me-2">🔒</span>
-            <strong>Lead Close - Follow-Up Unsuccessful</strong>
-          </div>
-          <p class="small text-muted mb-0">Lead close - Follow-up unsuccessful</p>
-        </div>
+        <% end %>
       </div>
     </div>
   </div>
