@@ -1267,7 +1267,7 @@
           </div>
         </div>
         <!-- Avg Policy Value -->
-        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/dashboard/avg_policy_value'">
+        <div class="system-status-card flex-fill" style="cursor:pointer;min-width:170px;max-width:20%;height:76px;" onclick="window.location='/dashboard/avg_policy_value?start_date=<%= @filter_start_date %>&end_date=<%= @filter_end_date %>'">
           <div class="px-3 py-2 d-flex align-items-center gap-2 h-100">
             <i class="bi bi-cash-stack fs-4 text-warning flex-shrink-0"></i>
             <div class="overflow-hidden">
@@ -2679,7 +2679,7 @@ function loadProfitSummaryData(content, loading) {
 }
 
 function loadAvgPolicyValueData(content, loading) {
-  fetch('/admin/api/system_status/avg_policy_value')
+  fetch('/admin/api/system_status/avg_policy_value?start_date=<%= @filter_start_date %>&end_date=<%= @filter_end_date %>')
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok: ' + response.status);

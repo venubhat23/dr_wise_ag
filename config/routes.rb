@@ -146,7 +146,7 @@ Rails.application.routes.draw do
     end
 
 
-    resources :customers do
+    resources :customers, only: [] do
       member do
         get :associations_summary
       end

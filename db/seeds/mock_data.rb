@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-# Mock Data Generation Script for InsureBook Admin
+# Mock Data Generation Script for Dr WISE CRM
 # This script creates comprehensive test data for all modules
 
-puts "🚀 Starting InsureBook Mock Data Generation..."
+puts "🚀 Starting Dr WISE CRM Mock Data Generation..."
 puts "=" * 60
 
 # Clear existing test data if needed

@@ -136,11 +136,11 @@ puts "Created #{customers_data.count} Customers"
 
 # Create some Leads
 leads_data = [
-  { name: "Deepak Kumar", contact_number: "7654321011", email: "deepak@gmail.com", product_interest: "Life Insurance", current_stage: "consultation" },
+  { name: "Deepak Kumar", contact_number: "7654321011", email: "deepak@gmail.com", product_interest: "Life Insurance", current_stage: "consultation_scheduled" },
   { name: "Anita Devi", contact_number: "7654321012", email: "anita@gmail.com", product_interest: "Health Insurance", current_stage: "one_on_one" },
   { name: "Rohit Sharma", contact_number: "7654321013", email: "rohit@gmail.com", product_interest: "Motor Insurance", current_stage: "converted" },
-  { name: "Tech Corp Ltd", contact_number: "7654321014", email: "contact@techcorp.com", product_interest: "Corporate Health Insurance", current_stage: "policy_created" },
-  { name: "Kavya Nair", contact_number: "7654321015", email: "kavya@gmail.com", product_interest: "Travel Insurance", current_stage: "consultation" }
+  { name: "Tech Corp Ltd", contact_number: "7654321014", email: "contact@techcorp.com", product_interest: "Corporate Health Insurance", current_stage: "proposal_quote" },
+  { name: "Kavya Nair", contact_number: "7654321015", email: "kavya@gmail.com", product_interest: "Travel Insurance", current_stage: "consultation_scheduled" }
 ]
 
 leads_data.each do |lead_data|

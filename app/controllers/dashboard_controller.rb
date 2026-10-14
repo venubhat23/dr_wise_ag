@@ -27,6 +27,8 @@ class DashboardController < ApplicationController
 
   def avg_policy_value
     authorize! :read, :dashboard
+    @start_date = params[:start_date].presence || Date.new(Date.current.year, 1, 1).strftime('%Y-%m-%d')
+    @end_date   = params[:end_date].presence   || Date.new(Date.current.year, 12, 31).strftime('%Y-%m-%d')
   end
 
   def card_detail

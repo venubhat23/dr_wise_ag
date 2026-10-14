@@ -352,7 +352,7 @@ lead_names = ['Sanjay Kapoor', 'Neha Sharma', 'Rajesh Kumar', 'Preethi Nair', 'A
     city: ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad', 'Pune'].sample,
     state: ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Telangana'].sample,
     referred_by: ['Rahul Sharma', 'Walk-in', 'Online', 'Advertisement', 'Friend Referral'].sample,
-    current_stage: ['consultation', 'one_on_one', 'converted', 'policy_created'].sample,
+    current_stage: Lead::STAGE_ORDER.sample,
     created_date: Date.current - rand(90).days,
     notes: "Interested in #{['family health coverage', 'term life insurance', 'comprehensive motor insurance', 'other insurance'].sample}",
     lead_source: ['online', 'offline', 'agent_referral', 'walk_in', 'tele_calling', 'campaign'].sample,

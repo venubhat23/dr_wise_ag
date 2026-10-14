@@ -602,6 +602,15 @@
       <div class="kpi-value" id="affiliates-value"><%= number_with_delimiter(@total_affiliates) %></div>
       <div class="kpi-label">Total Affiliates</div>
     </div>
+
+    <!-- Total Ambassadors -->
+    <div class="kpi-card" style="--card-color: #0ea5e9; cursor: pointer;" data-metric="ambassadors" data-label="Total Ambassadors" onclick="openKpiDetailModal(this)">
+      <div class="kpi-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+        <i class="bi bi-award-fill"></i>
+      </div>
+      <div class="kpi-value"><%= number_with_delimiter(@total_ambassadors || 0) %></div>
+      <div class="kpi-label">Total Ambassadors</div>
+    </div>
   </div>
 
   <!-- KPI Detail Modal -->
@@ -774,6 +783,16 @@
         </tr>`;
       });
       summary.innerHTML = `<span class="badge bg-pink fs-6" style="background:#ec4899;">${records.length} Affiliates</span>`;
+
+    } else if (metric === 'ambassadors') {
+      head.innerHTML = `<tr><th>#</th><th>Name</th><th>Status</th><th>Joined</th></tr>`;
+      records.forEach((r, i) => {
+        body.innerHTML += `<tr>
+          <td class="text-muted">${i+1}</td>
+          <td>${r.name}</td><td>${r.status}</td><td>${r.created_at}</td>
+        </tr>`;
+      });
+      summary.innerHTML = `<span class="badge fs-6" style="background:#0ea5e9;">${records.length} Ambassadors</span>`;
     }
   }
   </script>

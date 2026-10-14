@@ -1458,6 +1458,12 @@ class Admin::AnalyticsController < Admin::ApplicationController
         { type: 'Affiliate', name: "#{a.first_name} #{a.last_name}".strip,
           created_at: a.created_at.strftime('%d-%m-%Y'), status: a.status.to_s }
       end
+    when 'ambassadors'
+      # Same window as the @total_ambassadors card count
+      Distributor.where(created_at: dt_start..dt_end).order(created_at: :desc).map do |d|
+        { type: 'Ambassador', name: d.full_name.squeeze(' '),
+          created_at: d.created_at.strftime('%d-%m-%Y'), status: d.status.to_s }
+      end
     else
       []
     end

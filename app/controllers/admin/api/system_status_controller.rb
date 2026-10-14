@@ -192,6 +192,10 @@ module Admin
         begin
           # Match the dashboard card: admin-added policies only (dr_filter)
           admin_scope = { is_admin_added: true, is_customer_added: false, is_agent_added: false }
+          # Same date window as the dashboard card (policy_start_date within the filter)
+          start_date = (Date.parse(params[:start_date]) rescue nil) if params[:start_date].present?
+          end_date   = (Date.parse(params[:end_date]) rescue nil) if params[:end_date].present?
+          admin_scope[:policy_start_date] = start_date..end_date if start_date && end_date
           policy_data = []
 
         # Health Insurance
