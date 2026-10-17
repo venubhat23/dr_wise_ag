@@ -24,14 +24,8 @@ class Admin::LeadsController < Admin::ApplicationController
       end
     end
 
-    # Search functionality - Use simpler search in production for better performance
-    if params[:search].present?
-      if Rails.env.production? && @leads.respond_to?(:simple_search)
-        @leads = @leads.simple_search(params[:search])
-      else
-        @leads = @leads.search_leads(params[:search])
-      end
-    end
+    # Search functionality (substring match - see SubstringSearchable)
+    @leads = @leads.search_leads(params[:search]) if params[:search].present?
 
     # Filter by current stage
     if params[:current_stage].present?

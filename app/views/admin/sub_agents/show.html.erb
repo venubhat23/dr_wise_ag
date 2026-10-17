@@ -103,6 +103,20 @@
             </td>
           </tr>
           <tr>
+            <th class="text-muted">Created:</th>
+            <td><%= @sub_agent.created_at.strftime('%d %b %Y') %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Validity:</th>
+            <td>
+              <% if @sub_agent.subscription_expires_at.present? %>
+                <%= render 'admin/shared/subscription_expiry', record: @sub_agent %>
+              <% else %>
+                <span class="text-muted">No subscription</span>
+              <% end %>
+            </td>
+          </tr>
+          <tr>
             <th class="text-muted">Role:</th>
             <td>
               <span class="badge bg-info">

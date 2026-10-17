@@ -1,5 +1,6 @@
 class CommissionPayout < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include ClearsAnalyticsCache
 
   # Set correct table name
@@ -36,11 +37,8 @@ class CommissionPayout < ApplicationRecord
   scope :last_month, -> { where(payout_date: 1.month.ago.beginning_of_month..1.month.ago.end_of_month) }
 
   # Search configuration
-  pg_search_scope :search_payouts,
-    against: [:transaction_id, :reference_number, :notes],
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+  substring_search_scope :search_payouts,
+    against: [:transaction_id, :reference_number, :notes]
 
   # Callbacks
   # after_create :create_audit_log

@@ -1,5 +1,6 @@
 class Investor < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
 
   # Password authentication
   has_secure_password validations: false
@@ -44,11 +45,8 @@ class Investor < ApplicationRecord
   enum :status, { active: 0, inactive: 1 }
 
   # Search configuration
-  pg_search_scope :search_by_name_mobile_email,
-                  against: [:first_name, :last_name, :mobile, :email],
-                  using: {
-                    tsearch: { prefix: true }
-                  }
+  substring_search_scope :search_by_name_mobile_email,
+    against: [:first_name, :last_name, :mobile, :email, :middle_name]
 
   # Instance methods
   def full_name

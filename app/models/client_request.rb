@@ -1,5 +1,6 @@
 class ClientRequest < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
 
   # Associations
   belongs_to :resolved_by, class_name: 'User', optional: true
@@ -29,14 +30,8 @@ class ClientRequest < ApplicationRecord
   scope :recent, -> { order(submitted_at: :desc) }
 
   # Search
-  pg_search_scope :search_requests,
-    against: [:name, :email, :phone_number, :description, :admin_response],
-    using: {
-      tsearch: {
-        prefix: true,
-        any_word: true
-      }
-    }
+  substring_search_scope :search_requests,
+    against: [:name, :email, :phone_number, :description, :admin_response]
 
   # Callbacks
   before_validation :set_submitted_at, on: :create

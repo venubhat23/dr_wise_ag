@@ -1,5 +1,6 @@
 class LifeInsurance < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include InsuranceCompanyConstants
   include DashboardOptimizable
   include ClearsAnalyticsCache
@@ -85,14 +86,9 @@ class LifeInsurance < ApplicationRecord
   scope :renewals, -> { where(policy_type: 'Renewal') }
 
   # Search
-  pg_search_scope :search_life_policies,
+  substring_search_scope :search_life_policies,
     against: [:policy_number, :plan_name, :insurance_company_name, :insured_name],
-    associated_against: {
-      customer: [:first_name, :last_name, :company_name]
-    },
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+    associated_against: { customer: [:first_name, :last_name, :company_name] }
 
   # Callbacks
   before_save :calculate_totals

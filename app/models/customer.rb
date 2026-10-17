@@ -1,5 +1,6 @@
 class Customer < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include ClearsAnalyticsCache
 
   # Callbacks
@@ -110,11 +111,8 @@ class Customer < ApplicationRecord
   after_update :handle_profile_images
 
   # Search
-  pg_search_scope :search_customers,
-    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_no, :lead_id],
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+  substring_search_scope :search_customers,
+    against: [:first_name, :last_name, :company_name, :email, :mobile, :pan_no, :lead_id, :middle_name]
 
   scope :partial_search, ->(term) {
     pattern = "%#{term}%"

@@ -144,7 +144,7 @@
           <thead class="bg-light">
             <tr>
               <th class="border-0" data-sort-key="first_name">Affiliate</th>
-              <th class="border-0">Contact</th>
+              <th class="border-0">Mobile</th>
               <th class="border-0">Ambassador</th>
               <th class="border-0">Policies</th>
               <th class="border-0">Status</th>
@@ -179,24 +179,11 @@
                       <h6 class="mb-0">
                         <%= sub_agent.display_name.present? ? sub_agent.display_name : "Unnamed Affiliate" %>
                       </h6>
-                      <small class="text-muted d-block">
-                        <i class="bi bi-calendar me-1"></i>Created: <%= sub_agent.created_at.strftime('%d %b %Y') %>
-                      </small>
-                      <%= render 'admin/shared/subscription_expiry', record: sub_agent %>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <div>
-                    <div class="mb-1">
-                      <%= sub_agent.formatted_mobile %>
-                    </div>
-                    <% if sub_agent.email.present? %>
-                      <small class="text-muted">
-                        <%= sub_agent.email %>
-                      </small>
-                    <% end %>
-                  </div>
+                  <%= sub_agent.formatted_mobile %>
                 </td>
                 <td>
                   <div>

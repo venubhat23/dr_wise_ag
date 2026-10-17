@@ -1,5 +1,6 @@
 class HealthInsurance < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include InsuranceCompanyConstants
   include DashboardOptimizable
   include ClearsAnalyticsCache
@@ -80,14 +81,9 @@ class HealthInsurance < ApplicationRecord
   scope :expired_days_ago, ->(days) { where(policy_end_date: Date.current - days.days) }
 
   # Search
-  pg_search_scope :search_health_policies,
+  substring_search_scope :search_health_policies,
     against: [:policy_number, :plan_name, :insurance_company_name],
-    associated_against: {
-      customer: [:first_name, :last_name, :company_name]
-    },
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+    associated_against: { customer: [:first_name, :last_name, :company_name] }
 
   # Callbacks
   before_save :calculate_totals

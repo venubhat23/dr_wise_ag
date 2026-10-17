@@ -1,5 +1,6 @@
 class Vendor < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
 
   has_many :vendor_products, dependent: :destroy, inverse_of: :vendor
   accepts_nested_attributes_for :vendor_products, allow_destroy: true
@@ -32,9 +33,8 @@ class Vendor < ApplicationRecord
               message: "must be a valid 10-digit phone number"
             }
 
-  pg_search_scope :search_by_name_company_contact,
-                  against: [:name, :company_name, :email, :phone_number, :gst_number],
-                  using: { tsearch: { prefix: true } }
+  substring_search_scope :search_by_name_company_contact,
+    against: [:name, :company_name, :email, :phone_number, :gst_number]
 
   # Vendors who offer this exact product, for populating a filtered vendor
   # dropdown on a product's create/edit form.

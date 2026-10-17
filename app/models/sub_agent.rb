@@ -1,5 +1,6 @@
 class SubAgent < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include ReferralCodeable
   include Subscribable
 
@@ -97,11 +98,8 @@ class SubAgent < ApplicationRecord
   scope :truly_active, -> { active.not_deactivated }
 
   # Search configuration
-  pg_search_scope :search_by_name_mobile_email,
-                  against: [:first_name, :last_name, :mobile, :email],
-                  using: {
-                    tsearch: { prefix: true }
-                  }
+  substring_search_scope :search_by_name_mobile_email,
+    against: [:first_name, :last_name, :mobile, :email, :middle_name]
 
   # Instance methods
   def full_name

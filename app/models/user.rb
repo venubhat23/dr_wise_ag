@@ -61,6 +61,7 @@ class User < ApplicationRecord
     end
   end
   include PgSearch::Model
+  include SubstringSearchable
 
   # Associations
   belongs_to :role, optional: true
@@ -90,11 +91,8 @@ class User < ApplicationRecord
   scope :by_type, ->(type) { where(user_type: type) }
 
   # Search
-  pg_search_scope :search_users,
-    against: [:first_name, :last_name, :email, :mobile, :pan_number],
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+  substring_search_scope :search_users,
+    against: [:first_name, :last_name, :email, :mobile, :pan_number]
 
   # Instance methods
   def full_name

@@ -1,5 +1,6 @@
 class Lead < ApplicationRecord
   include PgSearch::Model
+  include SubstringSearchable
   include ClearsAnalyticsCache
 
   # Lead flow — the single source of truth for every stage list in the app
@@ -159,12 +160,9 @@ class Lead < ApplicationRecord
   scope :referred_leads, -> { where(is_direct: false) }
   scope :by_affiliate, ->(affiliate_id) { where(affiliate_id: affiliate_id) }
 
-  pg_search_scope :search_leads,
+  substring_search_scope :search_leads,
     against: [:name, :contact_number, :email, :referred_by, :product_category, :product_subcategory, :lead_id,
-              :first_name, :middle_name, :last_name, :company_name],
-    using: {
-      tsearch: { prefix: true, any_word: true }
-    }
+              :first_name, :middle_name, :last_name, :company_name]
 
   def can_convert_to_customer?
     !converted? && converted_customer_id.nil?

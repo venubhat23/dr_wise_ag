@@ -9,7 +9,7 @@
 # So the active balance ends at bonus + unpaid commission. Affiliates with
 # withdrawal requests are skipped - their withdrawals point at ledger rows.
 class AffiliateWalletRebuild
-  BONUS = BigDecimal('10')
+  BONUS = AffiliateReferralService::SIGNUP_BONUS
   PERFORMED_BY = 'wallet_rebuild'.freeze
   MARKER = CommissionWalletCredit::MARKER
   POLICY_CLASSES = CommissionWalletMigration::POLICY_CLASSES
