@@ -36,9 +36,10 @@ class HealthInsurance < ApplicationRecord
   accepts_nested_attributes_for :uploaded_documents, allow_destroy: true, reject_if: :all_blank
 
   # Virtual attributes
-  attr_accessor :main_policy_document, :sum_insured_text,
-                :main_policy_document_key, :main_policy_document_filename,
-                :main_policy_document_content_type, :main_policy_document_size
+  # NOTE: main_policy_document_key/_filename/_content_type/_size are real DB
+  # columns - never declare them here, an attr_accessor shadows the column
+  # readers and the uploaded main policy silently disappears from the UI.
+  attr_accessor :main_policy_document, :sum_insured_text
 
   # Validations
   validates :policy_holder, presence: true

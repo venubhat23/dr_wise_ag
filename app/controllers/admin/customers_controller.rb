@@ -48,12 +48,7 @@ class Admin::CustomersController < Admin::ApplicationController
     end
 
     # Filter by status
-    case params[:status]
-    when 'active'
-      @customers = @customers.where(status: true)
-    when 'inactive'
-      @customers = @customers.where(status: false)
-    end
+    @customers = apply_status_filter(@customers)
 
     # Get total count before pagination for display purposes
     # Use the same scope as the main query for accurate count
@@ -83,12 +78,7 @@ class Admin::CustomersController < Admin::ApplicationController
       count_scope = count_scope.where(customer_type: params[:customer_type])
     end
 
-    case params[:status]
-    when 'active'
-      count_scope = count_scope.where(status: true)
-    when 'inactive'
-      count_scope = count_scope.where(status: false)
-    end
+    count_scope = apply_status_filter(count_scope)
 
     @total_filtered_count = count_scope.count
 
@@ -115,12 +105,7 @@ class Admin::CustomersController < Admin::ApplicationController
       stats_scope = stats_scope.where(customer_type: params[:customer_type])
     end
 
-    case params[:status]
-    when 'active'
-      stats_scope = stats_scope.where(status: true)
-    when 'inactive'
-      stats_scope = stats_scope.where(status: false)
-    end
+    stats_scope = apply_status_filter(stats_scope)
 
     # Calculate filtered stats using simple queries to avoid GROUP BY issues
     @stats = if params[:search].present? && params[:search].strip.length >= 4
@@ -128,7 +113,7 @@ class Admin::CustomersController < Admin::ApplicationController
       # gather all 4 figures in a single round trip via FILTER.
       row = stats_scope.pick(
         Arel.sql('COUNT(*)'),
-        Arel.sql('COUNT(*) FILTER (WHERE status = TRUE)'),
+        Arel.sql('COUNT(*) FILTER (WHERE status = TRUE AND deactivated IS NOT TRUE)'),
         Arel.sql("COUNT(*) FILTER (WHERE customer_type = 'individual')"),
         Arel.sql("COUNT(*) FILTER (WHERE customer_type = 'corporate')")
       )
@@ -140,12 +125,12 @@ class Admin::CustomersController < Admin::ApplicationController
       }
     else
       # When no search, can use GROUP BY safely
-      stats_data = stats_scope.group(:customer_type, :status).count
+      stats_data = stats_scope.group(:customer_type, :status, :deactivated).count
       stats_data.each_with_object(Hash.new(0)) do |(key, count), stats|
-        customer_type, status = key
+        customer_type, status, deactivated = key
 
         stats[:total_customers] += count
-        stats[:active_customers] += count if status == true
+        stats[:active_customers] += count if status == true && !deactivated
         stats[:individual_customers] += count if customer_type == 'individual'
         stats[:corporate_customers] += count if customer_type == 'corporate'
       end.tap do |stats|
@@ -1180,12 +1165,7 @@ class Admin::CustomersController < Admin::ApplicationController
       @customers = @customers.where(customer_type: params[:customer_type])
     end
 
-    case params[:status]
-    when 'active'
-      @customers = @customers.active
-    when 'inactive'
-      @customers = @customers.inactive
-    end
+    @customers = apply_status_filter(@customers)
 
     @customers = @customers.order(:created_at)
 
@@ -1319,6 +1299,21 @@ class Admin::CustomersController < Admin::ApplicationController
   end
 
   private
+
+  # Status filter for the client list. Clients are switched off via the
+  # Deactivate button (deactivated = true), not the status column, so
+  # "Active" must exclude deactivated clients and "Inactive" must include them
+  # (matches Customer#active?).
+  def apply_status_filter(scope)
+    case params[:status]
+    when 'active'
+      scope.where(status: true).where(deactivated: [false, nil])
+    when 'inactive'
+      scope.where(status: [false, nil]).or(scope.where(deactivated: true))
+    else
+      scope
+    end
+  end
 
   # Determine redirect path after customer creation based on lead product category/subcategory
   def lead_product_redirect_path(lead, customer)
@@ -1619,10 +1614,7 @@ class Admin::CustomersController < Admin::ApplicationController
       scope = scope.where(customer_type: params[:customer_type])
     end
 
-    case params[:status]
-    when 'active'  then scope = scope.where(status: true)
-    when 'inactive' then scope = scope.where(status: false)
-    end
+    scope = apply_status_filter(scope)
 
     scope
   end

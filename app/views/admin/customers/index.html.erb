@@ -163,7 +163,13 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Runs directly (not only on DOMContentLoaded): after a Turbo visit that event
+// has already fired, so the filter dropdowns would never auto-submit.
+(function initCustomerFilters() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCustomerFilters, { once: true });
+    return;
+  }
   const searchInput = document.getElementById('search_input');
   const leadIdSearchInput = document.getElementById('lead_id_search_input');
   const customerTypeFilter = document.getElementById('customer_type_filter');
@@ -215,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
   statusFilter.addEventListener('change', function() {
     searchForm.submit();
   });
-});
+})();
 </script>
 
 <!-- Clients List -->
