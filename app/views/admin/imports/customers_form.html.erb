@@ -707,32 +707,32 @@ document.addEventListener('DOMContentLoaded', function() {
         'first_name* (First name)',
         'last_name* (Last name)',
         'mobile* (10-digit mobile number)',
-        'birth_date* (Birth date YYYY-MM-DD)',
+        'birth_date* (Date of birth YYYY-MM-DD)',
         'nominee_name* (Nominee full name)',
         'nominee_relation* (father/mother/spouse/son/daughter/brother/sister/other)',
         'nominee_date_of_birth* (Nominee birth date YYYY-MM-DD)'
       ],
       optional: [
         'middle_name (Middle name)',
-        'email (Email address)',
-        'gender (male/female/other)',
-        'marital_status (single/married/divorced/widowed)',
-        'address (Full address)',
-        'city (City name)',
-        'state (State name)',
-        'pincode (PIN code)',
-        'pan_no (PAN number AAAAA9999A)',
-        'occupation (Job/Profession)',
-        'annual_income (Annual income amount)',
-        'education (Educational qualification)',
-        'height_feet (Height in feet)',
-        'weight_kg (Weight in kilograms)',
+        'email (Email address; mobile login is created with password atma@123)',
+        'sub_agent_mobile (Affiliate mobile number)',
+        'state, city, address, pincode',
         'birth_place (Place of birth)',
-        'business_job (Type of business/job)',
-        'job_name (Specific job title)',
-        'type_of_duty (Type of duties)',
-        'sub_agent_name (Affiliate name)',
-        'status (true/false, default: true)'
+        'anniversary_date (YYYY-MM-DD)',
+        'gender (male/female/other)',
+        'height_feet (e.g. 5.67 for 5 ft 8 in)',
+        'weight_kg (Weight in kg)',
+        'education (Educational qualification)',
+        'marital_status (single/married/divorced/widowed)',
+        'business_job (salaried/self_employed/business/professional/student/retired/unemployed/other)',
+        'business_name (Name of business/job)',
+        'type_of_duty (Type of duty)',
+        'annual_income (Annual income amount)',
+        'pan_no (PAN number AAAAA9999A)',
+        'additional_information (Notes)',
+        'bank_name, account_no, ifsc_code (Bank details)',
+        'status (true/false, default: true)',
+        'family_member_N_* (N = 1, 2, 3…): first_name, middle_name, last_name, relationship, birth_date, gender, mobile, pan_no, height_feet, weight_kg, additional_information'
       ]
     },
     corporate: {
@@ -740,23 +740,17 @@ document.addEventListener('DOMContentLoaded', function() {
         'customer_type* (must be "corporate")',
         'company_name* (Company name)',
         'mobile* (10-digit mobile number)',
-        'email* (Email address)',
-        'gst_no* (GST number)',
-        'birth_date* (Registration date YYYY-MM-DD)',
-        'nominee_name* (Nominee full name)',
-        'nominee_relation* (Relation to company - usually "other")',
-        'nominee_date_of_birth* (Nominee birth date YYYY-MM-DD)'
+        'email* (Email address; mobile login is created with password atma@123)',
+        'gst_no* (GST number)'
       ],
       optional: [
-        'address (Full address)',
-        'city (City name)',
-        'state (State name)',
-        'pincode (PIN code)',
-        'pan_no (PAN number AAAAA9999A)',
+        'sub_agent_mobile (Affiliate mobile number)',
+        'state, city, address, pincode',
         'annual_income (Annual turnover)',
-        'business_name (Business/Trade name)',
-        'sub_agent_name (Affiliate name)',
-        'status (true/false, default: true)'
+        'pan_no (PAN number AAAAA9999A)',
+        'additional_information (Notes)',
+        'status (true/false, default: true)',
+        'corporate_member_N_* (N = 1, 2, 3…): company_name, mobile, email, state, city, address, annual_income, pan_no, gst_no, additional_information'
       ]
     }
   };
@@ -1184,6 +1178,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const successDetails = document.getElementById('successDetails');
     if (successDetails) {
       successDetails.textContent = data.message;
+      if (data.errors && data.errors.length) {
+        const list = document.createElement('ul');
+        list.className = 'small text-danger mt-2 mb-0 text-start';
+        data.errors.forEach(err => {
+          const li = document.createElement('li');
+          li.textContent = err;
+          list.appendChild(li);
+        });
+        successDetails.appendChild(list);
+      }
     }
 
     // Update statistics

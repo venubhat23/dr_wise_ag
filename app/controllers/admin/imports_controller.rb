@@ -30,101 +30,22 @@ class Admin::ImportsController < Admin::ApplicationController
       return
     end
 
-    begin
-      require 'csv'
+    preview_results = ImportService::CustomerImporter.new(uploaded_file).preview
 
-      Rails.logger.info "Processing file: #{uploaded_file.original_filename}"
-      Rails.logger.info "File path: #{uploaded_file.path}"
-      Rails.logger.info "File size: #{uploaded_file.size}"
-
-      preview_results = []
-      row_index = 0
-      total_rows_processed = 0
-
-      # Detect CSV encoding and parse
-      file_content = File.read(uploaded_file.path)
-
-      # Try UTF-8 first, then fallback to other encodings
-      begin
-        file_content = file_content.force_encoding('UTF-8')
-        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
-      rescue CSV::MalformedCSVError, Encoding::UndefinedConversionError
-        # Try with different encoding
-        file_content = file_content.force_encoding('ISO-8859-1').encode('UTF-8')
-        csv_data = CSV.parse(file_content, headers: true, skip_blanks: true)
-      end
-
-      Rails.logger.info "CSV headers: #{csv_data.headers}"
-      Rails.logger.info "Total CSV rows: #{csv_data.length}"
-
-      # Pre-fetch all existing mobile numbers to avoid N+1 queries
-      # Only query if we have rows to validate
-      existing_mobiles = Set.new
-      if csv_data.length > 0
-        all_mobiles = []
-        csv_data.each do |row|
-          mobile = (row['mobile*'] || row['mobile'])&.to_s&.strip
-          if mobile.present?
-            clean_mobile = mobile.gsub(/\D/, '')
-            all_mobiles << mobile
-            all_mobiles << clean_mobile if clean_mobile != mobile
-          end
-        end
-
-        if all_mobiles.any?
-          # Use select to reduce memory usage for large customer tables
-          existing_mobiles = Customer.select(:mobile).where(mobile: all_mobiles.uniq).pluck(:mobile).to_set
-        end
-      end
-
-      csv_data.each_with_index do |row, index|
-        row_index = index + 1
-        total_rows_processed += 1
-
-        # Skip completely empty rows
-        row_data = row.to_h
-        next if row_data.values.all? { |v| v.nil? || v.strip.empty? }
-
-        Rails.logger.info "Processing row #{row_index}: #{row_data}" if row_index <= 3 # Log first 3 rows
-
-        validation_errors = validate_customer_row_optimized(row_data, row_index, existing_mobiles)
-
-        preview_results << {
-          row: row_index,
-          data: row_data,
-          errors: validation_errors,
-          valid: validation_errors.empty?
-        }
-      end
-
-      Rails.logger.info "Preview results: #{preview_results.count} rows processed"
-
-      render json: {
-        success: true,
-        preview: preview_results,
-        total_rows: preview_results.count,
-        valid_rows: preview_results.count { |r| r[:valid] },
-        invalid_rows: preview_results.count { |r| !r[:valid] },
-        debug: {
-          original_rows: total_rows_processed,
-          headers: csv_data.headers,
-          file_size: uploaded_file.size
-        }
-      }
-
-    rescue => e
-      Rails.logger.error "Client preview error: #{e.class} - #{e.message}"
-      Rails.logger.error e.backtrace.join("\n")
-      render json: {
-        success: false,
-        error: "Error reading file: #{e.message}. Please check the format and try again.",
-        debug: {
-          error_class: e.class.name,
-          file_name: uploaded_file.original_filename,
-          file_size: uploaded_file.size
-        }
-      }
-    end
+    render json: {
+      success: true,
+      preview: preview_results,
+      total_rows: preview_results.count,
+      valid_rows: preview_results.count { |r| r[:valid] },
+      invalid_rows: preview_results.count { |r| !r[:valid] }
+    }
+  rescue => e
+    Rails.logger.error "Client preview error: #{e.class} - #{e.message}"
+    Rails.logger.error e.backtrace.join("\n")
+    render json: {
+      success: false,
+      error: "Error reading file: #{e.message}. Please check the format and try again."
+    }
   end
 
   def sub_agents_preview
@@ -859,7 +780,8 @@ class Admin::ImportsController < Admin::ApplicationController
               message: success_message,
               imported_count: import_result[:imported_count],
               skipped_count: import_result[:skipped_count],
-              total_count: import_result[:imported_count] + import_result[:skipped_count]
+              total_count: import_result[:imported_count] + import_result[:skipped_count],
+              errors: import_result[:errors] || []
             }
             Rails.logger.info "Sending JSON response: #{response_data.inspect}"
             render json: response_data
@@ -1217,122 +1139,56 @@ class Admin::ImportsController < Admin::ApplicationController
     end
   end
 
-  def send_individual_customer_template
-    csv_data = CSV.generate(headers: true) do |csv|
-      csv << [
-        'customer_type*', 'first_name*', 'middle_name', 'last_name*', 'mobile*',
-        'email', 'gender', 'birth_date*', 'marital_status', 'address', 'city', 'state',
-        'pincode', 'pan_no', 'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
-        'occupation', 'annual_income', 'education', 'height_feet', 'weight_kg',
-        'birth_place', 'business_job', 'job_name', 'type_of_duty', 'sub_agent_name', 'status'
-      ]
-      # Sample row 1
-      csv << [
-        'individual', 'John', 'Kumar', 'Doe', '9876543210',
-        'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
-        '400001', 'ABCDE1234F', 'Jane Doe', 'spouse', '1992-05-15',
-        'Software Engineer', '800000', 'Graduate', '5.8', '70',
-        'Mumbai', 'Private Job', 'Senior Developer', 'Office Work', 'Agent Name', 'true'
-      ]
-      # Sample row 2
-      csv << [
-        'individual', 'Priya', '', 'Sharma', '9876543211',
-        'priya.sharma@example.com', 'female', '1985-05-15', 'single', '456 Park Road', 'Delhi', 'Delhi',
-        '110001', 'BCDEF2345G', 'Ram Sharma', 'father', '1960-03-20',
-        'Teacher', '500000', 'Post Graduate', '5.4', '55',
-        'Delhi', 'Government Job', 'Assistant Professor', 'Teaching', '', 'true'
-      ]
-      # Empty row for user data
-      csv << [
-        'individual', '', '', '', '',
-        '', '', '', '', '', '', '',
-        '', '', '', '', '',
-        '', '', '', '', '',
-        '', '', '', '', '', 'true'
-      ]
-    end
+  INDIVIDUAL_CUSTOMER_SAMPLE = {
+    'customer_type' => 'individual', 'first_name' => 'John', 'middle_name' => 'Kumar', 'last_name' => 'Doe',
+    'mobile' => '9876543210', 'email' => 'john.doe@example.com', 'sub_agent_mobile' => '',
+    'state' => 'Maharashtra', 'city' => 'Mumbai', 'address' => '123 Main Street, Andheri', 'pincode' => '400001',
+    'birth_place' => 'Mumbai', 'birth_date' => '1990-01-15', 'anniversary_date' => '2015-02-14', 'gender' => 'male',
+    'height_feet' => '5.67', 'weight_kg' => '70', 'education' => 'Graduate', 'marital_status' => 'married',
+    'business_job' => 'salaried', 'business_name' => 'Infosys Ltd', 'type_of_duty' => 'Office',
+    'annual_income' => '1200000', 'pan_no' => 'ABCDE1234F', 'additional_information' => 'VIP client',
+    'bank_name' => 'HDFC Bank', 'account_no' => '50100123456789', 'ifsc_code' => 'HDFC0001234',
+    'nominee_name' => 'Jane Doe', 'nominee_relation' => 'spouse', 'nominee_date_of_birth' => '1992-05-20', 'status' => 'true',
+    'family_member_1_first_name' => 'Jane', 'family_member_1_last_name' => 'Doe', 'family_member_1_relationship' => 'spouse',
+    'family_member_1_birth_date' => '1992-05-20', 'family_member_1_gender' => 'female', 'family_member_1_mobile' => '9876543299',
+    'family_member_1_pan_no' => 'FGHIJ5678K', 'family_member_1_height_feet' => '5.33', 'family_member_1_weight_kg' => '55',
+    'family_member_2_first_name' => 'Aarav', 'family_member_2_last_name' => 'Doe', 'family_member_2_relationship' => 'son',
+    'family_member_2_birth_date' => '2018-08-10', 'family_member_2_gender' => 'male'
+  }.freeze
 
-    send_data csv_data, filename: 'individual_customers_template.csv', type: 'text/csv'
+  CORPORATE_CUSTOMER_SAMPLE = {
+    'customer_type' => 'corporate', 'company_name' => 'ABC Private Limited', 'mobile' => '9876543211',
+    'email' => 'contact@abc.com', 'sub_agent_mobile' => '', 'state' => 'Delhi', 'city' => 'New Delhi',
+    'address' => '456 Business Park, Connaught Place', 'pincode' => '110001', 'annual_income' => '5000000',
+    'pan_no' => 'ABCDE1234F', 'gst_no' => '07ABCDE1234F1Z5', 'additional_information' => 'Corporate client', 'status' => 'true',
+    'corporate_member_1_company_name' => 'ABC Logistics', 'corporate_member_1_mobile' => '9876543212',
+    'corporate_member_1_email' => 'logistics@abc.com', 'corporate_member_1_state' => 'Delhi',
+    'corporate_member_1_city' => 'New Delhi', 'corporate_member_1_address' => 'Okhla Phase 2',
+    'corporate_member_1_annual_income' => '2000000', 'corporate_member_1_pan_no' => 'KLMNO9012P',
+    'corporate_member_1_gst_no' => '07KLMNO9012P1Z3'
+  }.freeze
+
+  def send_individual_customer_template
+    send_customer_csv('individual', [INDIVIDUAL_CUSTOMER_SAMPLE], 'individual_customers_template.csv')
   end
 
   def send_corporate_customer_template
-    csv_data = CSV.generate(headers: true) do |csv|
-      csv << [
-        'customer_type*', 'company_name*', 'mobile*', 'email*', 'gst_no*',
-        'birth_date*', 'address', 'city', 'state', 'pincode', 'pan_no',
-        'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
-        'annual_income', 'business_name', 'sub_agent_name', 'status'
-      ]
-      # Sample row 1
-      csv << [
-        'corporate', 'ABC Company Ltd', '9876543211', 'contact@abc.com', '22ABCDE1234F1Z5',
-        '2010-01-01', '456 Business Park', 'Delhi', 'Delhi', '110001', 'ABCDE1234F',
-        'John Doe', 'other', '1980-01-01',
-        '5000000', 'ABC Business Ventures', 'Agent Name', 'true'
-      ]
-      # Sample row 2
-      csv << [
-        'corporate', 'XYZ Enterprises Pvt Ltd', '9876543212', 'info@xyz.com', '27BCDEF2345G1Z6',
-        '2015-05-15', '789 Industrial Area', 'Mumbai', 'Maharashtra', '400001', 'BCDEF2345G',
-        'Jane Smith', 'other', '1985-03-10',
-        '3000000', 'XYZ Manufacturing', '', 'true'
-      ]
-      # Empty row for user data
-      csv << [
-        'corporate', '', '', '', '',
-        '', '', '', '', '', '',
-        '', '', '',
-        '', '', '', 'true'
-      ]
-    end
-
-    send_data csv_data, filename: 'corporate_customers_template.csv', type: 'text/csv'
+    send_customer_csv('corporate', [CORPORATE_CUSTOMER_SAMPLE], 'corporate_customers_template.csv')
   end
 
   def send_both_customer_template
-    csv_data = CSV.generate(headers: true) do |csv|
-      csv << [
-        'customer_type*', 'first_name', 'middle_name', 'last_name', 'company_name',
-        'mobile*', 'email', 'gender', 'birth_date*', 'marital_status', 'address', 'city', 'state',
-        'pincode', 'pan_no', 'gst_no', 'nominee_name*', 'nominee_relation*', 'nominee_date_of_birth*',
-        'occupation', 'annual_income', 'education', 'height_feet', 'weight_kg',
-        'birth_place', 'business_job', 'business_name', 'sub_agent_name', 'status'
-      ]
-      # Individual customer sample
-      csv << [
-        'individual', 'John', 'Kumar', 'Doe', '',
-        '9876543210', 'john.doe@example.com', 'male', '1990-01-01', 'married', '123 Main St', 'Mumbai', 'Maharashtra',
-        '400001', 'ABCDE1234F', '', 'Jane Doe', 'spouse', '1992-05-15',
-        'Software Engineer', '800000', 'Graduate', '5.8', '70',
-        'Mumbai', 'Private Job', '', 'Agent Name', 'true'
-      ]
-      # Corporate customer sample
-      csv << [
-        'corporate', '', '', '', 'ABC Company Ltd',
-        '9876543211', 'contact@abc.com', '', '2010-01-01', '', '456 Business Park', 'Delhi', 'Delhi',
-        '110001', 'ABCDE1234F', '22ABCDE1234F1Z5', 'John Doe', 'other', '1980-01-01',
-        '', '5000000', '', '', '',
-        '', '', 'ABC Business Ventures', 'Agent Name', 'true'
-      ]
-      # Empty individual template row
-      csv << [
-        'individual', '', '', '', '',
-        '', '', '', '', '', '', '', '',
-        '', '', '', '', '', '',
-        '', '', '', '', '',
-        '', '', '', '', 'true'
-      ]
-      # Empty corporate template row
-      csv << [
-        'corporate', '', '', '', '',
-        '', '', '', '', '', '', '', '',
-        '', '', '', '', '', '',
-        '', '', '', '', '',
-        '', '', '', '', 'true'
-      ]
+    send_customer_csv('both', [INDIVIDUAL_CUSTOMER_SAMPLE, CORPORATE_CUSTOMER_SAMPLE], 'customers_import_template.csv')
+  end
+
+  # Header row from ImportService::CustomerImporter plus sample rows matched by column name
+  def send_customer_csv(client_type, samples, filename)
+    headers = ImportService::CustomerImporter.template_headers(client_type)
+    csv_data = CSV.generate do |csv|
+      csv << headers
+      samples.each { |sample| csv << headers.map { |h| sample[h.delete('*')] } }
     end
 
-    send_data csv_data, filename: 'customers_import_template.csv', type: 'text/csv'
+    send_data csv_data, filename: filename, type: 'text/csv'
   end
 
   def send_sub_agent_template
@@ -1538,134 +1394,6 @@ class Admin::ImportsController < Admin::ApplicationController
     marital_status = row_data['marital_status']&.to_s&.downcase&.strip
     if !field_blank?(marital_status) && !['single', 'married', 'divorced', 'widowed'].include?(marital_status)
       errors << "Marital status must be 'single', 'married', 'divorced', or 'widowed'"
-    end
-
-    errors
-  end
-
-  def validate_customer_row_optimized(row_data, row_index, existing_mobiles = nil)
-    errors = []
-
-    customer_type = row_data['customer_type*'] || row_data['customer_type']
-    customer_type = customer_type&.to_s&.downcase&.strip
-
-    # Check customer type
-    if customer_type.nil? || customer_type.empty?
-      errors << "Client type is required"
-    elsif !['individual', 'corporate'].include?(customer_type)
-      errors << "Client type must be 'individual' or 'corporate'"
-    end
-
-    # Individual customer validation
-    if customer_type == 'individual'
-      first_name = row_data['first_name*'] || row_data['first_name']
-      last_name = row_data['last_name*'] || row_data['last_name']
-      mobile = row_data['mobile*'] || row_data['mobile']
-
-      errors << "First name is required for individual clients" if first_name.nil? || first_name.to_s.strip.empty?
-      errors << "Last name is required for individual clients" if last_name.nil? || last_name.to_s.strip.empty?
-      errors << "Mobile is required for individual clients" if mobile.nil? || mobile.to_s.strip.empty?
-    end
-
-    # Corporate customer validation
-    if customer_type == 'corporate'
-      company_name = row_data['company_name*'] || row_data['company_name']
-      mobile = row_data['mobile*'] || row_data['mobile']
-      email = row_data['email*'] || row_data['email']
-      gst_no = row_data['gst_no*'] || row_data['gst_no']
-
-      errors << "Company name is required for corporate clients" if company_name.nil? || company_name.to_s.strip.empty?
-      errors << "Mobile is required for corporate clients" if mobile.nil? || mobile.to_s.strip.empty?
-      errors << "Email is required for corporate clients" if email.nil? || email.to_s.strip.empty?
-      errors << "GST number is required for corporate clients" if gst_no.nil? || gst_no.to_s.strip.empty?
-    end
-
-    # Mobile validation
-    mobile = (row_data['mobile*'] || row_data['mobile'])&.to_s&.strip
-    if mobile && !mobile.empty?
-      # Remove any non-digit characters for validation
-      clean_mobile = mobile.gsub(/\D/, '')
-      if clean_mobile.length != 10
-        errors << "Mobile must be exactly 10 digits"
-      elsif existing_mobiles
-        # Use the pre-fetched set of existing mobiles
-        if existing_mobiles.include?(mobile) || existing_mobiles.include?(clean_mobile)
-          errors << "Mobile number already exists"
-        end
-      end
-    end
-
-    # Email validation
-    email = row_data['email']&.to_s&.strip
-    if email && !email.empty? && !email.match?(URI::MailTo::EMAIL_REGEXP)
-      errors << "Invalid email format"
-    end
-
-    # PAN validation
-    pan_no = row_data['pan_no']&.to_s&.strip&.upcase
-    if pan_no && !pan_no.empty? && !pan_no.match?(/\A[A-Z]{5}\d{4}[A-Z]\z/)
-      errors << "Invalid PAN format (should be AAAAA9999A)"
-    end
-
-    # GST validation
-    gst_no = row_data['gst_no']&.to_s&.strip&.upcase
-    if gst_no && !gst_no.empty? && !gst_no.match?(/\A\d{2}[A-Z]{5}\d{4}[A-Z]\d[Z\d][A-Z\d]\z/)
-      errors << "Invalid GST format"
-    end
-
-    # Gender validation
-    gender = row_data['gender']&.to_s&.downcase&.strip
-    if gender && !gender.empty? && !['male', 'female', 'other'].include?(gender)
-      errors << "Gender must be 'male', 'female', or 'other'"
-    end
-
-    # Marital status validation
-    marital_status = row_data['marital_status']&.to_s&.downcase&.strip
-    if marital_status && !marital_status.empty? && !['single', 'married', 'divorced', 'widowed'].include?(marital_status)
-      errors << "Marital status must be 'single', 'married', 'divorced', or 'widowed'"
-    end
-
-    # Birth date validation - now mandatory for both individual and corporate
-    birth_date = (row_data['birth_date*'] || row_data['birth_date'])&.to_s&.strip
-    if birth_date.nil? || birth_date.empty?
-      errors << "Birth date is required"
-    else
-      begin
-        # For standard YYYY-MM-DD format (most common), parse directly
-        if birth_date.match?(/^\d{4}-\d{2}-\d{2}$/)
-          Date.parse(birth_date)
-        else
-          # For other formats, try Date.parse which handles many formats
-          Date.parse(birth_date)
-        end
-        # Allow future dates - no restriction
-      rescue
-        errors << "Invalid birth date format"
-      end
-    end
-
-    # Nominee validation - all mandatory
-    nominee_name = (row_data['nominee_name*'] || row_data['nominee_name'])&.to_s&.strip
-    if nominee_name.nil? || nominee_name.empty?
-      errors << "Nominee name is required"
-    end
-
-    nominee_relation = (row_data['nominee_relation*'] || row_data['nominee_relation'])&.to_s&.downcase&.strip
-    if nominee_relation.nil? || nominee_relation.empty?
-      errors << "Nominee relation is required"
-    elsif !['father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', 'other'].include?(nominee_relation)
-      errors << "Nominee relation must be 'father', 'mother', 'spouse', 'son', 'daughter', 'brother', 'sister', or 'other'"
-    end
-
-    nominee_dob = (row_data['nominee_date_of_birth*'] || row_data['nominee_date_of_birth'])&.to_s&.strip
-    if nominee_dob.nil? || nominee_dob.empty?
-      errors << "Nominee date of birth is required"
-    else
-      begin
-        Date.parse(nominee_dob)
-      rescue
-        errors << "Invalid nominee date of birth format"
-      end
     end
 
     errors

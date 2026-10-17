@@ -8,12 +8,12 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # DB round trip on every single page load; this DB has ~600ms latency per
     # round trip, so cache it briefly like the equivalent insurance-list stats.
     cache_gen = Rails.cache.read("dashboard_cache_gen") || "0"
-    stats = Rails.cache.fetch("sub_agents_statistics_#{cache_gen}", expires_in: 2.minutes) do
+    stats = Rails.cache.fetch("sub_agents_statistics_v2_#{cache_gen}", expires_in: 2.minutes) do
       row = ActiveRecord::Base.connection.execute(<<~SQL).first
         SELECT
           COUNT(*)                                                                                 AS total,
-          COUNT(*) FILTER (WHERE status = 0)                                                       AS active_count,
-          COUNT(*) FILTER (WHERE status = 1)                                                       AS inactive_count,
+          COUNT(*) FILTER (WHERE status = 0 AND deactivated = false)                               AS active_count,
+          COUNT(*) FILTER (WHERE status = 1 AND deactivated = false)                               AS inactive_count,
           COUNT(*) FILTER (WHERE id NOT IN (SELECT sub_agent_id FROM distributor_assignments WHERE sub_agent_id IS NOT NULL)) AS unassigned_count
         FROM sub_agents
       SQL
@@ -34,16 +34,13 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # trip. Cache the whole assembled page per unique filter+page combination
     # so repeat views of the same listing skip the DB entirely.
     page_cache_key = [
-      "sub_agents_page_v1", cache_gen, Subscribable.cache_gen, per_page_param, params[:page], params[:search], params[:status]
+      "sub_agents_page_v2", cache_gen, Subscribable.cache_gen, per_page_param, params[:page], params[:search], params[:status]
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
       scope = SubAgent.includes(:assigned_distributor, :subscriptions, profile_image_attachment: :blob)
       scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
-      case params[:status]
-      when 'active'   then scope = scope.active
-      when 'inactive' then scope = scope.inactive
-      end
+      scope = filter_by_status(scope)
 
       total_filtered_count = scope.count
       paginated = paginate_records(scope.order(created_at: :desc), total_filtered_count)
@@ -683,11 +680,7 @@ class Admin::SubAgentsController < Admin::ApplicationController
 
     scope = SubAgent.all
     scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
-    scope = case params[:status]
-            when 'active'   then scope.active
-            when 'inactive' then scope.inactive
-            else scope
-            end
+    scope = filter_by_status(scope)
     scope = scope.order(:created_at)
 
     case format_type
@@ -703,6 +696,18 @@ class Admin::SubAgentsController < Admin::ApplicationController
   end
 
   private
+
+  # Mirrors the Status column in the list: "Deactivated" (the Deactivate
+  # button's flag) wins over the active/inactive enum, so each filter only
+  # returns rows shown with that same label.
+  def filter_by_status(scope)
+    case params[:status]
+    when 'active'      then scope.active.not_deactivated
+    when 'inactive'    then scope.inactive.not_deactivated
+    when 'deactivated' then scope.deactivated
+    else scope
+    end
+  end
 
   def generate_sub_agents_csv(records)
     require 'csv'

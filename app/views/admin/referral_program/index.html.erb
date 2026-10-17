@@ -88,7 +88,7 @@
 
 <div class="row g-4">
   <!-- Ambassadors list -->
-  <div class="col-lg-8">
+  <div class="col-12">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-transparent border-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Ambassadors &amp; their affiliate network</h5>
@@ -162,38 +162,48 @@
     </div>
   </div>
 
-  <!-- Recent referral signups -->
-  <div class="col-lg-4">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-transparent border-0">
+  <!-- Recent referral signups (full width below the table so it doesn't squeeze it) -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Recent referral signups</h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                data-bs-target="#rp_recent" aria-expanded="true" aria-controls="rp_recent">
+          <i class="bi bi-chevron-expand"></i> Show / hide
+        </button>
       </div>
-      <div class="card-body">
-        <% if @recent_signups.any? %>
-          <% @recent_signups.each do |s| %>
-            <div class="rp-feed-item ps-3 py-2 mb-2 rounded">
-              <div class="d-flex justify-content-between">
-                <span class="fw-semibold"><%= s.display_name.presence || s.email %></span>
-                <small class="text-muted"><%= time_ago_in_words(s.created_at) %> ago</small>
-              </div>
-              <div class="small text-muted">
-                used <span class="rp-code"><%= s.referred_by_code %></span>
-                <span class="rp-pill <%= s.referred_by_kind == 'ambassador' ? 'bg-primary-subtle text-primary' : 'bg-info-subtle text-info' %>">
-                  <%= s.referred_by_kind&.titleize %>
-                </span>
-              </div>
-              <div class="small">
-                <i class="bi bi-diagram-3 text-muted"></i>
-                <%= @recent_ambassadors[s.distributor_id]&.display_name || "Unassigned" %>
-                <% if s.referral_bonus_credited? %>
-                  <span class="text-success ms-1"><i class="bi bi-check-circle-fill"></i> <%= indian_currency(Admin::ReferralProgramController::SIGNUP_BONUS) %></span>
-                <% end %>
-              </div>
+      <div class="collapse show" id="rp_recent">
+        <div class="card-body pt-0">
+          <% if @recent_signups.any? %>
+            <div class="row g-2">
+              <% @recent_signups.each do |s| %>
+                <div class="col-md-6 col-xl-3">
+                  <div class="rp-feed-item ps-3 py-2 rounded h-100">
+                    <div class="d-flex justify-content-between gap-2">
+                      <span class="fw-semibold text-truncate"><%= s.display_name.presence || s.email %></span>
+                      <small class="text-muted text-nowrap"><%= time_ago_in_words(s.created_at) %> ago</small>
+                    </div>
+                    <div class="small text-muted">
+                      used <span class="rp-code"><%= s.referred_by_code %></span>
+                      <span class="rp-pill <%= s.referred_by_kind == 'ambassador' ? 'bg-primary-subtle text-primary' : 'bg-info-subtle text-info' %>">
+                        <%= s.referred_by_kind&.titleize %>
+                      </span>
+                    </div>
+                    <div class="small">
+                      <i class="bi bi-diagram-3 text-muted"></i>
+                      <%= @recent_ambassadors[s.distributor_id]&.display_name || "Unassigned" %>
+                      <% if s.referral_bonus_credited? %>
+                        <span class="text-success ms-1"><i class="bi bi-check-circle-fill"></i> <%= indian_currency(Admin::ReferralProgramController::SIGNUP_BONUS) %></span>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
             </div>
+          <% else %>
+            <p class="text-muted mb-0">No referral signups yet.</p>
           <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No referral signups yet.</p>
-        <% end %>
+        </div>
       </div>
     </div>
   </div>
