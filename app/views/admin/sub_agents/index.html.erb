@@ -160,8 +160,8 @@
                   <div class="d-flex align-items-center">
                     <!-- Profile Image Circle -->
                     <div class="me-3">
-                      <% if sub_agent.profile_image.attached? %>
-                        <%= image_tag url_for(sub_agent.profile_image),
+                      <% if sub_agent.has_profile_image? %>
+                        <%= image_tag sub_agent.profile_image_url,
                             class: "rounded-circle",
                             style: "width: 40px; height: 40px; object-fit: cover;",
                             alt: "Profile",

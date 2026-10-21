@@ -34,11 +34,11 @@ class Admin::SubAgentsController < Admin::ApplicationController
     # trip. Cache the whole assembled page per unique filter+page combination
     # so repeat views of the same listing skip the DB entirely.
     page_cache_key = [
-      "sub_agents_page_v2", cache_gen, Subscribable.cache_gen, per_page_param, params[:page], params[:search], params[:status]
+      "sub_agents_page_v3", cache_gen, Subscribable.cache_gen, per_page_param, params[:page], params[:search], params[:status]
     ].join('|')
 
     page_bundle = Rails.cache.fetch(page_cache_key, expires_in: 2.minutes) do
-      scope = SubAgent.includes(:assigned_distributor, :subscriptions, profile_image_attachment: :blob)
+      scope = SubAgent.includes(:assigned_distributor, :subscriptions, :sub_agent_documents, profile_image_attachment: :blob)
       scope = scope.search_by_name_mobile_email(params[:search]) if params[:search].present?
       scope = filter_by_status(scope)
 
